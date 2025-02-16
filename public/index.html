@@ -12,6 +12,7 @@
     .card:hover { transform: translateY(-5px); }
     .table { background: white; border-radius: 10px; overflow: hidden; }
     .relevance-badge { background: #4CAF50; color: white; padding: 3px 8px; border-radius: 12px; }
+    .trend-chart { width: 100px; height: 40px; }
   </style>
 </head>
 <body>
@@ -46,8 +47,9 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th>URL</th>
-            <th>History</th>
+            <th>Uses</th>
+            <th>Accounts</th>
+            <th>Trend</th>
           </tr>
         </thead>
         <tbody>
@@ -123,14 +125,44 @@
         const today = new Date().toISOString().split('T')[0];
 
         trendingTags.forEach(tag => {
-          const todayHistory = tag.history.find(h => new Date(parseInt(h.day) * 1000).toISOString().split('T')[0] === today);
-          const formattedDate = new Date(parseInt(todayHistory.day) * 1000).toLocaleDateString();
+          const todayHistory = tag.history.find(h => {
+            const date = new Date(parseInt(h.day) * 1000);
+            return date.toISOString().split('T')[0] === today;
+          });
 
+          if (!todayHistory) return;
+
+          // Sort history chronologically
+          tag.history.sort((a, b) => parseInt(a.day) - parseInt(b.day));
+
+          // Prepare chart data
+          const usesData = tag.history.map(h => h.uses);
+          const accountsData = tag.history.map(h => h.accounts);
+          const maxValue = Math.max(Math.max(...usesData), Math.max(...accountsData)) || 1;
+
+          // Generate SVG points
+          const chartPoints = (data) => tag.history
+            .map((h, i) => {
+              const x = (i * 100) / (tag.history.length - 1 || 1);
+              const y = 40 - (data[i] / maxValue) * 40; // 40px height
+              return `${x},${y}`;
+            })
+            .join(' ');
+
+          // Create table row
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${tag.name}</td>
-            <td><a href="${tag.url}" target="_blank">${tag.url}</a></td>
-            <td>${formattedDate} - 📈 Uses: ${todayHistory.uses}, 👥 Accounts: ${todayHistory.accounts}</td>
+            <td><a href="${tag.url}" target="_blank">#${tag.name}</a></td>
+            <td>${todayHistory.uses.toLocaleString()}</td>
+            <td>${todayHistory.accounts.toLocaleString()}</td>
+            <td>
+              <svg width="100" height="40" viewBox="0 0 100 40" class="trend-chart">
+                <polyline points="${chartPoints(usesData)}" 
+                         stroke="#4CAF50" fill="none" stroke-width="1"/>
+                <polyline points="${chartPoints(accountsData)}" 
+                         stroke="#2196F3" fill="none" stroke-width="1"/>
+              </svg>
+            </td>
           `;
           tableBody.appendChild(row);
         });
