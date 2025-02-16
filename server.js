@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { HASHTAGS } from './constants.js';
 import { PREFERRED_TIMEZONE } from './config.js';
-import { getHashtagUse, presentDayHashtagUse, fetchTootsFromAPI } from './api.js';
+import { getHashtagUse, presentDayHashtagUse, fetchTootsFromAPI, getTrendingTags } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate, generateTootLink } from './utils.js';
 import moment from 'moment-timezone';
 
@@ -79,6 +79,17 @@ app.get('/api/top-toots', async (req, res) => {
     );
 
     res.json(topToots);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Trending tags endpoint
+app.get('/api/trending-tags', async (req, res) => {
+  try {
+    const { limit = 10, offset = 0 } = req.query;
+    const trendingTags = await getTrendingTags(parseInt(limit), parseInt(offset));
+    res.json(trendingTags);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

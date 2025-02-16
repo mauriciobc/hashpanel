@@ -1,11 +1,10 @@
 import { HASHTAGS, TOOTS_PER_PAGE } from './constants.js';
 import { PREFERRED_TIMEZONE } from './config.js';
-import { fetchTootsFromAPI } from './api.js';
+import { fetchTootsFromAPI, getTrendingTags } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate } from './utils.js';
 import { generateTootText } from './generateTootText.js';
 import readline from 'readline';
 import moment from'moment-timezone';
-
 
 async function main() {
   const hashtag = HASHTAGS[new Date().getDay()];
@@ -15,6 +14,8 @@ async function main() {
   const allowedToots = await removeIgnoredToots(sortedToots);
   const todaysToots = await filterTootsByDate(allowedToots, currentDate);
   const tootText = await generateTootText(hashtag, todaysToots);
+  const trendingTags = await getTrendingTags();
+  console.log('Trending tags:', trendingTags);
   console.log(tootText);
 
   const answer = await new Promise(resolve => {

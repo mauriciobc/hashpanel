@@ -39,3 +39,14 @@ export async function presentDayHashtagUse(hashtag) {
   const presentDay = await getPresentDayTimestamp(history);
   return presentDay ? history.filter((item) => item.day === presentDay) : null;
 }
+
+export async function getTrendingTags(limit = 10, offset = 0) {
+  try {
+    const response = await M.get('/trends/tags', { limit, offset });
+    const trendingTags = response.data;
+    return trendingTags;
+  } catch (error) {
+    console.error(`Error fetching trending tags: ${error}`);
+    throw error;
+  }
+}

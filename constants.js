@@ -1,5 +1,5 @@
 export const HASHTAGS = [
-    'almocodedomingo',
+    'silentsunday',
    'segundaficha',
     'tercinema',
     'quartacapa',
