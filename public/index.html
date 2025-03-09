@@ -566,7 +566,7 @@
     }
 
     // Search functionality
-    document.getElementById('searchButton').addEventListener('click', async () => {
+    async function performSearch() {
       const searchInput = document.getElementById('searchInput').value.toLowerCase().replace('#', '').trim();
       const errorMessage = document.getElementById('errorMessage');
       
@@ -642,6 +642,15 @@
         console.error('Error loading data:', error);
         errorMessage.textContent = 'Error: Failed to load data for the hashtag.';
         errorMessage.style.display = 'block';
+      }
+    }
+
+    // Add event listeners for search
+    document.getElementById('searchButton').addEventListener('click', performSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        performSearch();
       }
     });
 
