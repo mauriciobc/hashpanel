@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { HASHTAGS } from './constants.js';
 import { PREFERRED_TIMEZONE } from './config.js';
-import { getHashtagUse, presentDayHashtagUse, fetchTootsFromAPI } from './api.js';
+import { getHashtagUse, presentDayHashtagUse, fetchTootsFromAPI, getTootEmbed } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate, generateTootLink } from './utils.js';
 import moment from 'moment-timezone';
 
@@ -27,15 +27,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Get current day's hashtag
-function getCurrentHashtag() {
-  return HASHTAGS[new Date().getDay()];
+// Get current day's hashtag or use provided hashtag
+function getCurrentHashtag(customHashtag = null) {
+  return customHashtag || HASHTAGS[new Date().getDay()];
 }
 
 // Hashtag statistics endpoint
 app.get('/api/hashtag-stats', async (req, res) => {
   try {
-    const hashtag = getCurrentHashtag();
+    const hashtag = getCurrentHashtag(req.query.hashtag);
     const [history, todayData] = await Promise.all([
       getHashtagUse(hashtag),
       presentDayHashtagUse(hashtag)
@@ -54,7 +54,7 @@ app.get('/api/hashtag-stats', async (req, res) => {
 // Top toots endpoint
 app.get('/api/top-toots', async (req, res) => {
   try {
-    const hashtag = getCurrentHashtag();
+    const hashtag = getCurrentHashtag(req.query.hashtag);
     const response = await fetchTootsFromAPI(hashtag, { limit: 100 });
     let toots = response.data;
 
@@ -74,13 +74,26 @@ app.get('/api/top-toots', async (req, res) => {
         favorites: toot.favourites_count,
         boosts: toot.reblogs_count,
         relevance: toot.relevanceScore,
-        link: await generateTootLink(toot.id)
+        link: await generateTootLink(toot.id),
+        id: toot.id
       }))
     );
 
     res.json(topToots);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get toot embed
+app.get('/api/toot-embed/:id', async (req, res) => {
+  try {
+    const tootId = req.params.id;
+    const tootData = await getTootEmbed(tootId);
+    res.json(tootData);
+  } catch (error) {
+    console.error('Error fetching toot:', error);
+    res.status(500).json({ error: 'Failed to fetch toot data' });
   }
 });
 

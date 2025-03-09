@@ -4,42 +4,510 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mastodon Hashtag Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    body { background: #f0f2f5; padding: 2rem; }
-    .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
-    .card:hover { transform: translateY(-5px); }
-    .table { background: white; border-radius: 10px; overflow: hidden; }
-    .relevance-badge { background: #4CAF50; color: white; padding: 3px 8px; border-radius: 12px; }
+    :root {
+      --primary-color: #4CAF50;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --border-radius: 16px;
+      --transition: all 0.2s ease-in-out;
+    }
+
+    body { 
+      background: var(--bg-color); 
+      padding: 1.5rem;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+    }
+
+    .container {
+      max-width: 1200px;
+      padding: 0 1rem;
+    }
+
+    h1 {
+      font-weight: 600;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: var(--text-primary);
+    }
+
+    .card { 
+      background: var(--card-bg);
+      border: none; 
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      transition: var(--transition);
+      padding: 1.5rem;
+    }
+
+    .card:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.08);
+    }
+
+    .stats-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stats-card h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+
+    .stats-card small {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .hashtag-card {
+      background: var(--primary-color) !important;
+    }
+
+    .hashtag-card h5 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: white;
+    }
+
+    .hashtag-card small {
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+    }
+
+    .search-container {
+      margin-bottom: 2rem;
+    }
+
+    .input-group {
+      max-width: 400px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .input-group-text {
+      background: transparent;
+      border: none;
+      color: var(--primary-color);
+      font-weight: 600;
+      font-size: 1.1rem;
+      padding-left: 1rem;
+    }
+
+    .form-control {
+      border: none;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      background: transparent;
+    }
+
+    .form-control:focus {
+      box-shadow: none;
+      background: transparent;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      background: #43a047;
+      transform: translateY(-1px);
+    }
+
+    .table {
+      margin: 0;
+    }
+
+    .table thead th {
+      background: var(--bg-color);
+      border-bottom: none;
+      color: var(--text-secondary);
+      font-weight: 500;
+      padding: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .table tbody td {
+      padding: 1rem;
+      vertical-align: middle;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      color: var(--text-primary);
+    }
+
+    .relevance-badge { 
+      background: var(--primary-color);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .btn-link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0;
+    }
+
+    .btn-link:hover {
+      color: #43a047;
+      text-decoration: none;
+    }
+
+    .toot-drawer-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      opacity: 0;
+      transition: var(--transition);
+    }
+    
+    .toot-drawer {
+      position: fixed;
+      top: 0;
+      right: -500px;
+      width: 100%;
+      max-width: 500px;
+      height: 100%;
+      background: var(--card-bg);
+      box-shadow: -2px 0 20px rgba(0,0,0,0.1);
+      z-index: 1001;
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 0;
+    }
+    
+    .toot-drawer.open {
+      right: 0;
+    }
+    
+    .toot-drawer-overlay.open {
+      opacity: 1;
+    }
+    
+    .close-drawer {
+      position: absolute;
+      right: 1.5rem;
+      top: 1.5rem;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--bg-color);
+    }
+    
+    .close-drawer:hover {
+      color: var(--text-primary);
+      background: #eef2f6;
+    }
+    
+    .toot-drawer-content {
+      padding: 2rem;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .toot-content {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      margin: 1.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .toot-header {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .toot-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 3px solid white;
+    }
+
+    .toot-author {
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .toot-author-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .toot-author-name:hover {
+      color: var(--primary-color);
+    }
+
+    .toot-author-handle {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .toot-timestamp {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      background: rgba(0,0,0,0.05);
+      border-radius: 20px;
+      transition: var(--transition);
+    }
+
+    .toot-timestamp:hover {
+      background: rgba(0,0,0,0.1);
+      color: var(--text-primary);
+    }
+
+    .toot-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--bg-color);
+      border-radius: var(--border-radius);
+    }
+
+    .toot-stat {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      padding: 0.25rem 0;
+    }
+
+    .toot-stat-icon {
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+
+    .toot-media {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+
+    .toot-media img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      transition: var(--transition);
+    }
+
+    .toot-media img:hover {
+      opacity: 0.9;
+    }
+
+    .toot-media.single {
+      grid-template-columns: 1fr;
+    }
+
+    .toot-media.single img {
+      max-height: 500px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .toot-content a {
+      color: var(--primary-color);
+      text-decoration: none;
+      padding-bottom: 1px;
+      border-bottom: 1px solid transparent;
+      transition: var(--transition);
+    }
+
+    .toot-content a:hover {
+      border-bottom-color: var(--primary-color);
+    }
+
+    .toot-content p {
+      margin: 0.75rem 0;
+    }
+
+    .toot-content p:first-child {
+      margin-top: 0;
+    }
+
+    .toot-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .alert-danger {
+      background: #fee2e2;
+      border: none;
+      color: #991b1b;
+      border-radius: var(--border-radius);
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .alert-danger::before {
+      content: "ℹ️";
+      font-size: 1.1rem;
+    }
+
+    .alert-danger .hashtag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .alert-danger .hashtag {
+      background: rgba(153, 27, 27, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      .container {
+        padding: 0 0.5rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .card {
+        padding: 1rem;
+      }
+
+      .stats-card h2 {
+        font-size: 2rem;
+      }
+
+      .table thead th {
+        padding: 0.75rem;
+      }
+
+      .table tbody td {
+        padding: 0.75rem;
+      }
+
+      .toot-drawer {
+        padding: 0;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .stats-card {
+        margin-bottom: 1rem;
+      }
+
+      .table-responsive {
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+      }
+
+      .table thead th:nth-child(2),
+      .table tbody td:nth-child(2) {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">📊 Hashtag Analytics</h1>
+    <h1>📊 Hashtag Analytics</h1>
+    
+    <!-- Search Box -->
+    <div class="search-container">
+      <div class="input-group">
+        <span class="input-group-text">#</span>
+        <input type="text" id="searchInput" class="form-control" placeholder="Enter any hashtag..." aria-label="Enter any hashtag">
+        <button id="searchButton" class="btn btn-primary">Search</button>
+      </div>
+      <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+    </div>
     
     <!-- KPI Cards -->
-    <div class="row mb-4" id="kpiContainer"></div>
+    <div class="row g-4 mb-4" id="kpiContainer"></div>
     
     <!-- Top Toots Table -->
-    <div class="card p-4">
+    <div class="card">
       <h4 class="mb-3">🚀 Top Performers Today</h4>
-      <table class="table table-hover" id="topTootsTable">
-        <thead>
-          <tr>
-            <th>Author</th>
-            <th>Followers</th>
-            <th>⭐ Favorites</th>
-            <th>🔄 Boosts</th>
-            <th>Relevance</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-hover" id="topTootsTable">
+          <thead>
+            <tr>
+              <th>Author</th>
+              <th>Followers</th>
+              <th>⭐ Favorites</th>
+              <th>🔄 Boosts</th>
+              <th>Relevance</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Toot Drawer -->
+    <div id="tootDrawerOverlay" class="toot-drawer-overlay">
+      <div id="tootDrawer" class="toot-drawer">
+        <span class="close-drawer">&times;</span>
+        <div id="tootDrawerContent" class="toot-drawer-content"></div>
+      </div>
     </div>
   </div>
 
-  <script>
+  <script type="module">
     // Fetch and render data
     async function loadData() {
       try {
@@ -48,26 +516,26 @@
         const { hashtag, todayUses, uniqueUsers, weeklyTotal } = await statsRes.json();
         
         document.getElementById('kpiContainer').innerHTML = `
-          <div class="col-md-3">
-            <div class="card p-3 bg-primary text-white">
+          <div class="col-md-3 col-sm-6">
+            <div class="card hashtag-card stats-card">
               <h5>#${hashtag}</h5>
               <small>Current Hashtag</small>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card p-3">
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
               <h2>${todayUses}</h2>
               <small>Today's Posts</small>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card p-3">
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
               <h2>${uniqueUsers}</h2>
               <small>Unique Users</small>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card p-3">
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
               <h2>${weeklyTotal}</h2>
               <small>Weekly Total</small>
             </div>
@@ -86,17 +554,191 @@
             <td>${toot.favorites}</td>
             <td>${toot.boosts}</td>
             <td><span class="relevance-badge">${toot.relevance}</span></td>
-            <td><a href="${toot.link}" target="_blank">View →</a></td>
+            <td>
+              <button class="btn btn-link" onclick="showTootEmbed('${toot.id}')">View</button>
+            </td>
           </tr>
         `).join('');
+
       } catch (error) {
         console.error('Error loading data:', error);
       }
     }
 
-    // Refresh data every 5 minutes
+    // Search functionality
+    document.getElementById('searchButton').addEventListener('click', async () => {
+      const searchInput = document.getElementById('searchInput').value.toLowerCase().replace('#', '').trim();
+      const errorMessage = document.getElementById('errorMessage');
+      
+      // If search is empty, just reload the default data
+      if (searchInput === '') {
+        errorMessage.style.display = 'none';
+        loadData();
+        return;
+      }
+      
+      // Validate hashtag format (alphanumeric and underscores only)
+      if (!/^[a-z0-9_]+$/.test(searchInput)) {
+        errorMessage.innerHTML = `
+          <div>Invalid hashtag format. Hashtags can only contain letters, numbers, and underscores.</div>
+        `;
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      errorMessage.style.display = 'none';
+      
+      try {
+        // Load KPI data with search term
+        const statsRes = await fetch(`/api/hashtag-stats?hashtag=${searchInput}`);
+        const { hashtag, todayUses, uniqueUsers, weeklyTotal } = await statsRes.json();
+        
+        document.getElementById('kpiContainer').innerHTML = `
+          <div class="col-md-3 col-sm-6">
+            <div class="card hashtag-card stats-card">
+              <h5>#${hashtag}</h5>
+              <small>Current Hashtag</small>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
+              <h2>${todayUses}</h2>
+              <small>Today's Posts</small>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
+              <h2>${uniqueUsers}</h2>
+              <small>Unique Users</small>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="card stats-card">
+              <h2>${weeklyTotal}</h2>
+              <small>Weekly Total</small>
+            </div>
+          </div>
+        `;
+
+        // Load top toots with search term
+        const tootsRes = await fetch(`/api/top-toots?hashtag=${searchInput}`);
+        const topToots = await tootsRes.json();
+        
+        const tbody = document.querySelector('#topTootsTable tbody');
+        tbody.innerHTML = topToots.map(toot => `
+          <tr>
+            <td>@${toot.author}</td>
+            <td>${toot.followers.toLocaleString()}</td>
+            <td>${toot.favorites}</td>
+            <td>${toot.boosts}</td>
+            <td><span class="relevance-badge">${toot.relevance}</span></td>
+            <td>
+              <button class="btn btn-link" onclick="showTootEmbed('${toot.id}')">View</button>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+        errorMessage.textContent = 'Error: Failed to load data for the hashtag.';
+        errorMessage.style.display = 'block';
+      }
+    });
+
+    // Show toot drawer
+    async function showTootEmbed(tootId) {
+      try {
+        const response = await fetch(`/api/toot-embed/${tootId}`);
+        const toot = await response.json();
+        
+        const drawer = document.getElementById('tootDrawer');
+        const content = document.getElementById('tootDrawerContent');
+        const overlay = document.getElementById('tootDrawerOverlay');
+        
+        // Format the timestamp
+        const timestamp = new Date(toot.created_at).toLocaleString('pt-BR', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric'
+        });
+
+        content.innerHTML = `
+          <div class="toot-header">
+            <img src="${toot.account.avatar}" alt="${toot.account.display_name}" class="toot-avatar">
+            <div class="toot-author">
+              <a href="${toot.account.url}" target="_blank" class="toot-author-name">
+                ${toot.account.display_name}
+              </a>
+              <div class="toot-author-handle">@${toot.account.username}</div>
+            </div>
+            <a href="${toot.url}" target="_blank" class="toot-timestamp">${timestamp}</a>
+          </div>
+          <div class="toot-content">
+            ${toot.content}
+          </div>
+          ${toot.media_attachments.length > 0 ? `
+            <div class="toot-media ${toot.media_attachments.length === 1 ? 'single' : ''}">
+              ${toot.media_attachments.map(media => `
+                <a href="${media.url}" target="_blank">
+                  <img src="${media.preview_url}" alt="Media attachment">
+                </a>
+              `).join('')}
+            </div>
+          ` : ''}
+          <div class="toot-stats">
+            <div class="toot-stat">
+              <span class="toot-stat-icon">⭐</span>
+              ${toot.favourites_count.toLocaleString()}
+            </div>
+            <div class="toot-stat">
+              <span class="toot-stat-icon">🔄</span>
+              ${toot.reblogs_count.toLocaleString()}
+            </div>
+            <div class="toot-stat">
+              <span class="toot-stat-icon">💬</span>
+              ${toot.replies_count.toLocaleString()}
+            </div>
+          </div>
+        `;
+        
+        overlay.style.display = 'block';
+        overlay.offsetHeight; // Force reflow
+        overlay.classList.add('open');
+        drawer.classList.add('open');
+        
+      } catch (error) {
+        console.error('Error showing toot:', error);
+      }
+    }
+
+    function closeDrawer() {
+      const overlay = document.getElementById('tootDrawerOverlay');
+      const drawer = document.getElementById('tootDrawer');
+      
+      overlay.classList.remove('open');
+      drawer.classList.remove('open');
+      
+      // Wait for transition to complete before hiding
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    }
+
+    // Close drawer when clicking the close button or overlay
+    document.querySelector('.close-drawer').addEventListener('click', closeDrawer);
+    document.getElementById('tootDrawerOverlay').addEventListener('click', (event) => {
+      if (event.target === event.currentTarget) {
+        closeDrawer();
+      }
+    });
+
+    // Make showTootEmbed available globally
+    window.showTootEmbed = showTootEmbed;
+
+    // Load data on page load
     loadData();
-    setInterval(loadData, 300000);
   </script>
 </body>
 </html>
