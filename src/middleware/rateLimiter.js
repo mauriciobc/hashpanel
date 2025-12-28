@@ -1,4 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { RateLimitError } from '../errors/index.js';
@@ -169,10 +170,12 @@ export const createCustomRateLimit = (options = {}) => {
 };
 
 // In-memory storage for distributed rate limiting (fallback when Redis is not available)
-// This is a thread-safe Map that stores request timestamps per key
+// This Map is safe for concurrent access because JavaScript runs single-threaded
+// (event loop processes one operation at a time)
 const rateLimitStore = new Map();
 
 // Cleanup interval to prevent memory leaks
+// Using .unref() so the interval doesn't keep the process alive when no other work exists
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
   const windowStart = now - (15 * 60 * 1000); // 15 minutes ago
@@ -186,7 +189,54 @@ const cleanupInterval = setInterval(() => {
       rateLimitStore.set(key, validTimestamps);
     }
   }
-}, 5 * 60 * 1000); // Cleanup every 5 minutes
+}, 5 * 60 * 1000).unref(); // Cleanup every 5 minutes
+
+/**
+ * Generates a unique client identifier for rate limiting.
+ * Attempts to use IP address first, then falls back to a composite hash
+ * of available headers to avoid collapsing all unknown clients into one bucket.
+ * 
+ * @param {Object} req - Express request object
+ * @returns {string|null} Client identifier for rate limiting, or null if no reliable identifier exists
+ */
+function getClientIdentifier(req) {
+  // Primary: Try to get IP address from request
+  const ip = req.ip || req.socket?.remoteAddress;
+  
+  // Check if IP is valid (not undefined, null, or 'unknown')
+  // Note: localhost IPs are still valid identifiers for rate limiting
+  if (ip && ip !== 'unknown') {
+    return ip;
+  }
+  
+  // Fallback: Build composite identifier from headers
+  // This creates a unique key per client even when IP is unavailable
+  const headers = {
+    userAgent: req.get('User-Agent') || '',
+    forwardedFor: req.get('X-Forwarded-For') || '',
+    forwardedProto: req.get('X-Forwarded-Proto') || '',
+    acceptLanguage: req.get('Accept-Language') || '',
+    acceptEncoding: req.get('Accept-Encoding') || ''
+  };
+  
+  // Create a composite string from available headers
+  const composite = [
+    headers.userAgent,
+    headers.forwardedFor,
+    headers.forwardedProto,
+    headers.acceptLanguage,
+    headers.acceptEncoding
+  ].filter(Boolean).join('|');
+  
+  // If we have any identifying information, hash it to create a stable identifier
+  if (composite) {
+    const hash = crypto.createHash('sha256').update(composite).digest('hex');
+    return `composite:${hash.substring(0, 16)}`; // Use first 16 chars for readability
+  }
+  
+  // No reliable identifier available - return null to trigger fail-closed behavior
+  return null;
+}
 
 // Rate limiting middleware that checks against Redis or database
 // Currently uses in-memory storage as fallback
@@ -195,8 +245,29 @@ export const distributedRateLimit = async (req, res, next) => {
   const windowMs = 15 * 60 * 1000; // 15 minutes
   const maxRequests = 100;
   
-  // Get client identifier using modern API
-  const key = req.ip || req.socket?.remoteAddress || 'unknown';
+  // Get client identifier using robust identification method
+  const key = getClientIdentifier(req);
+  
+  // Fail-closed: Reject request if no reliable client identifier exists
+  // This prevents all unknown clients from sharing a single rate-limit bucket
+  if (!key) {
+    logger.warn('Unable to identify client for rate limiting - rejecting request', {
+      ip: req.ip,
+      socketRemoteAddress: req.socket?.remoteAddress,
+      userAgent: req.get('User-Agent'),
+      url: req.url,
+      method: req.method
+    });
+    
+    return res.status(403).json({
+      error: {
+        message: 'Unable to identify client. Request rejected for security reasons.',
+        code: 'CLIENT_IDENTIFICATION_FAILED',
+        details: 'The server cannot reliably identify your client. This may occur when required headers are missing or when the request is malformed.'
+      }
+    });
+  }
+  
   const endpoint = req.path;
   const limitKey = `rate_limit:${endpoint}:${key}`;
   

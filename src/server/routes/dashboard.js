@@ -15,13 +15,21 @@ const router = Router();
 router.get('/stats', heavyRateLimit, asyncHandler(async (req, res) => {
   const { timeframe = 'today' } = req.query;
   
-  // Validate timeframe parameter
-  const validTimeframes = ['today', 'week', 'month', 'all'];
-  if (!validTimeframes.includes(timeframe.toLowerCase())) {
-    throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`);
+  // Validate timeframe parameter type
+  if (Array.isArray(timeframe)) {
+    throw new ValidationError('Invalid timeframe. Must be a single value, not an array.', 'timeframe', timeframe);
   }
   
+  if (typeof timeframe !== 'string') {
+    throw new ValidationError(`Invalid timeframe. Must be a string, got ${typeof timeframe}.`, 'timeframe', timeframe);
+  }
+  
+  // Validate timeframe value
+  const validTimeframes = ['today', 'week', 'month', 'all'];
   const normalizedTimeframe = timeframe.toLowerCase();
+  if (!validTimeframes.includes(normalizedTimeframe)) {
+    throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`, 'timeframe', timeframe);
+  }
   
   logger.info('Dashboard stats requested', { timeframe: normalizedTimeframe });
   

@@ -217,7 +217,9 @@ function testNormalizeOnUpdate() {
 }
 
 // Run all tests
-if (import.meta.url === `file://${process.argv[1]}`) {
+import { pathToFileURL } from 'url';
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log('Running RelevanceCalculator weight validation tests...\n');
   
   let passed = 0;

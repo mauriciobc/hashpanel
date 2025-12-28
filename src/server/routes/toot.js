@@ -63,6 +63,63 @@ function sanitizeForLog(value, type = 'generic') {
 }
 
 /**
+ * Sanitize objects for safe logging to prevent leaking sensitive data
+ * @param {any} obj - The object to sanitize
+ * @param {number} depth - Current recursion depth (default: 0, max: 3)
+ * @returns {any} - Sanitized object with sensitive fields omitted or masked
+ */
+function sanitizeObjectForLog(obj, depth = 0) {
+  // Prevent infinite recursion
+  if (depth > 3) {
+    return '[MAX_DEPTH_REACHED]';
+  }
+  
+  // Handle null/undefined
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  
+  // Handle primitives - sanitize strings, pass through numbers/booleans
+  if (typeof obj !== 'object') {
+    return sanitizeForLog(obj, 'generic');
+  }
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObjectForLog(item, depth + 1));
+  }
+  
+  // Handle objects
+  const sanitized = {};
+  const sensitiveKeys = [
+    'token', 'password', 'secret', 'key', 'auth', 'authorization',
+    'apiKey', 'apikey', 'accessToken', 'access_token', 'refreshToken',
+    'refresh_token', 'bearer', 'credentials', 'cookie', 'cookies',
+    'headers', 'authorization', 'x-api-key', 'x-auth-token'
+  ];
+  
+  for (const [key, value] of Object.entries(obj)) {
+    const lowerKey = key.toLowerCase();
+    
+    // Omit sensitive fields entirely
+    if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
+      sanitized[key] = '[REDACTED]';
+      continue;
+    }
+    
+    // Recursively sanitize nested objects and arrays
+    if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeObjectForLog(value, depth + 1);
+    } else {
+      // Sanitize primitive values
+      sanitized[key] = sanitizeForLog(value, 'generic');
+    }
+  }
+  
+  return sanitized;
+}
+
+/**
  * POST /api/toot/generate
  * Generate a summary without posting
  */
@@ -121,9 +178,10 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
   
   // Allow either direct content or hashtag-based generation
   if (content) {
+    const sanitizedOptions = sanitizeObjectForLog(options);
     logger.info('Direct toot posting requested', { 
       contentLength: content.length,
-      options 
+      options: sanitizedOptions
     });
     
     // Validate content length before posting
@@ -166,9 +224,10 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
     }
     
   } else if (hashtag) {
+    const sanitizedOptions = sanitizeObjectForLog(options);
     logger.info('Hashtag toot posting requested', { 
       hashtag: sanitizeForLog(hashtag, 'hashtag'), 
-      options 
+      options: sanitizedOptions
     });
     
     try {

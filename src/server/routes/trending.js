@@ -72,8 +72,8 @@ router.get('/', asyncHandler(async (req, res) => {
     
     // Calculate pagination metadata
     // Use totalCount from service if available, otherwise fallback to enrichedTags.length
-    const total = totalCount !== null ? totalCount : enrichedTags.length;
-    const hasMore = totalCount !== null 
+    const total = totalCount ?? enrichedTags.length;
+    const hasMore = typeof totalCount === 'number'
       ? offset + limit < totalCount
       : enrichedTags.length === limit;
     

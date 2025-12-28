@@ -63,27 +63,31 @@ export const SERVER_CONFIG = {
     }
     
     // If CORS_ORIGIN is not set, use dynamic origin handler
-    // This allows specific origins while maintaining credentials support
+    // In production, CORS_ORIGIN must be explicitly set for security
     return {
       origin: (origin, callback) => {
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        
+        // In production, require explicit CORS_ORIGIN configuration
+        if (!isDevelopment) {
+          return callback(new Error('CORS_ORIGIN must be set in production'));
+        }
+        
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) {
           return callback(null, true);
         }
         
         // In development, allow localhost origins
-        const isDevelopment = process.env.NODE_ENV !== 'production';
         const localhostPattern = /^https?:\/\/localhost(:\d+)?$/;
         
-        // Allow localhost in development or if explicitly allowed
-        if (isDevelopment && localhostPattern.test(origin)) {
+        // Allow localhost in development
+        if (localhostPattern.test(origin)) {
           return callback(null, true);
         }
         
-        // Default to allowing the origin (echo back the request origin)
-        // This is safer than wildcard when credentials: true
-        // In production, you should set CORS_ORIGIN explicitly
-        callback(null, origin);
+        // Reject other origins in development
+        callback(new Error(`Origin ${origin} not allowed`));
       },
       credentials: true
     };

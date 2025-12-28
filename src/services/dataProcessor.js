@@ -240,6 +240,15 @@ export class DataProcessor {
       throw new DataProcessingError('Target date is required for date filtering', 'filter_date');
     }
 
+    // Validate and normalize timezone
+    let timezone = config.server.timezone;
+    if (!timezone || !moment.tz.zone(timezone)) {
+      logger.warn(`Invalid timezone '${timezone}', defaulting to UTC`, { 
+        providedTimezone: timezone 
+      });
+      timezone = 'UTC';
+    }
+
     // Ensure targetDate is in YYYY-MM-DD format
     const normalizedTargetDate = new Date(targetDate).toISOString().split('T')[0];
     
@@ -247,11 +256,11 @@ export class DataProcessor {
       try {
         // Convert toot date to configured timezone
         const tootDate = moment(toot.created_at)
-          .tz(config.server.timezone)
+          .tz(timezone)
           .format('YYYY-MM-DD');
         return tootDate === normalizedTargetDate;
       } catch (error) {
-        loggers.error(`Failed to parse date for toot ${toot.id}`, error);
+        logger.error(`Failed to parse date for toot ${toot.id}`, { error });
         return false;
       }
     });
@@ -269,7 +278,16 @@ export class DataProcessor {
       return toots;
     }
 
-    const now = moment().tz(config.server.timezone);
+    // Validate and normalize timezone
+    let timezone = config.server.timezone;
+    if (!timezone || !moment.tz.zone(timezone)) {
+      logger.warn(`Invalid timezone '${timezone}', defaulting to UTC`, { 
+        providedTimezone: timezone 
+      });
+      timezone = 'UTC';
+    }
+
+    const now = moment().tz(timezone);
     let cutoffDate;
 
     switch (timeframe.toLowerCase()) {
@@ -289,10 +307,10 @@ export class DataProcessor {
 
     const filteredToots = toots.filter(toot => {
       try {
-        const tootMoment = moment(toot.created_at).tz(config.server.timezone);
+        const tootMoment = moment(toot.created_at).tz(timezone);
         return tootMoment.isSameOrAfter(cutoffDate);
       } catch (error) {
-        loggers.error(`Failed to parse date for toot ${toot.id}`, error);
+        logger.error(`Failed to parse date for toot ${toot.id}`, { error });
         return false;
       }
     });

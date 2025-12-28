@@ -55,8 +55,20 @@ export class HashtagService {
       // Get today's date in the configured timezone
       const today = moment().tz(config.server.timezone).format('YYYY-MM-DD');
       
+      // Validate and normalize timeframe parameter
+      const allowedTimeframes = ['today', 'week', 'month', 'all'];
+      let timeframe = options.timeframe || 'today';
+      
+      if (!allowedTimeframes.includes(timeframe)) {
+        logger.warn(`Invalid timeframe '${timeframe}' provided, normalizing to 'all'`, {
+          hashtag,
+          invalidTimeframe: timeframe,
+          allowedTimeframes
+        });
+        timeframe = 'all';
+      }
+      
       // Determine filtering strategy based on timeframe
-      const timeframe = options.timeframe || 'today';
       const shouldFilterByDate = timeframe === 'today';
       
       // Fetch data in parallel

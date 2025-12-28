@@ -38,22 +38,8 @@ const cachedBaseUrl = (() => {
       url: config.mastodon.url, 
       error: error.message 
     });
-    
-    // Try to extract normalized origin from config URL as fallback
-    try {
-      const fallbackUrl = new URL(config.mastodon.url);
-      logger.debug('Using normalized origin as fallback', { 
-        origin: fallbackUrl.origin 
-      });
-      return fallbackUrl.origin;
-    } catch (fallbackError) {
-      logger.error('Failed to extract origin from config URL', { 
-        url: config.mastodon.url, 
-        error: fallbackError.message 
-      });
-      // Last resort: return config URL as-is (may be malformed)
-      return config.mastodon.url;
-    }
+    // Last resort: return config URL as-is (may be malformed)
+    return config.mastodon.url;
   }
 })();
 
