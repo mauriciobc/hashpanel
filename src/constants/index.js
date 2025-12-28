@@ -215,3 +215,10 @@ export const CONSTANTS = {
   HTTP_STATUS,
   DATETIME_CONFIG
 };
+
+// Auto-validate CORS configuration on module load
+// This ensures fast failure in production if CORS_ORIGIN is missing
+// Skip validation in test environment or when explicitly disabled
+if (process.env.NODE_ENV !== 'test' && !process.env.SKIP_CORS_VALIDATION) {
+  validateCorsConfig();
+}

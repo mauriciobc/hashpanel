@@ -14,10 +14,10 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-info() { echo "${BLUE}[INFO]${NC} $1"; }
-success() { echo "${GREEN}[OK]${NC} $1"; }
-warning() { echo "${YELLOW}[AVISO]${NC} $1"; }
-error() { echo "${RED}[ERRO]${NC} $1"; }
+info() { printf '%s[INFO]%s %s\n' "${BLUE}" "${NC}" "$1"; }
+success() { printf '%s[OK]%s %s\n' "${GREEN}" "${NC}" "$1"; }
+warning() { printf '%s[AVISO]%s %s\n' "${YELLOW}" "${NC}" "$1"; }
+error() { printf '%s[ERRO]%s %s\n' "${RED}" "${NC}" "$1"; }
 
 # Configuração
 GITHUB_REPO="${GITHUB_REPO:-mauriciobc/hashpanel}"
@@ -89,7 +89,8 @@ else
     echo "  3) ${GREEN}caddy-setup${NC} - Setup rápido do Caddy"
     echo "  4) ${GREEN}caddy-test${NC} - Testes do Caddy"
     echo ""
-    read -p "Escolha uma opção (1-4) ou digite o nome: " choice
+    printf "Escolha uma opção (1-4) ou digite o nome: "
+    read choice
     
     case "$choice" in
         1|hashpanel|install)

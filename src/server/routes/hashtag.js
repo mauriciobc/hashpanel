@@ -287,16 +287,27 @@ router.get('/daily', asyncHandler(async (req, res) => {
   logger.info('Daily hashtags requested');
   
   try {
+    // Defensive validation: ensure HASHTAGS is an array
+    const safeHashtags = Array.isArray(HASHTAGS) ? HASHTAGS : [];
+    
     const today = new Date().getDay();
-    const currentHashtagEntry = HASHTAGS[today];
-    const currentHashtag = getFirstHashtagForDay(currentHashtagEntry);
+    const currentHashtagEntry = safeHashtags[today];
+    
+    // Get current hashtag with safe fallback
+    const currentHashtag = currentHashtagEntry 
+      ? (getFirstHashtagForDay(currentHashtagEntry) || 'unknown')
+      : 'unknown';
     
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
-    const dailySchedule = HASHTAGS.map((hashtagEntry, dayIndex) => {
-      const hashtags = getHashtagsForDay(hashtagEntry);
-      // Use the first hashtag for display (backward compatibility)
-      const displayHashtag = hashtags[0];
+    const dailySchedule = safeHashtags.map((hashtagEntry, dayIndex) => {
+      // Get hashtags for day with defensive validation
+      const hashtags = hashtagEntry 
+        ? (getHashtagsForDay(hashtagEntry).filter(Boolean) || [])
+        : [];
+      
+      // Use the first hashtag for display (backward compatibility) with fallback
+      const displayHashtag = hashtags[0] || 'unknown';
       
       return {
         day: dayIndex,

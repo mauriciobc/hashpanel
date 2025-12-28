@@ -4,10 +4,10 @@ import { fetchTootsFromAPI, getTrendingTags } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate } from './utils.js';
 import { generateTootText } from './generateTootText.js';
 import readline from 'readline';
-import moment from'moment-timezone';
-
+import moment from 'moment-timezone';
 async function main() {
-  const hashtagEntry = HASHTAGS[new Date().getDay()];
+  const dayOfWeek = moment().tz(PREFERRED_TIMEZONE).day();
+  const hashtagEntry = HASHTAGS[dayOfWeek];
   const hashtag = getFirstHashtagForDay(hashtagEntry);
   const currentDate = moment().tz(PREFERRED_TIMEZONE).format('YYYY-MM-DD');
   const toots = await fetchToots(hashtag);

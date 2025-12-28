@@ -26,18 +26,18 @@ echo ""
 FORCE=false
 CADDYFILE_PATH="/etc/caddy/Caddyfile"
 
-for arg in "$@"; do
-    case $arg in
+while [ $# -gt 0 ]; do
+    case "$1" in
         --force|-f)
             FORCE=true
-            shift
             ;;
         *)
-            if [ -z "${CADDYFILE_PATH##/etc/caddy/Caddyfile}" ]; then
-                CADDYFILE_PATH="$arg"
+            if [ -z "$CADDYFILE_PATH" ] || [ "$CADDYFILE_PATH" = "/etc/caddy/Caddyfile" ]; then
+                CADDYFILE_PATH="$1"
             fi
             ;;
     esac
+    shift
 done
 
 HASHPANEL_HOST="${HASHPANEL_HOST:-hashpanel}"
