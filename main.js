@@ -13,6 +13,12 @@ async function main() {
   const sortedToots = await sortTootsByRelevance(toots);
   const allowedToots = await removeIgnoredToots(sortedToots);
   const todaysToots = await filterTootsByDate(allowedToots, currentDate);
+  
+  if (todaysToots.length === 0) {
+    console.log('Nenhum post encontrado para hoje. Encerrando.');
+    return;
+  }
+  
   const tootText = await generateTootText(hashtag, todaysToots);
   const trendingTags = await getTrendingTags();
   console.log('Trending tags:', trendingTags);
@@ -39,7 +45,6 @@ async function fetchToots(hashtag) {
   try {
     let toots = [];
     let maxId = null;
-    let progress = 0;
     console.log(`Obtendo posts para ${hashtag}...`);
 
     while (true) {
@@ -57,19 +62,17 @@ async function fetchToots(hashtag) {
         break;
       }
 
-      const newToots = response.data.filter(toot => toot && moment(toot.created_at).unix() >= moment().startOf('day').unix());
+      const newToots = response.data;
       toots.push(...newToots);
 
       maxId = newToots[newToots.length - 1]?.id;
-      progress += newToots.length;
 
-      if (newToots.length < TOOTS_PER_PAGE) {
+      if (newToots.length === 0 || newToots.length < TOOTS_PER_PAGE) {
         break;
       }
     }
 
     console.log(`Posts obtidos: ${toots.length}`);
-    console.log(`Progresso: ${progress} / ${toots.length}`);
     return toots;
   } catch (error) {
     console.error('Erro ao obter posts:', error);
@@ -78,19 +81,23 @@ async function fetchToots(hashtag) {
 }
 
 async function createToot(tootText) {
-  console.log('Entering createToot function');
-  console.log('tootText:', tootText, tootText.length);
+  if (!process.env.MASTODON_URL || !process.env.ACCESS_TOKEN) {
+    throw new Error("Variáveis de ambiente MASTODON_URL e ACCESS_TOKEN não configuradas");
+  }
+
+  console.log('Preparando para criar post...');
+  console.log('Texto do post:', tootText.slice(0, 50) + '...', `(${tootText.length} caracteres)`);
 
   if (typeof tootText!=='string') {
-    throw new Error('Toot text must be a string');
+    throw new Error('O texto do post deve ser uma string');
   }
 
   if (tootText.trim() === '') {
-    throw new Error('Toot text cannot be empty');
+    throw new Error('O texto do post não pode estar vazio');
   }
 
   try {
-    console.log('Attempting to create toot');
+    console.log('Criando post...');
     const response = await fetch(`${process.env.MASTODON_URL}statuses`, {
       mode: 'cors',
       method: 'POST',
@@ -107,12 +114,12 @@ async function createToot(tootText) {
     });
 
     if (!response.ok) {
-      throw new Error(`Error creating toot: ${response.status} ${response.statusText}`);
+      const errorBody = await response.text();
+      throw new Error(`Erro ao criar post: ${response.status} ${response.statusText}\n${errorBody}`);
     }
 
     const toot = await response.json();
-    console.log('Post criado com sucesso!');
-    console.log('Detalhes do post:', toot);
+    console.log('Post criado com sucesso! ID:', toot.id);
   } catch (error) {
     console.error('Erro ao criar o post:', error);
     throw error;

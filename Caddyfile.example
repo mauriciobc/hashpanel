@@ -1,0 +1,46 @@
+# Exemplo de configuração do Caddy para reverse proxy
+# Este arquivo mostra como configurar o Caddy para fazer proxy reverso
+# para o container hashpanel na porta 32768
+
+# Opção 1: Usando porta específica (recomendado para Portainer)
+:32768 {
+    reverse_proxy hashpanel:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # Health check
+        health_uri /health
+        health_interval 30s
+        health_timeout 3s
+    }
+    
+    # Compressão
+    encode gzip zstd
+    
+    # Logs
+    log {
+        output file /var/log/caddy/hashpanel.log
+        format console
+    }
+}
+
+# Opção 2: Usando domínio (se você tiver um domínio configurado)
+# hashpanel.exemplo.com {
+#     reverse_proxy hashpanel:3000 {
+#         header_up X-Real-IP {remote_host}
+#         header_up X-Forwarded-For {remote_host}
+#         header_up X-Forwarded-Proto {scheme}
+#         
+#         health_uri /api/health
+#         health_interval 30s
+#         health_timeout 3s
+#     }
+#     
+#     encode gzip zstd
+#     
+#     log {
+#         output file /var/log/caddy/hashpanel.log
+#         format console
+#     }
+# }

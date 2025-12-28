@@ -1,0 +1,359 @@
+import { Router } from 'express';
+import { asyncHandler } from '../../middleware/errorHandler.js';
+import { postingRateLimit } from '../../middleware/rateLimiter.js';
+import { tootService } from '../../services/tootService.js';
+import { hashtagService } from '../../services/hashtagService.js';
+import { ValidationError, BusinessError } from '../../errors/index.js';
+import { logger } from '../../utils/logger.js';
+
+const router = Router();
+// Using singleton instances from services
+
+/**
+ * POST /api/toot/generate
+ * Generate a summary without posting
+ */
+router.post('/generate', asyncHandler(async (req, res) => {
+  const { hashtag, date } = req.body;
+  
+  if (!hashtag) {
+    throw new ValidationError('Hashtag is required');
+  }
+  
+  logger.info('Toot generation requested', { hashtag, date });
+  
+  try {
+    // Analyze hashtag
+    const analysis = await hashtagService.analyzeHashtag(hashtag, { date });
+    
+    // Generate summary preview
+    const preview = await tootService.previewSummary(hashtag, analysis);
+    
+    res.json({
+      hashtag,
+      date: date || new Date().toISOString().split('T')[0],
+      summary: preview.summary,
+      metadata: {
+        length: preview.characterCount,
+        hashtagCount: preview.hashtagCount,
+        lineCount: preview.lineCount,
+        isValid: preview.isValid
+      },
+      analysis: {
+        tootCount: analysis.getTodayCount(),
+        uniqueUsers: analysis.getUniqueUserCount(),
+        topToots: analysis.getTopToots(3).map(toot => ({
+          author: toot.account.username,
+          relevance: toot.relevanceScore
+        }))
+      },
+      generatedAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Failed to generate toot', error);
+    throw error;
+  }
+}));
+
+/**
+ * POST /api/toot/post
+ * Post a generated or custom toot
+ */
+router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
+  const { content, hashtag, options = {} } = req.body;
+  
+  // Allow either direct content or hashtag-based generation
+  if (content) {
+    logger.info('Direct toot posting requested', { 
+      contentLength: content.length,
+      options 
+    });
+    
+    try {
+      const result = await tootService.createCustomToot(content, options);
+      
+      res.json({
+        success: true,
+        toot: {
+          id: result.id,
+          url: result.url,
+          content: result.content,
+          createdAt: result.created_at
+        },
+        postedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      logger.error('Failed to post custom toot', error);
+      throw error;
+    }
+    
+  } else if (hashtag) {
+    logger.info('Hashtag toot posting requested', { hashtag, options });
+    
+    try {
+      // Analyze hashtag and generate summary
+      const analysis = await hashtagService.analyzeHashtag(hashtag);
+      
+      if (!analysis.hasTodayToots()) {
+        throw new BusinessError(`No toots found for hashtag: ${hashtag}`);
+      }
+      
+      // Generate and post summary
+      const result = await tootService.generateAndPostSummary(hashtag, analysis);
+      
+      res.json({
+        success: true,
+        hashtag,
+        summary: result.summary,
+        toot: {
+          id: result.toot.id,
+          url: result.toot.url,
+          createdAt: result.toot.created_at
+        },
+        analysis: {
+          tootCount: analysis.getTodayCount(),
+          uniqueUsers: analysis.getUniqueUserCount()
+        },
+        postedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      logger.error('Failed to post hashtag toot', error);
+      throw error;
+    }
+    
+  } else {
+    throw new ValidationError('Either content or hashtag must be provided');
+  }
+}));
+
+/**
+ * POST /api/toot/daily
+ * Post the daily summary
+ */
+router.post('/daily', postingRateLimit, asyncHandler(async (req, res) => {
+  const { dryRun = false } = req.body;
+  
+  logger.info('Daily toot posting requested', { dryRun });
+  
+  try {
+    // Get current day's hashtag
+    const dailyHashtag = hashtagService.getDailyHashtag();
+    
+    // Analyze hashtag
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag);
+    
+    if (!analysis.hasTodayToots()) {
+      return res.json({
+        success: false,
+        message: `No toots found for today's hashtag: #${dailyHashtag}`,
+        hashtag: dailyHashtag,
+        tootCount: 0,
+        postedAt: new Date().toISOString()
+      });
+    }
+    
+    if (dryRun) {
+      // Generate preview only
+      const preview = await tootService.previewSummary(dailyHashtag, analysis);
+      
+      return res.json({
+        success: true,
+        dryRun: true,
+        hashtag: dailyHashtag,
+        summary: preview.summary,
+        analysis: {
+          tootCount: analysis.getTodayCount(),
+          uniqueUsers: analysis.getUniqueUserCount(),
+          weeklyTotal: analysis.getWeeklyTotal()
+        },
+        generatedAt: new Date().toISOString()
+      });
+    } else {
+      // Post the summary
+      const result = await tootService.generateAndPostSummary(dailyHashtag, analysis);
+      
+      res.json({
+        success: true,
+        dryRun: false,
+        hashtag: dailyHashtag,
+        summary: result.summary,
+        toot: {
+          id: result.toot.id,
+          url: result.toot.url,
+          createdAt: result.toot.created_at
+        },
+        analysis: {
+          tootCount: analysis.getTodayCount(),
+          uniqueUsers: analysis.getUniqueUserCount(),
+          weeklyTotal: analysis.getWeeklyTotal()
+        },
+        postedAt: new Date().toISOString()
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Failed to post daily toot', error);
+    throw error;
+  }
+}));
+
+/**
+ * GET /api/toot/history
+ * Get posting history
+ */
+router.get('/history', asyncHandler(async (req, res) => {
+  const { limit = 10, offset = 0 } = req.query;
+  
+  logger.info('Toot history requested', { limit, offset });
+  
+  try {
+    const history = await tootService.getPostingHistory(parseInt(limit));
+    
+    res.json({
+      history: history.posts || [],
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        total: history.total || 0
+      },
+      stats: tootService.getStats(),
+      generatedAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Failed to get toot history', error);
+    throw error;
+  }
+}));
+
+/**
+ * GET /api/toot/stats
+ * Get tooting statistics
+ */
+router.get('/stats', asyncHandler(async (req, res) => {
+  logger.info('Toot stats requested');
+  
+  try {
+    const stats = tootService.getStats();
+    const canPost = tootService.canPost();
+    
+    res.json({
+      posting: stats,
+      permissions: {
+        canPost: canPost.allowed,
+        reason: canPost.reason || null,
+        nextAllowedTime: canPost.nextAllowedTime || null
+      },
+      system: {
+        environment: process.env.NODE_ENV || 'development',
+        rateLimits: {
+          postingLimit: '10 per hour per IP',
+          dailyLimit: 'No specific limit'
+        }
+      },
+      generatedAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Failed to get toot stats', error);
+    throw error;
+  }
+}));
+
+/**
+ * POST /api/toot/validate
+ * Validate toot content before posting
+ */
+router.post('/validate', asyncHandler(async (req, res) => {
+  const { content } = req.body;
+  
+  if (!content) {
+    throw new ValidationError('Content is required for validation');
+  }
+  
+  logger.info('Toot validation requested', { contentLength: content.length });
+  
+  try {
+    const validation = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      metadata: {
+        length: content.length,
+        characterCount: content.length,
+        wordCount: content.split(/\s+/).filter(word => word.length > 0).length,
+        lineCount: content.split('\n').length,
+        hashtagCount: (content.match(/#/g) || []).length,
+        mentionCount: (content.match(/@/g) || []).length,
+        linkCount: (content.match(/https?:\/\/\S+/g) || []).length
+      }
+    };
+    
+    // Check length
+    if (content.length > 500) {
+      validation.isValid = false;
+      validation.errors.push({
+        field: 'content',
+        message: `Content exceeds 500 character limit (${content.length} characters)`,
+        code: 'CONTENT_TOO_LONG'
+      });
+    }
+    
+    if (content.length === 0) {
+      validation.isValid = false;
+      validation.errors.push({
+        field: 'content',
+        message: 'Content cannot be empty',
+        code: 'CONTENT_EMPTY'
+      });
+    }
+    
+    if (content.trim().length === 0) {
+      validation.isValid = false;
+      validation.errors.push({
+        field: 'content',
+        message: 'Content cannot be only whitespace',
+        code: 'CONTENT_WHITESPACE_ONLY'
+      });
+    }
+    
+    // Warnings
+    if (content.length > 450) {
+      validation.warnings.push({
+        field: 'content',
+        message: `Content is close to character limit (${content.length}/500 characters)`,
+        code: 'CONTENT_NEAR_LIMIT'
+      });
+    }
+    
+    if (!content.includes('#')) {
+      validation.warnings.push({
+        field: 'content',
+        message: 'Content does not include any hashtags',
+        code: 'NO_HASHTAGS'
+      });
+    }
+    
+    if (content.includes('@')) {
+      validation.warnings.push({
+        field: 'content',
+        message: 'Content includes mentions - ensure they are relevant',
+        code: 'CONTAINS_MENTIONS'
+      });
+    }
+    
+    res.json({
+      validation,
+      processedAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Failed to validate toot content', error);
+    throw error;
+  }
+}));
+
+export { router as tootRoutes };

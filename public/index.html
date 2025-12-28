@@ -1,182 +1,2261 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hashpanel</title>
+  <title>Hashpanel - Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { background: #f0f2f5; padding: 2rem; }
-    .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
-    .card:hover { transform: translateY(-5px); }
-    .table { background: white; border-radius: 10px; overflow: hidden; }
-    .relevance-badge { background: #4CAF50; color: white; padding: 3px 8px; border-radius: 12px; }
-    .trend-chart { width: 100px; height: 40px; }
+    :root {
+      /* Design System Colors */
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --info-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      
+      --bg-primary: #0f0c29;
+      --bg-secondary: #1a1538;
+      --bg-card: rgba(255, 255, 255, 0.05);
+      --bg-card-hover: rgba(255, 255, 255, 0.08);
+      --text-primary: #ffffff;
+      --text-secondary: #a0aec0;
+      --text-muted: #718096;
+      --border-color: rgba(255, 255, 255, 0.1);
+      
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
+      --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      
+      --transition-fast: 0.15s ease;
+      --transition-base: 0.3s ease;
+      --transition-slow: 0.5s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.15) 0px, transparent 50%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 1.5rem;
+      line-height: 1.6;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Base Typography Scale */
+    @media (min-width: 1400px) {
+      body {
+        font-size: 17px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      body {
+        font-size: 14px;
+      }
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Header Styles */
+    .dashboard-header {
+      margin-bottom: 3rem;
+      animation: fadeInDown 0.6s ease;
+    }
+
+    .dashboard-header h1 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 800;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .dashboard-header p {
+      color: var(--text-secondary);
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      animation: fadeIn 0.8s ease;
+      transition: all var(--transition-base);
+    }
+
+    .status-bar:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #43e97b;
+      box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    .refresh-btn {
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+
+    .refresh-btn.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .refresh-btn svg {
+      width: 16px;
+      height: 16px;
+      transition: transform var(--transition-base);
+    }
+
+    .refresh-btn:hover svg {
+      transform: rotate(180deg);
+    }
+
+    /* Bento Grid Layout */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: auto;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    /* KPI Cards - Bento Sizes - More compact layout */
+    .kpi-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-base);
+      animation: fadeInUp 0.6s ease backwards;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Desktop: KPIs in horizontal row at top */
+    .kpi-card:nth-child(1) { 
+      animation-delay: 0.1s;
+      grid-column: span 3;
+      grid-row: 1;
+    }
+    .kpi-card:nth-child(2) { 
+      animation-delay: 0.2s;
+      grid-column: span 3;
+      grid-row: 1;
+    }
+    .kpi-card:nth-child(3) { 
+      animation-delay: 0.3s;
+      grid-column: span 3;
+      grid-row: 1;
+    }
+    .kpi-card:nth-child(4) { 
+      animation-delay: 0.4s;
+      grid-column: span 3;
+      grid-row: 1;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--primary-gradient);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform var(--transition-base);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-8px);
+      background: var(--bg-card-hover);
+      border-color: rgba(102, 126, 234, 0.4);
+      box-shadow: var(--shadow-xl), var(--shadow-glow);
+    }
+
+    .kpi-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .kpi-card.primary::before { background: var(--primary-gradient); }
+    .kpi-card.success::before { background: var(--success-gradient); }
+    .kpi-card.info::before { background: var(--info-gradient); }
+    .kpi-card.warning::before { background: var(--warning-gradient); }
+
+    .kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+    }
+
+    .kpi-card.primary .kpi-icon { background: var(--primary-gradient); }
+    .kpi-card.success .kpi-icon { background: var(--success-gradient); }
+    .kpi-card.info .kpi-icon { background: var(--info-gradient); }
+    .kpi-card.warning .kpi-icon { background: var(--warning-gradient); }
+
+    .kpi-value {
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .kpi-label {
+      color: var(--text-secondary);
+      font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.4;
+    }
+
+    .kpi-hashtag {
+      font-size: clamp(1.25rem, 3vw, 1.5rem);
+      font-weight: 700;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.3;
+    }
+
+    /* Content Cards - Bento Sizes */
+    .content-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      animation: fadeInUp 0.8s ease backwards;
+      transition: all var(--transition-base);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(102, 126, 234, 0.3);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-4px);
+    }
+
+    .content-card.top-toots {
+      grid-column: span 6;
+      grid-row: 2;
+      animation-delay: 0.5s;
+    }
+
+    .content-card.trending-tags {
+      grid-column: span 6;
+      grid-row: 2;
+      animation-delay: 0.6s;
+    }
+
+    .content-card.full-width {
+      grid-column: span 12;
+      animation-delay: 0.7s;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-header h3 {
+      font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.3;
+    }
+
+    .card-header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .table thead {
+      background: rgba(102, 126, 234, 0.25);
+    }
+
+    .table thead th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #e0e7ff;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.4);
+    }
+
+    .table tbody tr {
+      transition: all var(--transition-fast);
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .table tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .table tbody tr:hover {
+      background: rgba(102, 126, 234, 0.2) !important;
+      transform: scale(1.01);
+    }
+
+    .table tbody tr[data-clickable="true"] {
+      cursor: pointer;
+    }
+
+    .table tbody tr[data-clickable="true"]:hover {
+      background: rgba(102, 126, 234, 0.25) !important;
+    }
+
+    .table tbody td {
+      padding: 1.25rem 1rem;
+      color: var(--text-primary);
+      font-size: clamp(0.875rem, 1.8vw, 1rem);
+      line-height: 1.5;
+    }
+
+    .table tbody td:first-child {
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    /* Badges */
+    .relevance-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius-md);
+      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+      font-weight: 600;
+      background: var(--success-gradient);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .trend-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius-md);
+      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+      font-weight: 500;
+      background: rgba(102, 126, 234, 0.2);
+      color: var(--text-primary);
+    }
+
+    .trend-badge.rising {
+      background: rgba(67, 233, 123, 0.2);
+      color: #43e97b;
+    }
+
+    .trend-badge.falling {
+      background: rgba(255, 107, 107, 0.2);
+      color: #ff6b6b;
+    }
+
+    /* Buttons */
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-md);
+      background: rgba(102, 126, 234, 0.2);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+      transition: all var(--transition-base);
+      border: 1px solid rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-link:hover {
+      background: var(--primary-gradient);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: transparent;
+    }
+
+    /* Loading State */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(102, 126, 234, 0.2);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: clamp(0.9rem, 2vw, 1rem);
+      font-weight: 500;
+    }
+
+    /* Error State */
+    .error {
+      display: none;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      color: #ff6b6b;
+      padding: 1.25rem 1.5rem;
+      border-radius: var(--radius-lg);
+      margin-bottom: 2rem;
+      animation: shake 0.5s ease;
+    }
+
+    .error.active {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .error-message {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 500;
+      font-size: clamp(0.875rem, 1.8vw, 1rem);
+    }
+
+    .error-btn {
+      background: var(--danger-gradient);
+      border: none;
+      color: white;
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .error-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-secondary);
+      font-size: clamp(0.9rem, 2vw, 1rem);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    /* Responsive Bento Grid - Better space utilization */
+    @media (max-width: 1400px) {
+      .bento-grid {
+        gap: 1rem;
+      }
+      
+      .kpi-card {
+        padding: 1.25rem;
+      }
+      
+      .content-card {
+        padding: 1.25rem;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .bento-grid {
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1rem;
+      }
+
+      /* Keep KPIs in horizontal row */
+      .kpi-card:nth-child(1),
+      .kpi-card:nth-child(2),
+      .kpi-card:nth-child(3),
+      .kpi-card:nth-child(4) {
+        grid-column: span 3;
+        grid-row: 1;
+      }
+
+      /* Keep content cards side by side */
+      .content-card.top-toots {
+        grid-column: span 6;
+        grid-row: 2;
+      }
+
+      .content-card.trending-tags {
+        grid-column: span 6;
+        grid-row: 2;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .bento-grid {
+        grid-template-columns: repeat(12, 1fr);
+      }
+
+      /* Keep KPIs in horizontal row, but smaller */
+      .kpi-card:nth-child(1),
+      .kpi-card:nth-child(2),
+      .kpi-card:nth-child(3),
+      .kpi-card:nth-child(4) {
+        grid-column: span 3;
+        grid-row: 1;
+      }
+
+      /* Keep content cards side by side */
+      .content-card.top-toots {
+        grid-column: span 6;
+        grid-row: 2;
+      }
+
+      .content-card.trending-tags {
+        grid-column: span 6;
+        grid-row: 2;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      .dashboard-header h1 {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+      }
+
+      .dashboard-header p {
+        font-size: clamp(0.875rem, 2.5vw, 1rem);
+      }
+
+      .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.875rem;
+      }
+
+      /* KPIs in 2x2 grid on mobile */
+      .kpi-card:nth-child(1),
+      .kpi-card:nth-child(2) {
+        grid-column: span 1;
+        grid-row: 1;
+      }
+      
+      .kpi-card:nth-child(3),
+      .kpi-card:nth-child(4) {
+        grid-column: span 1;
+        grid-row: 2;
+      }
+
+      /* Content cards stack vertically on mobile */
+      .content-card.top-toots {
+        grid-column: span 2;
+        grid-row: 3;
+      }
+
+      .content-card.trending-tags {
+        grid-column: span 2;
+        grid-row: 4;
+      }
+
+      .content-card.full-width {
+        grid-column: span 2;
+      }
+
+      .kpi-card {
+        padding: 1rem;
+      }
+
+      .kpi-value {
+        font-size: clamp(1.5rem, 4vw, 1.75rem);
+      }
+
+      .kpi-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+      }
+
+      .content-card {
+        padding: 1rem;
+      }
+
+      .card-header h3 {
+        font-size: clamp(1.1rem, 3vw, 1.25rem);
+      }
+
+      .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.875rem 1rem;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      .table {
+        font-size: 0.85rem;
+      }
+
+      .table thead th,
+      .table tbody td {
+        padding: 0.75rem 0.5rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      body {
+        padding: 0.75rem;
+      }
+
+      .bento-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+
+      .kpi-card:nth-child(1),
+      .kpi-card:nth-child(2),
+      .kpi-card:nth-child(3),
+      .kpi-card:nth-child(4),
+      .content-card.top-toots,
+      .content-card.trending-tags,
+      .content-card.full-width {
+        grid-column: span 1;
+      }
+
+      .kpi-value {
+        font-size: clamp(1.25rem, 4vw, 1.5rem);
+      }
+
+      .dashboard-header {
+        margin-bottom: 2rem;
+      }
+
+      .dashboard-header h1 {
+        font-size: clamp(1.5rem, 6vw, 1.75rem);
+      }
+
+      .dashboard-header p {
+        font-size: clamp(0.8rem, 3vw, 0.95rem);
+      }
+    }
+
+    /* Modal Styles */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-xl), var(--shadow-glow);
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .modal-close {
+      background: rgba(255, 107, 107, 0.2);
+      border: none;
+      color: #ff6b6b;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+    }
+
+    .modal-close:hover {
+      background: #ff6b6b;
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .modal-close svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      overflow-x: visible;
+      flex: 1;
+      min-height: 0; /* Allow flex shrinking */
+    }
+    
+    /* Ensure embed container doesn't get cut off */
+    .modal-body .embed-container {
+      overflow: visible;
+      max-width: 100%;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .modal-btn {
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .modal-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .modal-btn-primary {
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+    }
+
+    .modal-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Embed container styling */
+    .embed-container {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-md);
+      overflow: visible;
+      width: 100%;
+      min-height: 400px;
+      position: relative;
+      max-width: 100%;
+    }
+
+    .embed-container iframe {
+      border: none;
+      border-radius: var(--radius-md);
+      width: 100%;
+      max-width: 100%;
+      min-height: 400px;
+      height: auto;
+      display: block;
+      background: transparent;
+      overflow: visible;
+      object-fit: contain;
+    }
+    
+    /* Ensure images inside embed are visible */
+    .embed-container iframe,
+    .embed-container {
+      image-rendering: auto;
+      -webkit-image-rendering: auto;
+    }
+    
+    /* Allow iframe content to expand naturally */
+    .embed-container iframe[src] {
+      max-height: none;
+    }
+
+    /* Responsive embed */
+    @media (max-width: 768px) {
+      .embed-container {
+        min-height: 400px;
+        overflow: visible;
+      }
+      
+      .embed-container iframe {
+        min-height: 400px;
+        overflow: visible;
+      }
+    }
+
+    .embed-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      gap: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .embed-loading .spinner {
+      margin: 0;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(102, 126, 234, 0.5);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(102, 126, 234, 0.7);
+    }
+
+    /* Mastodon Content Styling */
+    .toot-content {
+      color: var(--text-primary);
+      line-height: 1.7;
+      font-size: 1rem;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .toot-content p {
+      margin: 0 0 0.75rem 0;
+    }
+
+    .toot-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .toot-content a {
+      color: #667eea;
+      text-decoration: none;
+      transition: color var(--transition-fast);
+      font-weight: 500;
+    }
+
+    .toot-content a:hover {
+      color: #8b9cff;
+      text-decoration: underline;
+    }
+
+    /* Hashtags in toot content */
+    .toot-content a[href*="/tags/"],
+    .toot-content a.hashtag,
+    .toot-content .hashtag {
+      color: #43e97b;
+      background: rgba(67, 233, 123, 0.15);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .toot-content a[href*="/tags/"]:hover,
+    .toot-content a.hashtag:hover {
+      background: rgba(67, 233, 123, 0.25);
+      color: #5bff99;
+    }
+
+    /* Mentions in toot content */
+    .toot-content a[href*="/@"],
+    .toot-content a.mention,
+    .toot-content .h-card a {
+      color: #f093fb;
+      font-weight: 500;
+    }
+
+    .toot-content a[href*="/@"]:hover,
+    .toot-content a.mention:hover {
+      color: #ffb3ff;
+    }
+
+    /* Hide invisible elements from Mastodon HTML */
+    .toot-content .invisible {
+      font-size: 0;
+      line-height: 0;
+      display: inline;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    /* Ellipsis for long links */
+    .toot-content .ellipsis::after {
+      content: "…";
+    }
+
+    /* Media preview link styles (hide these as we show media separately) */
+    .toot-content a[class*="media"],
+    .toot-content a[rel*="attachment"] {
+      display: none;
+    }
+
+    /* Block quotes in toots */
+    .toot-content blockquote {
+      border-left: 3px solid rgba(102, 126, 234, 0.5);
+      padding-left: 1rem;
+      margin: 0.75rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Code in toots */
+    .toot-content code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'Fira Code', 'Monaco', monospace;
+      font-size: 0.9em;
+    }
+
+    .toot-content pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+
+    .toot-content pre code {
+      background: none;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">📊 Hashtag Analytics</h1>
-    
-    <!-- KPI Cards -->
-    <div class="row mb-4" id="kpiContainer"></div>
-    
-    <!-- Top Toots Table -->
-    <div class="card p-4 mb-4">
-      <h4 class="mb-3">🚀 Top Performers Today</h4>
-      <table class="table table-hover" id="topTootsTable">
-        <thead>
-          <tr>
-            <th>Author</th>
-            <th>Followers</th>
-            <th>⭐ Favorites</th>
-            <th>🔄 Boosts</th>
-            <th>Relevance</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <!-- Header -->
+    <header class="dashboard-header">
+      <h1>📊 Hashpanel</h1>
+      <p>Dashboard de monitoramento de hashtags do Mastodon</p>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-info">
+        <span class="status-dot"></span>
+        <span id="lastUpdated">Última atualização: --</span>
+        <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: var(--secondary-gradient); border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
+          ← Voltar para hashtag diária
+        </button>
+      </div>
+      <button class="refresh-btn" onclick="loadData()" id="refreshBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        Atualizar
+      </button>
     </div>
 
-    <!-- Trending Tags Table -->
-    <div class="card p-4">
-      <h4 class="mb-3">📈 Trending Tags</h4>
-      <table class="table table-hover" id="trending-tags-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Uses</th>
-            <th>Accounts</th>
-            <th>Trend</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Trending tags will be populated here -->
-        </tbody>
-      </table>
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p class="loading-text">Carregando dados...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error">
+      <div class="error-message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span><strong>Erro:</strong> <span id="errorMessage">Não foi possível carregar os dados.</span></span>
+      </div>
+      <button class="error-btn" onclick="loadData()">Tentar Novamente</button>
+    </div>
+
+    <!-- Bento Grid Container -->
+    <div class="bento-grid" id="bentoGrid">
+      <!-- KPI Cards will be inserted here by JavaScript -->
+
+      <!-- Top Toots Card -->
+      <div class="content-card top-toots">
+        <div class="card-header">
+          <div class="card-header-icon">🏆</div>
+          <h3>Top Performers Hoje</h3>
+        </div>
+        <div id="topTootsContent">
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>Carregando top posts...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trending Tags Card -->
+      <div class="content-card trending-tags">
+        <div class="card-header">
+          <div class="card-header-icon">📈</div>
+          <h3>Tags em Alta</h3>
+        </div>
+        <div class="table-wrapper" style="flex: 1; overflow-y: auto;">
+          <table class="table" id="trending-tags-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Usos Hoje</th>
+                <th>Contas</th>
+                <th>Tendência</th>
+              </tr>
+            </thead>
+            <tbody id="trending-tags-tbody">
+              <tr>
+                <td colspan="4" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+                  Carregando tags em alta...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toot Preview Modal -->
+  <div id="tootModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Visualizar Toot</h3>
+        <button class="modal-close" onclick="closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <div class="embed-loading">
+          <div class="spinner"></div>
+          <p>Carregando preview...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Fechar</button>
+        <a id="modalOpenLink" href="#" target="_blank" class="modal-btn modal-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+          </svg>
+          Abrir no Mastodon
+        </a>
+      </div>
     </div>
   </div>
 
   <script>
-    // Fetch and render data
-    async function loadData() {
+    // API Base URL
+    const API_BASE = '/api';
+
+    // State management for cleanup
+    let refreshInterval = null;
+    let currentAbortedController = null;
+
+    // Normalize hashtag - remove # sign if present
+    function normalizeHashtag(hashtag) {
+      if (!hashtag) return hashtag;
+      return hashtag.toString().replace(/^#/, '');
+    }
+
+    // Security: Sanitize HTML to prevent XSS
+    function sanitizeHTML(str) {
+      if (typeof str !== 'string') return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Cleanup function to reset state before loading new data
+    function cleanupBeforeLoad() {
+      // Abort any ongoing fetch requests
+      if (currentAbortedController) {
+        currentAbortedController.abort();
+        console.log('Aborted previous fetch request');
+      }
+      
+      // Create new abort controller for this load
+      currentAbortedController = new AbortController();
+      
+      // Close any open modals
+      const modal = document.getElementById('tootModal');
+      if (modal && modal.classList.contains('active')) {
+        closeModal();
+      }
+      
+      // Hide error state
+      document.getElementById('error').classList.remove('active');
+      
+      console.log('Cleanup completed before loading new data');
+    }
+
+    // UX: Show/hide loading and error states
+    function showLoading() {
+      document.getElementById('loading').classList.add('active');
+      document.getElementById('error').classList.remove('active');
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.classList.add('loading');
+      refreshBtn.disabled = true;
+      
+      // Disable trending tags table interactions while loading
+      const trendingTable = document.getElementById('trending-tags-table');
+      if (trendingTable) {
+        trendingTable.style.opacity = '0.5';
+        trendingTable.style.pointerEvents = 'none';
+      }
+    }
+    
+    function hideLoading() {
+      document.getElementById('loading').classList.remove('active');
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.classList.remove('loading');
+      refreshBtn.disabled = false;
+      
+      // Re-enable trending tags table
+      const trendingTable = document.getElementById('trending-tags-table');
+      if (trendingTable) {
+        trendingTable.style.opacity = '1';
+        trendingTable.style.pointerEvents = 'auto';
+      }
+    }
+    
+    function showError(message) {
+      document.getElementById('errorMessage').textContent = message;
+      document.getElementById('error').classList.add('active');
+      document.getElementById('loading').classList.remove('active');
+      hideLoading();
+    }
+
+    // Format numbers with locale
+    function formatNumber(num) {
+      return num?.toLocaleString('pt-BR') || '0';
+    }
+
+    // Modal functions - legacy support (kept for backwards compatibility)
+    function openModalWithFallback(button) {
+      // Check if we have a tootId in cache first
+      const tootId = button.dataset.tootId;
+      if (tootId && window.tootDataCache?.[tootId]) {
+        openModalFromCache(tootId);
+        return;
+      }
+      
+      // Fallback to parsing data attributes (legacy method)
+      let media = [];
       try {
-        // Load KPI data
-        const statsRes = await fetch('/api/hashtag-stats');
-        const { hashtag, todayUses, uniqueUsers, weeklyTotal } = await statsRes.json();
+        if (button.dataset.media) {
+          const decoded = decodeURIComponent(button.dataset.media);
+          media = JSON.parse(decoded);
+          console.log('Parsed media from button:', media);
+        }
+      } catch (e) {
+        console.error('Failed to parse media data:', e);
+      }
+      
+      const tootData = {
+        link: button.dataset.url,
+        author: button.dataset.author,
+        content: button.dataset.content || '',
+        favorites: parseInt(button.dataset.favorites) || 0,
+        boosts: parseInt(button.dataset.boosts) || 0,
+        relevance: button.dataset.relevance || 0,
+        followers: parseInt(button.dataset.followers) || 0,
+        media: media
+      };
+      
+      console.log('Opening modal with tootData (legacy):', tootData);
+      openModal(tootData.link, tootData);
+    }
+
+    function openModal(tootUrl, tootData = null) {
+      const modal = document.getElementById('tootModal');
+      const modalBody = document.getElementById('modalBody');
+      const openLink = document.getElementById('modalOpenLink');
+      
+      modal.classList.add('active');
+      openLink.href = tootUrl;
+      
+      // Show loading state
+      modalBody.innerHTML = `
+        <div class="embed-loading">
+          <div class="spinner"></div>
+          <p>Carregando preview...</p>
+        </div>
+      `;
+      
+      // Fetch embed from Mastodon oEmbed API, pass tootData for fallback
+      fetchEmbed(tootUrl, tootData);
+    }
+
+    function closeModal() {
+      document.getElementById('tootModal').classList.remove('active');
+    }
+
+    async function fetchEmbed(tootUrl, tootData = null) {
+      const modalBody = document.getElementById('modalBody');
+      let embedTimeout;
+      
+      try {
+        // Extract instance from toot URL
+        const urlObj = new URL(tootUrl);
+        const instance = urlObj.origin;
+        const oembedUrl = `${instance}/api/oembed?url=${encodeURIComponent(tootUrl)}`;
         
-        document.getElementById('kpiContainer').innerHTML = `
-          <div class="col-md-3">
-            <div class="card p-3 bg-primary text-white">
-              <h5>#${hashtag}</h5>
-              <small>Current Hashtag</small>
+        const response = await fetch(oembedUrl, {
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: Não foi possível carregar o embed`);
+        }
+        
+        const data = await response.json();
+        
+        console.log('oEmbed response:', data);
+        
+        if (data.html) {
+          // Check if HTML contains iframe
+          const htmlLower = data.html.toLowerCase();
+          const hasIframe = htmlLower.includes('<iframe') || htmlLower.includes('iframe');
+          
+          if (!hasIframe) {
+            console.warn('oEmbed HTML does not contain iframe:', data.html);
+            // If HTML is just a link or text, use fallback immediately
+            // This happens when the Mastodon instance doesn't support oEmbed iframes
+            if (tootData) {
+              console.log('Using custom preview fallback (no iframe in oEmbed response)');
+              showCustomPreview(tootData);
+              return;
+            }
+            // If no tootData, show error with link
+            modalBody.innerHTML = `
+              <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p>Preview não disponível para este toot.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                  <a href="${tootUrl}" target="_blank" style="color: #667eea; text-decoration: none;">
+                    Abrir no Mastodon →
+                  </a>
+                </p>
+              </div>
+            `;
+            return;
+          }
+          
+          // Clear modal body first
+          modalBody.innerHTML = '';
+          
+          // Create container
+          const container = document.createElement('div');
+          container.className = 'embed-container';
+          
+          // Insert HTML directly - browser will parse and render iframe
+          container.innerHTML = data.html;
+          
+          // Ensure iframe has proper styling
+          const iframe = container.querySelector('iframe');
+          if (iframe) {
+            // Verify iframe has a valid src
+            const iframeSrc = iframe.getAttribute('src');
+            if (!iframeSrc || iframeSrc.trim() === '') {
+              console.warn('Iframe found but has no src attribute');
+              if (tootData) {
+                showCustomPreview(tootData);
+                return;
+              }
+              throw new Error('Iframe sem atributo src válido');
+            }
+            
+            console.log('Iframe src:', iframeSrc);
+            
+            // Remove any existing width/height attributes and set via style
+            // Keep height attribute if present (Mastodon oEmbed usually provides it)
+            const originalHeight = iframe.getAttribute('height');
+            iframe.removeAttribute('width');
+            
+            iframe.style.width = '100%';
+            iframe.style.maxWidth = '100%';
+            // Use original height if available, otherwise use min-height
+            // Mastodon embeds typically need more height for images
+            if (originalHeight && !isNaN(parseInt(originalHeight))) {
+              const height = parseInt(originalHeight);
+              // If height is too small (likely for text-only posts), increase it
+              if (height < 600) {
+                iframe.style.height = '800px';
+                iframe.style.minHeight = '800px';
+              } else {
+                iframe.style.height = originalHeight + 'px';
+                iframe.style.minHeight = originalHeight + 'px';
+              }
+            } else {
+              // Default to larger height for posts that might have images
+              iframe.style.minHeight = '800px';
+              iframe.style.height = '800px';
+            }
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = 'var(--radius-md)';
+            iframe.style.display = 'block';
+            iframe.style.background = 'transparent';
+            iframe.style.visibility = 'visible';
+            iframe.style.opacity = '1';
+            iframe.style.overflow = 'visible';
+            
+            // Set timeout for iframe loading (10 seconds)
+            embedTimeout = setTimeout(() => {
+              console.warn('Embed iframe loading timeout');
+              if (tootData) {
+                showCustomPreview(tootData);
+              }
+            }, 10000);
+            
+            // Handle iframe load success - clear timeout
+            iframe.onload = () => {
+              clearTimeout(embedTimeout);
+              console.log('Embed iframe loaded successfully');
+              // Ensure iframe is visible after load
+              iframe.style.visibility = 'visible';
+              iframe.style.opacity = '1';
+              
+              // Try to adjust iframe height to fit content (if accessible)
+              try {
+                // If iframe is from same origin, we can access its content
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (iframeDoc) {
+                  const iframeBody = iframeDoc.body;
+                  if (iframeBody) {
+                    const height = Math.max(
+                      iframeBody.scrollHeight,
+                      iframeBody.offsetHeight,
+                      600
+                    );
+                    iframe.style.height = height + 'px';
+                    console.log('Iframe height adjusted to:', height);
+                  }
+                }
+              } catch (e) {
+                // Cross-origin iframe - can't access content
+                // Use a larger default height for posts with images
+                iframe.style.minHeight = '800px';
+                iframe.style.height = '800px';
+                console.log('Cross-origin iframe, using default height');
+              }
+            };
+            
+            // Handle iframe load error
+            iframe.onerror = () => {
+              clearTimeout(embedTimeout);
+              console.error('Embed iframe failed to load');
+              if (tootData) {
+                showCustomPreview(tootData);
+              }
+            };
+            
+            // Append container to modal
+            modalBody.appendChild(container);
+            
+            // Force a reflow to ensure iframe is rendered
+            void container.offsetHeight;
+          } else {
+            // If no iframe found after insertion, use fallback
+            console.warn('No iframe found after HTML insertion, using fallback');
+            console.warn('HTML content:', container.innerHTML);
+            if (tootData) {
+              showCustomPreview(tootData);
+              return;
+            }
+            throw new Error('Iframe não encontrado após inserção do HTML');
+          }
+        } else {
+          throw new Error('Embed HTML não disponível na resposta');
+        }
+      } catch (error) {
+        if (embedTimeout) clearTimeout(embedTimeout);
+        console.error('Error fetching embed:', error);
+        
+        // Check if it's a CORS error
+        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          console.warn('CORS error detected, using fallback preview');
+        }
+        
+        // Fallback to custom preview if tootData is available
+        if (tootData) {
+          showCustomPreview(tootData);
+        } else {
+          modalBody.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+              <p>Não foi possível carregar o preview.</p>
+              <p style="font-size: 0.9rem; margin-top: 0.5rem;">Erro: ${sanitizeHTML(error.message)}</p>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Process Mastodon HTML content for display
+    function processContentHTML(htmlContent) {
+      if (!htmlContent || typeof htmlContent !== 'string') {
+        return '<p>Conteúdo não disponível.</p>';
+      }
+      
+      // Create a temporary container to manipulate the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // Remove any script tags for safety
+      const scripts = tempDiv.querySelectorAll('script');
+      scripts.forEach(script => script.remove());
+      
+      // Remove media/attachment links (we display media separately)
+      const mediaLinks = tempDiv.querySelectorAll('a[class*="attachment"], a[rel*="attachment"]');
+      mediaLinks.forEach(link => link.remove());
+      
+      // Remove "Abrir link" or similar redundant links that Mastodon adds for media
+      const allLinks = tempDiv.querySelectorAll('a');
+      allLinks.forEach(link => {
+        const text = link.textContent.trim().toLowerCase();
+        const href = link.getAttribute('href') || '';
+        
+        // Remove links that are just media URLs without meaningful text
+        if (text === 'abrir link' || 
+            text === 'open link' || 
+            text === '' ||
+            (href.includes('media_attachments') && text === href)) {
+          link.remove();
+          return;
+        }
+        
+        // Remove invisible/ellipsis text spans within links (Mastodon uses these)
+        const invisibleSpans = link.querySelectorAll('.invisible, .ellipsis');
+        invisibleSpans.forEach(span => {
+          if (span.classList.contains('invisible')) {
+            span.remove();
+          }
+        });
+        
+        // Add target and security attributes
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        
+        // Style hashtag links
+        if (href.includes('/tags/') || href.includes('/tag/')) {
+          link.classList.add('hashtag');
+        }
+        
+        // Style mention links
+        if (href.includes('/@') || link.classList.contains('mention')) {
+          link.classList.add('mention');
+        }
+      });
+      
+      // Remove empty paragraphs left over from removed links
+      const paragraphs = tempDiv.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        if (p.textContent.trim() === '' && !p.querySelector('img, video, audio')) {
+          p.remove();
+        }
+      });
+      
+      return tempDiv.innerHTML;
+    }
+
+    function showCustomPreview(tootData) {
+      const modalBody = document.getElementById('modalBody');
+      
+      // Debug: log media data
+      console.log('showCustomPreview - tootData:', tootData);
+      console.log('showCustomPreview - media:', tootData.media);
+      
+      // Process the content HTML
+      const processedContent = processContentHTML(tootData.content);
+      
+      // Process media attachments (images)
+      let mediaHTML = '';
+      const imageDataArray = []; // Store image data for event handlers
+      
+      if (tootData.media && Array.isArray(tootData.media) && tootData.media.length > 0) {
+        // Filter images and get URL from various possible fields
+        const images = tootData.media
+          .map(m => {
+            // Get URL from various possible fields (Mastodon API structure)
+            const url = m.url || 
+                       m.preview_url || 
+                       m.remote_url || 
+                       m.preview_remote_url || 
+                       (m.meta && m.meta.original && m.meta.original.url) ||
+                       (m.meta && m.meta.small && m.meta.small.url) ||
+                       (m.meta && m.meta.medium && m.meta.medium.url);
+            
+            // Check if it's an image type
+            const isImage = m.type === 'image' || 
+                          m.type === 'photo' || 
+                          (m.type && m.type.includes('image')) ||
+                          (!m.type && url && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp')));
+            
+            if (isImage && url) {
+              return {
+                url: url,
+                description: m.description || m.alt_text || '',
+                type: m.type || 'image'
+              };
+            }
+            return null;
+          })
+          .filter(img => img !== null);
+        
+        console.log('showCustomPreview - filtered images:', images);
+        
+        if (images.length > 0) {
+          // Calculate grid layout based on number of images
+          const gridColumns = images.length === 1 ? '1fr' : 
+                             images.length === 2 ? '1fr 1fr' :
+                             images.length === 3 ? '1fr 1fr' :
+                             'repeat(2, 1fr)';
+          
+          mediaHTML = `
+            <div class="toot-media-container" style="margin-bottom: 1.5rem;">
+              <div style="display: grid; grid-template-columns: ${gridColumns}; gap: 0.5rem;">
+                ${images.map((img, idx) => {
+                  const imgUrl = img.url;
+                  // Use proxy endpoint to avoid CORS issues
+                  const proxyUrl = `${API_BASE}/media/proxy?url=${encodeURIComponent(imgUrl)}`;
+                  console.log('Rendering image via proxy:', proxyUrl, 'Original:', imgUrl);
+                  
+                  // Create a unique ID for this image container
+                  const imgId = 'toot-img-' + idx;
+                  
+                  // Store image data for later use
+                  imageDataArray.push({ imgId, imgUrl, proxyUrl });
+                  
+                  // Adjust aspect ratio based on image count
+                  const aspectRatio = images.length === 1 ? '56.25%' : '100%'; // 16:9 for single, square for multiple
+                  
+                  return `
+                  <div id="${imgId}" class="toot-img-container" data-original-url="${sanitizeHTML(imgUrl)}" style="position: relative; padding-top: ${aspectRatio}; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-md); overflow: hidden; ${images.length === 3 && idx === 0 ? 'grid-row: span 2;' : ''}">
+                    <img 
+                      src="${proxyUrl}" 
+                      alt="${sanitizeHTML(img.description || 'Imagem do toot')}"
+                      title="${sanitizeHTML(img.description || '')}"
+                      class="toot-img"
+                      data-original-url="${sanitizeHTML(imgUrl)}"
+                      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s, filter 0.2s;"
+                      loading="lazy"
+                    />
+                    ${img.description ? `<div class="toot-img-description" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.75rem; color: white; font-size: 0.8rem; line-height: 1.4; opacity: 0; transition: opacity 0.2s;">${sanitizeHTML(img.description)}</div>` : ''}
+                  </div>
+                `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          console.warn('No valid images found in media array. Media data:', JSON.stringify(tootData.media, null, 2));
+        }
+      } else {
+        console.warn('No media data or empty media array. tootData:', JSON.stringify(tootData, null, 2));
+      }
+      
+      modalBody.innerHTML = `
+        <div class="embed-container" style="padding: 1.5rem; background: rgba(255, 255, 255, 0.05);">
+          <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+              🐘
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 0.25rem;">@${sanitizeHTML(tootData.author)}</div>
+              <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                ${tootData.followers ? formatNumber(tootData.followers) + ' seguidores' : ''}
+              </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card p-3">
-              <h2>${todayUses}</h2>
-              <small>Today's Posts</small>
+          <div class="toot-content" style="margin-bottom: 1.5rem;">
+            ${processedContent}
+          </div>
+          ${mediaHTML}
+          <div style="display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); flex-wrap: nowrap;">
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text-secondary); white-space: nowrap;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              <span>${formatNumber(tootData.favorites || 0)}</span>
+            </div>
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text-secondary); white-space: nowrap;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 1l4 4-4 4"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <path d="M7 23l-4-4 4-4"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+              <span>${formatNumber(tootData.boosts || 0)}</span>
+            </div>
+            <div style="display: flex; flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text-secondary); white-space: nowrap;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+              <span class="relevance-badge">${tootData.relevance}</span>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card p-3">
-              <h2>${uniqueUsers}</h2>
-              <small>Unique Users</small>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="card p-3">
-              <h2>${weeklyTotal}</h2>
-              <small>Weekly Total</small>
-            </div>
+        </div>
+      `;
+      
+      // Attach event handlers to images AFTER innerHTML is set (avoids inline handler issues)
+      const imgContainers = modalBody.querySelectorAll('.toot-img-container');
+      imgContainers.forEach(container => {
+        const img = container.querySelector('.toot-img');
+        const description = container.querySelector('.toot-img-description');
+        const originalUrl = container.dataset.originalUrl;
+        
+        if (img) {
+          // Error handler
+          img.onerror = function() {
+            console.error('Image failed to load via proxy:', this.src);
+            container.innerHTML = `
+              <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem; flex-direction: column;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🖼️</div>
+                <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: none;">Abrir imagem</a>
+              </div>
+            `;
+          };
+          
+          // Load handler
+          img.onload = function() {
+            console.log('Image loaded successfully:', this.src);
+          };
+          
+          // Click handler - open original image
+          img.onclick = function() {
+            window.open(originalUrl, '_blank');
+          };
+          
+          // Hover effects
+          img.onmouseover = function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.filter = 'brightness(1.1)';
+          };
+          img.onmouseout = function() {
+            this.style.transform = 'scale(1)';
+            this.style.filter = 'brightness(1)';
+          };
+        }
+        
+        // Description hover effect
+        if (description) {
+          container.onmouseover = function() {
+            description.style.opacity = '1';
+          };
+          container.onmouseout = function() {
+            description.style.opacity = '0';
+          };
+        }
+      });
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('tootModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // Render KPI cards - insert directly into bento grid
+    function renderKPICards(stats) {
+      const { hashtag, summary } = stats;
+      const bentoGrid = document.getElementById('bentoGrid');
+      
+      // Remove existing KPI cards if any
+      const existingKPIs = bentoGrid.querySelectorAll('.kpi-card');
+      existingKPIs.forEach(card => card.remove());
+      
+      // Create KPI cards and insert them at the beginning of the grid
+      const kpiCards = [
+        {
+          class: 'primary',
+          icon: '#',
+          content: `<div class="kpi-hashtag" style="margin-top: 0.5rem;">#${hashtag}</div><div class="kpi-label" style="margin-top: 0.5rem;">Hashtag Atual</div>`
+        },
+        {
+          class: 'success',
+          icon: '📝',
+          content: `<div class="kpi-value">${formatNumber(summary.tootCount)}</div><div class="kpi-label">Posts Hoje</div>`
+        },
+        {
+          class: 'info',
+          icon: '👥',
+          content: `<div class="kpi-value">${formatNumber(summary.uniqueUsers)}</div><div class="kpi-label">Participantes Únicos</div>`
+        },
+        {
+          class: 'warning',
+          icon: '📊',
+          content: `<div class="kpi-value">${formatNumber(summary.weeklyTotal)}</div><div class="kpi-label">Total da Semana</div>`
+        }
+      ];
+      
+      kpiCards.forEach((kpi, index) => {
+        const card = document.createElement('div');
+        card.className = `kpi-card ${kpi.class}`;
+        card.style.animationDelay = `${(index + 1) * 0.1}s`;
+        card.innerHTML = `
+          <div>
+            <div class="kpi-icon">${kpi.icon}</div>
+            ${kpi.content}
           </div>
         `;
+        bentoGrid.insertBefore(card, bentoGrid.firstChild);
+      });
+    }
 
-        // Load top toots
-        const tootsRes = await fetch('/api/top-toots');
-        const topToots = await tootsRes.json();
+    // Render top toots
+    function renderTopToots(topToots) {
+      const container = document.getElementById('topTootsContent');
+      
+      if (!topToots || topToots.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>Nenhum post encontrado hoje.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Store toot data in a global map for retrieval
+      window.tootDataCache = window.tootDataCache || {};
+
+      const tootsHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Autor</th>
+                <th>Seguidores</th>
+                <th>⭐ Favoritos</th>
+                <th>🔄 Boosts</th>
+                <th>Relevância</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topToots.slice(0, 5).map((toot, index) => {
+                let buttonHTML = '<span style="color: var(--text-muted);">N/A</span>';
+                if (toot.link) {
+                  // Map media with all possible URL fields
+                  const mediaData = (toot.media || []).map(m => {
+                    const url = m.url || m.preview_url || m.remote_url || m.preview_remote_url || 
+                               (m.meta && m.meta.original && m.meta.original.url) ||
+                               (m.meta && m.meta.small && m.meta.small.url);
+                    return {
+                      type: m.type,
+                      url: url,
+                      description: m.description || m.alt_text || '',
+                      meta: m.meta
+                    };
+                  }).filter(m => m.url);
+                  
+                  // Store full toot data in cache to avoid data-attribute corruption
+                  const tootId = `toot-${toot.id || index}-${Date.now()}`;
+                  window.tootDataCache[tootId] = {
+                    link: toot.link,
+                    author: toot.author,
+                    content: toot.content || '',
+                    favorites: toot.favorites || 0,
+                    boosts: toot.boosts || 0,
+                    relevance: toot.relevance || 0,
+                    followers: toot.followers || 0,
+                    media: mediaData
+                  };
+                  
+                  console.log('Cached toot data:', tootId, window.tootDataCache[tootId]);
+                  
+                  buttonHTML = `<button data-toot-id="${tootId}" onclick="openModalFromCache(this.dataset.tootId)" class="btn-link" style="background: none; border: none; cursor: pointer;">Ver <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>`;
+                }
+                return `
+                <tr>
+                  <td><strong>@${sanitizeHTML(toot.author)}</strong></td>
+                  <td>${formatNumber(toot.followers)}</td>
+                  <td>${formatNumber(toot.favorites)}</td>
+                  <td>${formatNumber(toot.boosts)}</td>
+                  <td><span class="relevance-badge">${toot.relevance}</span></td>
+                  <td>${buttonHTML}</td>
+                </tr>
+              `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      container.innerHTML = tootsHTML;
+    }
+
+    // Open modal from cached toot data (avoids data-attribute corruption)
+    function openModalFromCache(tootId) {
+      const tootData = window.tootDataCache?.[tootId];
+      if (!tootData) {
+        console.error('Toot data not found in cache:', tootId);
+        return;
+      }
+      
+      console.log('Opening modal from cache:', tootId, tootData);
+      openModal(tootData.link, tootData);
+    }
+
+    // Load data for specific hashtag
+    async function loadHashtagData(hashtag) {
+      cleanupBeforeLoad();
+      showLoading();
+      
+      try {
+        // Normalize hashtag - remove # sign if present
+        const normalizedHashtag = normalizeHashtag(hashtag);
+        console.log(`Loading hashtag data for: "${hashtag}" (normalized: "${normalizedHashtag}")`);
         
-        const tbody = document.querySelector('#topTootsTable tbody');
-        tbody.innerHTML = topToots.map(toot => `
+        // Fetch current daily hashtag
+        const dailyHashtagRes = await fetch(`${API_BASE}/hashtag/current`);
+        if (!dailyHashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
+        const dailyData = await dailyHashtagRes.json();
+        const isDailyHashtag = normalizedHashtag.toLowerCase() === dailyData.hashtag.toLowerCase(); 
+        // Fetch stats for the selected hashtag (using normalized hashtag without #)
+        const statsUrl = `${API_BASE}/hashtag/${encodeURIComponent(normalizedHashtag)}/stats`;
+        console.log(`Fetching stats from: ${statsUrl}`);
+        const statsRes = await fetch(statsUrl);
+        
+        if (!statsRes.ok) {
+          let errorMessage = `Falha ao carregar estatísticas para #${hashtag}`;
+          
+          // Try to get more specific error message from response
+          try {
+            const errorData = await statsRes.json();
+            if (errorData.error && errorData.error.message) {
+              errorMessage = errorData.error.message;
+            }
+          } catch (e) {
+            // If we can't parse JSON, use status code
+            if (statsRes.status === 404) {
+              errorMessage = `A hashtag #${hashtag} não foi encontrada ou não possui dados recentes.`;
+            } else if (statsRes.status >= 500) {
+              errorMessage = `Erro no servidor ao buscar dados para #${hashtag}. Tente novamente mais tarde.`;
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        const stats = await statsRes.json(); 
+        // Check if we have valid data
+        if (!stats) {
+          console.warn(`No valid stats data for hashtag: ${hashtag}`);
+          throw new Error(`Dados inválidos retornados para #${hashtag}`);
+        }
+
+        // Fetch trending tags (keep them)
+        const trendingRes = await fetch(`${API_BASE}/trending?limit=10`);
+        if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
+        const { tags: trendingTags } = await trendingRes.json();
+ 
+        // Render all sections
+        renderKPICards(stats);
+        renderTopToots(stats.topToots || []);
+        renderTrendingTags(trendingTags, hashtag);
+ 
+        // Update last updated time and show/hide back button
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 
+          `Última atualização: ${now.toLocaleString('pt-BR')}`;
+        
+        const backBtn = document.getElementById('backToDailyBtn');
+        backBtn.style.display = isDailyHashtag ? 'none' : 'inline-flex';
+ 
+        hideLoading();
+      } catch (error) {
+        console.error('Error loading hashtag data:', error);
+        showError(error.message || 'Erro inesperado ao carregar dados');
+      }
+    }
+
+    // Render trending tags
+    function renderTrendingTags(trendingTags, currentHashtag = null) {
+      const tbody = document.getElementById('trending-tags-tbody');
+      tbody.innerHTML = ''; 
+      
+      // Normalize currentHashtag for comparison (remove # sign if present)
+      const normalizedCurrentHashtag = currentHashtag ? normalizeHashtag(currentHashtag) : null;
+      
+      if (!trendingTags || trendingTags.length === 0) {
+        tbody.innerHTML = `
           <tr>
-            <td>@${toot.author}</td>
-            <td>${toot.followers.toLocaleString()}</td>
-            <td>${toot.favorites}</td>
-            <td>${toot.boosts}</td>
-            <td><span class="relevance-badge">${toot.relevance}</span></td>
-            <td><a href="${toot.link}" target="_blank">View →</a></td>
+            <td colspan="4" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+              <div class="empty-state-icon">📭</div>
+              <p style="margin-top: 1rem;">Nenhuma tag em alta encontrada.</p>
+            </td>
           </tr>
-        `).join('');
+        `;
+        return;
+      }
+
+      const trendConfig = {
+        'rising': { emoji: '📈', class: 'rising' },
+        'falling': { emoji: '📉', class: 'falling' },
+        'stable': { emoji: '➡️', class: '' }
+      };
+
+      trendingTags.slice(0, 10).forEach((tag, index) => {
+        const trend = trendConfig[tag.trendDirection] || trendConfig['stable'];
+        const trendLabel = tag.trendDirection === 'rising' ? 'Subindo' : 
+                          tag.trendDirection === 'falling' ? 'Caindo' : 'Estável';
+        
+        const isCurrent = normalizedCurrentHashtag && tag.name.toLowerCase() === normalizedCurrentHashtag.toLowerCase();
+        
+        const row = document.createElement('tr');
+        row.style.animationDelay = `${index * 0.05}s`;
+        row.style.cursor = isCurrent ? 'default' : 'pointer';
+        row.setAttribute('data-clickable', (!isCurrent).toString());
+        if (!isCurrent) {
+          row.setAttribute('title', `Clique para ver dados de #${tag.name}`);
+        }
+        row.innerHTML = `
+          <td>
+            <strong>
+              ${isCurrent ? 
+                `<span style="color: #667eea;">#${sanitizeHTML(tag.name)} <small style="color: var(--text-secondary); font-weight: 400;">(atual)</small></span>` :
+                `<a href="javascript:void(0)" onclick="loadHashtagData('${tag.name}')" style="color: var(--text-primary); text-decoration: none; transition: color var(--transition-fast); cursor: pointer;" 
+                   onmouseover="this.style.color='#667eea'" 
+                   onmouseout="this.style.color='var(--text-primary)'">
+                  #${sanitizeHTML(tag.name)}
+                  <small style="color: var(--text-secondary); margin-left: 0.5rem; font-weight: 400;">👆</small>
+                </a>`
+              }
+            </strong>
+          </td>
+          <td>${formatNumber(tag.currentUses)}</td>
+          <td>${formatNumber(tag.accounts)}</td>
+          <td>
+            <span class="trend-badge ${trend.class}">
+              ${trend.emoji} ${trendLabel}
+            </span>
+          </td>
+        `;
+        
+        if (!isCurrent) {
+          row.addEventListener('click', () => loadHashtagData(tag.name));
+        }
+        
+        tbody.appendChild(row);
+      });
+    }
+
+    // Main data loading function - uses new API structure
+    async function loadData() {
+      cleanupBeforeLoad();
+      showLoading();
+      
+      try {
+        // Fetch current hashtag first
+        const hashtagRes = await fetch(`${API_BASE}/hashtag/current`);
+        if (!hashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
+        const { hashtag } = await hashtagRes.json();
+
+        // Fetch dashboard stats for current hashtag
+        const statsRes = await fetch(`${API_BASE}/hashtag/${hashtag}/stats`);
+        if (!statsRes.ok) throw new Error('Falha ao carregar estatísticas');
+        const stats = await statsRes.json();
+
+        // Fetch trending tags
+        const trendingRes = await fetch(`${API_BASE}/trending?limit=10`);
+        if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
+        const { tags: trendingTags } = await trendingRes.json();
+
+        // Render all sections
+        renderKPICards(stats);
+        renderTopToots(stats.topToots || []);
+        renderTrendingTags(trendingTags, hashtag);
+
+        // Update last updated time and hide back button
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 
+          `Última atualização: ${now.toLocaleString('pt-BR')}`;
+        
+        document.getElementById('backToDailyBtn').style.display = 'none';
+
+        hideLoading();
       } catch (error) {
         console.error('Error loading data:', error);
+        showError(error.message || 'Erro inesperado ao carregar dados');
       }
     }
 
-    // Fetch trending tags
-    async function fetchTrendingTags() {
-      try {
-        const response = await fetch('/api/trending-tags');
-        const trendingTags = await response.json();
-        const tableBody = document.getElementById('trending-tags-table').querySelector('tbody');
-        tableBody.innerHTML = '';
-
-        const today = new Date().toISOString().split('T')[0];
-
-        trendingTags.forEach(tag => {
-          const todayHistory = tag.history.find(h => {
-            const date = new Date(parseInt(h.day) * 1000);
-            return date.toISOString().split('T')[0] === today;
-          });
-
-          if (!todayHistory) return;
-
-          // Sort history chronologically
-          tag.history.sort((a, b) => parseInt(a.day) - parseInt(b.day));
-
-          // Prepare chart data
-          const usesData = tag.history.map(h => h.uses);
-          const accountsData = tag.history.map(h => h.accounts);
-          const maxValue = Math.max(Math.max(...usesData), Math.max(...accountsData)) || 1;
-
-          // Generate SVG points
-          const chartPoints = (data) => tag.history
-            .map((h, i) => {
-              const x = (i * 100) / (tag.history.length - 1 || 1);
-              const y = 40 - (data[i] / maxValue) * 40; // 40px height
-              return `${x},${y}`;
-            })
-            .join(' ');
-
-          // Create table row
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td><a href="${tag.url}" target="_blank">#${tag.name}</a></td>
-            <td>${todayHistory.uses.toLocaleString()}</td>
-            <td>${todayHistory.accounts.toLocaleString()}</td>
-            <td>
-              <svg width="100" height="40" viewBox="0 0 100 40" class="trend-chart">
-                <polyline points="${chartPoints(usesData)}" 
-                         stroke="#4CAF50" fill="none" stroke-width="1"/>
-                <polyline points="${chartPoints(accountsData)}" 
-                         stroke="#2196F3" fill="none" stroke-width="1"/>
-              </svg>
-            </td>
-          `;
-          tableBody.appendChild(row);
-        });
-      } catch (error) {
-        console.error('Error fetching trending tags:', error);
-      }
-    }
-
-    // Refresh data every 5 minutes
+    // Initialize dashboard
     loadData();
-    setInterval(loadData, 300000);
-
-    // Fetch trending tags on page load
-    window.onload = fetchTrendingTags;
+    
+    // Set up auto-refresh interval (every 5 minutes)
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+    refreshInterval = setInterval(() => {
+      console.log('Auto-refresh triggered');
+      loadData();
+    }, 300000);
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      if (currentAbortedController) {
+        currentAbortedController.abort();
+      }
+    });
   </script>
 </body>
 </html>

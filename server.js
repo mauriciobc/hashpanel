@@ -95,6 +95,55 @@ app.get('/api/trending-tags', async (req, res) => {
   }
 });
 
+// Consolidated dashboard data endpoint for better performance
+app.get('/api/dashboard-data', async (req, res) => {
+  try {
+    const hashtag = getCurrentHashtag();
+    
+    // Fetch all data in parallel
+    const [history, todayData, tootsResponse, trendingTags] = await Promise.all([
+      getHashtagUse(hashtag),
+      presentDayHashtagUse(hashtag),
+      fetchTootsFromAPI(hashtag, { limit: 100 }),
+      getTrendingTags(10, 0)
+    ]);
+
+    // Process hashtag statistics
+    const weeklyTotal = history.reduce((sum, day) => sum + parseInt(day.uses), 0);
+    const todayUses = todayData?.[0]?.uses || 0;
+    const uniqueUsers = todayData?.[0]?.accounts?.length || 0;
+
+    // Process toots
+    let toots = tootsResponse.data;
+    toots = removeIgnoredToots(toots);
+    toots = await sortTootsByRelevance(toots);
+    toots = filterTootsByDate(
+      toots,
+      moment().tz(PREFERRED_TIMEZONE).format('YYYY-MM-DD')
+    );
+
+    // Format top toots
+    const topToots = await Promise.all(
+      toots.slice(0, 5).map(async (toot) => ({
+        author: toot.account.username,
+        followers: toot.account.followers_count,
+        favorites: toot.favourites_count,
+        boosts: toot.reblogs_count,
+        relevance: toot.relevanceScore,
+        link: await generateTootLink(toot.id)
+      }))
+    );
+
+    res.json({
+      stats: { hashtag, todayUses, uniqueUsers, weeklyTotal },
+      topToots,
+      trendingTags
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
