@@ -36,25 +36,36 @@ export class MastodonService {
 
   /**
    * Make API request with error handling and rate limiting
+   * @param {string} endpoint - API endpoint
+   * @param {object} params - Request parameters
+   * @param {string} method - HTTP method ('get', 'post', etc.), defaults to 'get'
+   * @returns {Promise} Response data
    */
-  async makeAPIRequest(endpoint, params = {}) {
+  async makeAPIRequest(endpoint, params = {}, method = 'get') {
     await this.applyRateLimit();
     
     try {
-      logger.debug(`Making API request to ${endpoint}`, { params });
+      logger.debug(`Making API request to ${endpoint}`, { params, method });
       
-      const response = await this.client.get(endpoint, params);
-      
-      if (!response || !response.data) {
-        throw new APIError(`Invalid response from ${endpoint}`, null, { endpoint, params });
+      const clientMethod = this.client[method];
+      if (!clientMethod || typeof clientMethod !== 'function') {
+        throw new APIError(`Unsupported HTTP method: ${method}`, null, { endpoint, method });
       }
       
-      loggers.apiRequest('GET', endpoint);
-      loggers.performance('mastodon_api_request', Date.now() - this.lastRequestTime, { endpoint });
+      const startTime = Date.now();
+      const response = await clientMethod.call(this.client, endpoint, params);
+      const duration = Date.now() - startTime;
+      
+      if (!response || !response.data) {
+        throw new APIError(`Invalid response from ${endpoint}`, null, { endpoint, params, method });
+      }
+      
+      loggers.apiRequest(method.toUpperCase(), endpoint);
+      loggers.performance('mastodon_api_request', duration, { endpoint, method });
       
       return response.data;
     } catch (error) {
-      loggers.error(`API request failed for ${endpoint}`, error, { params });
+      loggers.error(`API request failed for ${endpoint}`, error, { params, method });
       
       // Handle specific Mastodon API errors
       if (error.response) {
@@ -69,11 +80,11 @@ export class MastodonService {
         }
         
         if (status >= 500) {
-          throw new APIError(`Mastodon server error: ${status} ${statusText}`, error, { endpoint, status });
+          throw new APIError(`Mastodon server error: ${status} ${statusText}`, error, { endpoint, status, method });
         }
       }
       
-      throw new APIError(`Failed to fetch data from ${endpoint}: ${error.message}`, error, { endpoint });
+      throw new APIError(`Failed to fetch data from ${endpoint}: ${error.message}`, error, { endpoint, method });
     }
   }
 
@@ -209,7 +220,7 @@ export class MastodonService {
   async getTrendingTags(limit = 10, offset = 0) {
     try {
       const params = { limit: Math.min(limit, 100), offset };
-      const tags = await this.makeAPIRequest('/trends/tags', params);
+      const tags = await this.makeAPIRequest('trends/tags', params);
       
       logger.info(`Fetched ${tags.length} trending tags`, { limit, offset });
       
@@ -250,23 +261,23 @@ export class MastodonService {
         visibility: tootData.visibility 
       });
 
-      const response = await this.client.post('statuses', tootData);
+      const responseData = await this.makeAPIRequest('statuses', tootData, 'post');
       
-      if (!response || !response.data) {
+      if (!responseData) {
         throw new APIError('Invalid response when creating toot', null, { tootData });
       }
 
       logger.info('Successfully created toot', { 
-        tootId: response.data.id,
-        url: response.data.url 
+        tootId: responseData.id,
+        url: responseData.url 
       });
 
       loggers.business('toot_created', { 
-        tootId: response.data.id,
+        tootId: responseData.id,
         statusLength: status.length 
       });
 
-      return response.data;
+      return responseData;
     } catch (error) {
       loggers.error('Failed to create toot', error, { statusLength: status.length });
       throw new APIError(`Failed to create toot: ${error.message}`, error);

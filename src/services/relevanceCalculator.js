@@ -21,40 +21,87 @@ export class RelevanceCalculator {
   }
 
   /**
-   * Validate that weights sum to 1.0
+   * Validate and normalize weights to ensure required keys exist
+   * Normalizes weights to always contain favorites, boosts, and followers
+   * Missing keys are coerced to 0, then weights are renormalized to sum to 1.0
    */
   validateWeights() {
-    const weightValues = Object.values(this.weights);
-    const sum = weightValues.reduce((total, weight) => total + weight, 0);
+    // Required weight keys
+    const requiredKeys = ['favorites', 'boosts', 'followers'];
     
+    // Normalize weights: ensure all required keys exist with numeric values
+    const normalizedWeights = { ...this.weights };
+    let hasMissingKeys = false;
+    
+    for (const key of requiredKeys) {
+      if (!(key in normalizedWeights) || normalizedWeights[key] === undefined || normalizedWeights[key] === null) {
+        normalizedWeights[key] = 0;
+        hasMissingKeys = true;
+      }
+      
+      // Coerce to number if not already
+      const weightValue = normalizedWeights[key];
+      if (typeof weightValue !== 'number' || isNaN(weightValue)) {
+        throw new DataProcessingError(
+          `Weight for ${key} must be a valid number, got ${weightValue}`,
+          'weight_validation',
+          { key, weight: weightValue, weights: this.weights }
+        );
+      }
+      
+      // Validate range
+      if (weightValue < 0 || weightValue > 1) {
+        throw new DataProcessingError(
+          `Weight for ${key} must be between 0 and 1, got ${weightValue}`,
+          'weight_validation',
+          { key, weight: weightValue }
+        );
+      }
+    }
+    
+    // If missing keys were added, log a warning
+    if (hasMissingKeys) {
+      logger.warn('Missing weight keys were normalized to 0', { 
+        originalWeights: this.weights, 
+        normalizedWeights 
+      });
+    }
+    
+    // Calculate sum of normalized weights
+    const sum = requiredKeys.reduce((total, key) => total + normalizedWeights[key], 0);
+    
+    // Validate sum
     if (Math.abs(sum - 1.0) > 0.01) {
       throw new DataProcessingError(
         `Relevance weights must sum to 1.0, but sum to ${sum}`,
         'weight_validation',
-        { weights: this.weights, sum }
+        { weights: normalizedWeights, sum }
       );
     }
-
-    // Validate individual weights
-    for (const [key, weight] of Object.entries(this.weights)) {
-      if (typeof weight !== 'number' || weight < 0 || weight > 1) {
-        throw new DataProcessingError(
-          `Weight for ${key} must be a number between 0 and 1`,
-          'weight_validation',
-          { key, weight }
-        );
+    
+    // Validate any additional (non-required) weights
+    for (const [key, weight] of Object.entries(normalizedWeights)) {
+      if (!requiredKeys.includes(key)) {
+        if (typeof weight !== 'number' || isNaN(weight) || weight < 0 || weight > 1) {
+          throw new DataProcessingError(
+            `Weight for ${key} must be a number between 0 and 1`,
+            'weight_validation',
+            { key, weight }
+          );
+        }
       }
     }
-
-    logger.debug('Relevance weights validated', { weights: this.weights });
+    
+    // Mutate this.weights with normalized values
+    this.weights = normalizedWeights;
+    
+    logger.debug('Relevance weights validated and normalized', { weights: this.weights });
   }
 
   /**
    * Calculate relevance score for a single toot
    */
   calculateRelevance(toot) {
-    this.calculationStats.totalCalculations++;
-    
     try {
       // Validate input
       const validationErrors = this.validateToot(toot);
@@ -150,6 +197,13 @@ export class RelevanceCalculator {
     
     try {
       const created = new Date(createdAt);
+      
+      // Validate the parsed date explicitly
+      if (isNaN(created.getTime())) {
+        logger.warn('Invalid date for account age calculation', { createdAt });
+        return 0;
+      }
+      
       const now = new Date();
       const diffTime = Math.abs(now - created);
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -161,6 +215,7 @@ export class RelevanceCalculator {
 
   /**
    * Calculate weighted relevance score
+   * Uses safe defaults to prevent NaN if weights are somehow undefined
    */
   calculateWeightedScore(metrics) {
     const { favorites, boosts, followers } = metrics;
@@ -170,11 +225,25 @@ export class RelevanceCalculator {
     const scaledFavorites = Math.log10(Math.max(1, favorites));
     const scaledBoosts = Math.log10(Math.max(1, boosts));
     
+    // Use safe defaults to prevent NaN (weights should be normalized by validateWeights, but this is a safety net)
+    const { favorites: wFavorites = 0, boosts: wBoosts = 0, followers: wFollowers = 0 } = this.weights;
+    
     // Calculate weighted score
     const score = 
-      (this.weights.favorites * scaledFavorites) +
-      (this.weights.boosts * scaledBoosts) +
-      (this.weights.followers * scaledFollowers);
+      (wFavorites * scaledFavorites) +
+      (wBoosts * scaledBoosts) +
+      (wFollowers * scaledFollowers);
+    
+    // Final safety check: ensure result is a valid number
+    if (isNaN(score) || !isFinite(score)) {
+      logger.error('Invalid score calculated', { 
+        metrics, 
+        weights: this.weights, 
+        score,
+        scaledValues: { scaledFavorites, scaledBoosts, scaledFollowers }
+      });
+      return 0;
+    }
     
     return score;
   }
@@ -183,6 +252,9 @@ export class RelevanceCalculator {
    * Update calculation statistics
    */
   updateStats(score) {
+    // Increment totalCalculations only for successful calculations
+    this.calculationStats.totalCalculations++;
+    
     // Update min/max
     if (score > this.calculationStats.maxScore) {
       this.calculationStats.maxScore = score;
@@ -258,11 +330,12 @@ export class RelevanceCalculator {
    * Get calculation statistics
    */
   getStats() {
+    const totalAttempts = this.calculationStats.totalCalculations + this.calculationStats.errors;
     return {
       ...this.calculationStats,
       weights: this.weights,
-      errorRate: this.calculationStats.totalCalculations > 0 
-        ? (this.calculationStats.errors / this.calculationStats.totalCalculations) * 100 
+      errorRate: totalAttempts > 0 
+        ? (this.calculationStats.errors / totalAttempts) * 100 
         : 0
     };
   }

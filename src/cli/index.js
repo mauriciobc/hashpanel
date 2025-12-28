@@ -140,7 +140,8 @@ export class CLIApplication {
   async showTrendingTags() {
     try {
       console.log('\n=== TAGS EM ALTA ===');
-      const trendingTags = await this.hashtagService.getTrendingTags(5);
+      const result = await this.hashtagService.getTrendingTags(5);
+      const trendingTags = result.tags;
       
       if (trendingTags.length === 0) {
         console.log('Nenhuma tag em alta encontrada.');
@@ -252,7 +253,8 @@ export class CLIApplication {
     
     try {
       // Test API connectivity
-      const trendingTags = await this.hashtagService.getTrendingTags(1);
+      const result = await this.hashtagService.getTrendingTags(1);
+      const trendingTags = result.tags;
       console.log(`API Status: ✅ Conectado`);
       console.log(`Tags em alta disponíveis: ${trendingTags.length > 0 ? 'Sim' : 'Não'}`);
     } catch (error) {
@@ -307,9 +309,14 @@ export class CLIApplication {
   }
 }
 
+// Module-level variable to store app instance for signal handlers
+let appInstance = null;
+let isShuttingDown = false;
+
 // CLI entry point handler
 export async function runCLI(args = process.argv) {
   const app = new CLIApplication();
+  appInstance = app;
   
   // Parse command line arguments
   const options = parseArguments(args);
@@ -359,11 +366,17 @@ function parseArguments(args) {
         break;
         
       case '--date':
+        if (i + 1 >= args.length) {
+          throw new Error('Erro: --date requer um valor (formato: YYYY-MM-DD). Use --help para mais informações.');
+        }
         options.date = args[++i];
         break;
         
       case 'analyze':
         options.command = 'analyze';
+        if (i + 1 >= args.length) {
+          throw new Error('Erro: analyze requer uma hashtag. Use: analyze <hashtag>');
+        }
         options.hashtag = args[++i];
         break;
         
@@ -409,11 +422,47 @@ Exemplos:
 
 // Handle process signals for graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n\nRecebido sinal SIGINT, encerrando...');
-  process.exit(0);
+  if (isShuttingDown) {
+    console.log('\n\nSinal de encerramento recebido novamente, forçando saída...');
+    process.exit(1);
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log('\n\nRecebido sinal SIGINT, encerrando graciosamente...');
+  
+  try {
+    if (appInstance) {
+      await appInstance.shutdown();
+    }
+    logger.info('Graceful shutdown completed successfully');
+    process.exit(0);
+  } catch (error) {
+    loggers.error('Error during graceful shutdown', error);
+    console.error(`\n❌ Erro durante encerramento: ${error.message}`);
+    process.exit(1);
+  }
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n\nRecebido sinal SIGTERM, encerrando...');
-  process.exit(0);
+  if (isShuttingDown) {
+    console.log('\n\nSinal de encerramento recebido novamente, forçando saída...');
+    process.exit(1);
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log('\n\nRecebido sinal SIGTERM, encerrando graciosamente...');
+  
+  try {
+    if (appInstance) {
+      await appInstance.shutdown();
+    }
+    logger.info('Graceful shutdown completed successfully');
+    process.exit(0);
+  } catch (error) {
+    loggers.error('Error during graceful shutdown', error);
+    console.error(`\n❌ Erro durante encerramento: ${error.message}`);
+    process.exit(1);
+  }
 });

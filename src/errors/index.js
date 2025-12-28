@@ -10,20 +10,26 @@ export class HashbotError extends Error {
     
     // Ensure stack trace is preserved
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, HashbotError);
+      Error.captureStackTrace(this, this.constructor);
     }
   }
 
   toJSON() {
-    return {
+    const json = {
       name: this.name,
       message: this.message,
       code: this.code,
       statusCode: this.statusCode,
       details: this.details,
-      timestamp: this.timestamp,
-      stack: this.stack
+      timestamp: this.timestamp
     };
+    
+    // Include stack trace only in non-production environments or when explicitly requested
+    if (this.includeStack || process.env.NODE_ENV !== 'production') {
+      json.stack = this.stack;
+    }
+    
+    return json;
   }
 }
 

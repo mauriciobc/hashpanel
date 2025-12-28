@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { heavyRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
+import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 
 const router = Router();
@@ -14,18 +15,29 @@ const router = Router();
 router.get('/stats', heavyRateLimit, asyncHandler(async (req, res) => {
   const { timeframe = 'today' } = req.query;
   
-  logger.info('Dashboard stats requested', { timeframe });
+  // Validate timeframe parameter
+  const validTimeframes = ['today', 'week', 'month', 'all'];
+  if (!validTimeframes.includes(timeframe.toLowerCase())) {
+    throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`);
+  }
+  
+  const normalizedTimeframe = timeframe.toLowerCase();
+  
+  logger.info('Dashboard stats requested', { timeframe: normalizedTimeframe });
   
   try {
     // Get daily hashtag
     const dailyHashtag = hashtagService.getDailyHashtag();
     
     // Get comprehensive analysis - limit to 3 pages for faster response time
-    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { maxPages: 3 });
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
+      maxPages: 3,
+      timeframe: normalizedTimeframe 
+    });
     
     const stats = {
       hashtag: dailyHashtag,
-      timeframe,
+      timeframe: normalizedTimeframe,
       date: analysis.today,
       summary: {
         tootCount: analysis.getTodayCount(),
@@ -73,6 +85,7 @@ router.get('/summary', asyncHandler(async (req, res) => {
     // Limit to 3 pages for faster response time
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { maxPages: 3 });
     
+    const topToots = analysis.getTopToots(1);
     const summary = {
       hashtag: dailyHashtag,
       date: analysis.today,
@@ -82,9 +95,9 @@ router.get('/summary', asyncHandler(async (req, res) => {
         uniqueUsers: analysis.getUniqueUserCount(),
         weeklyTotal: analysis.getWeeklyTotal()
       },
-      topPost: analysis.getTopToots(1)[0] ? {
-        author: analysis.getTopToots(1)[0].account.username,
-        relevance: analysis.getTopToots(1)[0].relevanceScore
+      topPost: topToots[0] ? {
+        author: topToots[0].account.username,
+        relevance: topToots[0].relevanceScore
       } : null,
       lastUpdated: new Date().toISOString()
     };
@@ -98,11 +111,63 @@ router.get('/summary', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * Validates and normalizes the days query parameter
+ * @param {string|number|undefined} daysValue - Raw value from query string
+ * @param {number} defaultValue - Default value to use if validation fails
+ * @param {number} min - Minimum allowed value (default: 1)
+ * @param {number} max - Maximum allowed value (default: 365)
+ * @returns {number} Validated and clamped days value
+ * @throws {ValidationError} If value is provided but clearly invalid
+ */
+function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max = 365) {
+  // If undefined or null, use default
+  if (daysValue === undefined || daysValue === null || daysValue === '') {
+    return defaultValue;
+  }
+  
+  // Parse the value
+  const parsed = Number(daysValue);
+  
+  // Check if parsing resulted in NaN (clearly invalid input)
+  if (isNaN(parsed)) {
+    throw new ValidationError(
+      `Invalid days parameter: "${daysValue}". Must be a valid number.`,
+      'days',
+      daysValue
+    );
+  }
+  
+  // Check if it's a finite integer
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    throw new ValidationError(
+      `Invalid days parameter: "${daysValue}". Must be a finite integer.`,
+      'days',
+      daysValue
+    );
+  }
+  
+  // Clamp to acceptable range
+  const clamped = Math.max(min, Math.min(max, parsed));
+  
+  // If value was provided but needed clamping, log a warning
+  if (clamped !== parsed) {
+    logger.warn('Days parameter clamped to valid range', {
+      original: parsed,
+      clamped,
+      min,
+      max
+    });
+  }
+  
+  return clamped;
+}
+
+/**
  * GET /api/dashboard/timeline
  * Get timeline data for the past week
  */
 router.get('/timeline', heavyRateLimit, asyncHandler(async (req, res) => {
-  const { days = 7 } = req.query;
+  const days = validateDaysParameter(req.query.days, 7, 1, 365);
   
   logger.info('Dashboard timeline requested', { days });
   
@@ -111,7 +176,7 @@ router.get('/timeline', heavyRateLimit, asyncHandler(async (req, res) => {
     const history = await hashtagService.getHashtagHistory(dailyHashtag);
     
     // Get the last N days of data
-    const timeline = history.slice(-parseInt(days)).map(day => ({
+    const timeline = history.slice(-days).map(day => ({
       date: day.day,
       uses: parseInt(day.uses) || 0,
       accounts: day.accounts || 0
@@ -172,7 +237,7 @@ router.get('/performance', asyncHandler(async (req, res) => {
  * GET /api/dashboard/alerts
  * Get system alerts and warnings
  */
-router.get('/alerts', asyncHandler(async (req, res) => {
+router.get('/alerts', heavyRateLimit, asyncHandler(async (req, res) => {
   logger.info('Dashboard alerts requested');
   
   try {
@@ -194,7 +259,7 @@ router.get('/alerts', asyncHandler(async (req, res) => {
     
     // Check daily hashtag activity
     const dailyHashtag = hashtagService.getDailyHashtag();
-    const analysis = await hashtagService.analyzeHashtag(dailyHashtag);
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { maxPages: 3 });
     
     if (!analysis.hasTodayToots()) {
       alerts.push({

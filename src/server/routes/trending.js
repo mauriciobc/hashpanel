@@ -1,25 +1,66 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
+import { ValidationError } from '../../errors/index.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { logger } from '../../utils/logger.js';
 
 const router = Router();
 // Using singleton instance from service
 
+// Maximum limit allowed (based on API constraints)
+const MAX_LIMIT = 100;
+
+/**
+ * Validate and sanitize pagination parameters
+ * @param {string|undefined} limitValue - Raw limit value from query
+ * @param {string|undefined} offsetValue - Raw offset value from query
+ * @returns {{limit: number, offset: number}} - Sanitized pagination values
+ */
+function validatePaginationParams(limitValue, offsetValue) {
+  // Default values
+  let limit = 10;
+  let offset = 0;
+  
+  // Validate and parse limit
+  if (limitValue !== undefined && limitValue !== null && limitValue !== '') {
+    // Check if it matches numeric pattern
+    if (/^\d+$/.test(String(limitValue))) {
+      const parsed = parseInt(limitValue, 10);
+      if (Number.isFinite(parsed) && parsed >= 1) {
+        limit = Math.min(parsed, MAX_LIMIT); // Clamp to max limit
+      }
+    }
+  }
+  
+  // Validate and parse offset
+  if (offsetValue !== undefined && offsetValue !== null && offsetValue !== '') {
+    // Check if it matches numeric pattern
+    if (/^\d+$/.test(String(offsetValue))) {
+      const parsed = parseInt(offsetValue, 10);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        offset = parsed;
+      }
+    }
+  }
+  
+  return { limit, offset };
+}
+
 /**
  * GET /api/trending
  * Get trending tags
  */
 router.get('/', asyncHandler(async (req, res) => {
-  const { limit = 10, offset = 0 } = req.query;
+  const { limit, offset } = validatePaginationParams(req.query.limit, req.query.offset);
   
   logger.info('Trending tags requested', { limit, offset });
   
   try {
-    const trendingTags = await hashtagService.getTrendingTags(parseInt(limit));
+    const result = await hashtagService.getTrendingTags(limit, offset);
+    const { tags: trendingTags, totalCount } = result;
     
     const enrichedTags = trendingTags.map((tag, index) => ({
-      rank: parseInt(offset) + index + 1,
+      rank: offset + index + 1,
       name: tag.name,
       url: tag.url,
       history: tag.history || [],
@@ -29,13 +70,20 @@ router.get('/', asyncHandler(async (req, res) => {
       weekTotal: tag.history?.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0) || 0
     }));
     
+    // Calculate pagination metadata
+    // Use totalCount from service if available, otherwise fallback to enrichedTags.length
+    const total = totalCount !== null ? totalCount : enrichedTags.length;
+    const hasMore = totalCount !== null 
+      ? offset + limit < totalCount
+      : enrichedTags.length === limit;
+    
     res.json({
       tags: enrichedTags,
       pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        total: enrichedTags.length,
-        hasMore: enrichedTags.length === parseInt(limit)
+        limit: limit,
+        offset: offset,
+        total: total,
+        hasMore: hasMore
       },
       generatedAt: new Date().toISOString()
     });
@@ -54,7 +102,8 @@ router.get('/summary', asyncHandler(async (req, res) => {
   logger.info('Trending summary requested');
   
   try {
-    const trendingTags = await hashtagService.getTrendingTags(20);
+    const result = await hashtagService.getTrendingTags(20);
+    const trendingTags = result.tags;
     
     const summary = {
       totalTags: trendingTags.length,
@@ -101,7 +150,8 @@ router.get('/:tag', asyncHandler(async (req, res) => {
   logger.info('Trending tag details requested', { tag });
   
   try {
-    const trendingTags = await hashtagService.getTrendingTags(50);
+    const result = await hashtagService.getTrendingTags(50);
+    const trendingTags = result.tags;
     const tagInfo = trendingTags.find(t => t.name.toLowerCase() === tag.toLowerCase());
     
     if (!tagInfo) {
@@ -161,7 +211,7 @@ router.get('/compare', asyncHandler(async (req, res) => {
     throw new ValidationError('Tags parameter is required');
   }
   
-  const tagList = tags.split(',').map(tag => tag.trim().replace('#', ''));
+  const tagList = tags.split(',').map(tag => tag.trim().replace('#', '').toLowerCase());
   
   if (tagList.length < 2 || tagList.length > 5) {
     throw new ValidationError('Please provide between 2 and 5 tags to compare');
@@ -170,7 +220,8 @@ router.get('/compare', asyncHandler(async (req, res) => {
   logger.info('Trending tags comparison requested', { tags: tagList });
   
   try {
-    const trendingTags = await hashtagService.getTrendingTags(50);
+    const result = await hashtagService.getTrendingTags(50);
+    const trendingTags = result.tags;
     const foundTags = trendingTags.filter(tag => 
       tagList.includes(tag.name.toLowerCase())
     );
@@ -225,8 +276,19 @@ function getTrendDirection(history) {
     return 'stable';
   }
   
-  const recent = parseInt(history[0]?.uses) || 0;
-  const previous = parseInt(history[1]?.uses) || 0;
+  // Normalize to numbers, treating NaN as 0
+  const recentParsed = parseInt(history[0]?.uses);
+  const previousParsed = parseInt(history[1]?.uses);
+  const recent = Number.isNaN(recentParsed) ? 0 : recentParsed;
+  const previous = Number.isNaN(previousParsed) ? 0 : previousParsed;
+  
+  // Handle division by zero: when previous is 0
+  if (previous === 0) {
+    if (recent > 0) return 'rising';
+    return 'stable';
+  }
+  
+  // Only perform percentage calculation when previous > 0 to avoid Infinity/NaN
   const change = ((recent - previous) / previous) * 100;
   
   if (change > 10) return 'rising';

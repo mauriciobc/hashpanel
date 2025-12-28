@@ -55,24 +55,39 @@ export class HashtagService {
       // Get today's date in the configured timezone
       const today = moment().tz(config.server.timezone).format('YYYY-MM-DD');
       
+      // Determine filtering strategy based on timeframe
+      const timeframe = options.timeframe || 'today';
+      const shouldFilterByDate = timeframe === 'today';
+      
       // Fetch data in parallel
       const [allToots, hashtagHistory] = await Promise.all([
         this.fetchAllToots(hashtag, options),
         this.getHashtagHistory(hashtag)
       ]);
 
-      // Process toots
-      const processedToots = dataProcessor.processToots(allToots, {
-        filterByDate: today,
+      // Process toots with appropriate filtering
+      const processOptions = {
         limit: options.limit
-      });
+      };
+      
+      if (shouldFilterByDate) {
+        // For 'today', use date filter for precision
+        processOptions.filterByDate = today;
+      } else if (timeframe !== 'all') {
+        // For 'week' or 'month', use timeframe filter
+        processOptions.timeframe = timeframe;
+      }
+      // For 'all', no date filtering
+
+      const processedToots = dataProcessor.processToots(allToots, processOptions);
 
       // Create analysis result
-      const analysis = new HashtagAnalysis(hashtag, today, processedToots, hashtagHistory);
+      const analysis = new HashtagAnalysis(hashtag, today, processedToots, hashtagHistory, timeframe);
       
       logger.info(`Completed analysis for hashtag: ${hashtag}`, {
         totalToots: allToots.length,
-        todayToots: processedToots.length,
+        filteredToots: processedToots.length,
+        timeframe,
         weeklyTotal: analysis.getWeeklyTotal()
       });
 
@@ -128,30 +143,45 @@ export class HashtagService {
   }
 
   /**
-   * Get trending tags
+   * Get trending tags with pagination support
+   * Returns { tags, totalCount } where totalCount is the real total from the API
    */
-  async getTrendingTags(limit = 10) {
-    const cacheKey = `trending_tags_${limit}`;
+  async getTrendingTags(limit = 10, offset = 0) {
+    const cacheKey = `trending_tags_all`;
+    const totalCountCacheKey = `trending_tags_total`;
     
-    // Check cache first - Node-Cache handles TTL automatically
-    const cached = this.cache.get(cacheKey);
-    if (cached) {
-      logger.debug('Using cached trending tags');
-      return cached;
+    // Check cache for total count first
+    let totalCount = this.cache.get(totalCountCacheKey);
+    let allTags = this.cache.get(cacheKey);
+    
+    // If we don't have cached data, fetch all tags (up to API max of 100) to get total
+    if (totalCount === undefined || allTags === undefined) {
+      try {
+        // Fetch maximum allowed (100) to determine total count
+        allTags = await mastodonService.getTrendingTags(100, 0);
+        totalCount = allTags.length;
+        
+        // Cache both the tags and total count
+        this.cache.set(cacheKey, allTags);
+        this.cache.set(totalCountCacheKey, totalCount);
+        
+        logger.debug('Fetched and cached trending tags for total count', { totalCount });
+      } catch (error) {
+        loggers.error('Failed to fetch trending tags for total count', error);
+        // If we can't get total, return empty and let caller handle fallback
+        return { tags: [], totalCount: null };
+      }
+    } else {
+      logger.debug('Using cached trending tags for pagination');
     }
 
-    try {
-      const tags = await mastodonService.getTrendingTags(limit);
-      
-      // Cache the results - Node-Cache handles TTL
-      this.cache.set(cacheKey, tags);
+    // Apply offset and limit to the cached/fetched tags
+    const paginatedTags = allTags.slice(offset, offset + limit);
 
-      return tags;
-      
-    } catch (error) {
-      loggers.error('Failed to fetch trending tags', error);
-      return [];
-    }
+    return {
+      tags: paginatedTags,
+      totalCount: totalCount
+    };
   }
 
   /**
@@ -221,11 +251,12 @@ export class HashtagService {
  * Hashtag analysis result class
  */
 export class HashtagAnalysis {
-  constructor(hashtag, today, toots, history) {
+  constructor(hashtag, today, toots, history, timeframe = 'today') {
     this.hashtag = hashtag;
     this.today = today;
     this.toots = toots;
     this.history = history || [];
+    this.timeframe = timeframe;
     this.createdAt = new Date();
     this._cachedStats = null;
   }
@@ -285,12 +316,14 @@ export class HashtagAnalysis {
   }
 
   /**
-   * Get count of today's toots
+   * Get count of toots for the current timeframe
    */
   getTodayCount() {
-    if (this.history && this.history.length > 0) {
+    // For 'today' timeframe, use history if available for accuracy
+    if (this.timeframe === 'today' && this.history && this.history.length > 0) {
       return parseInt(this.history[0].uses) || 0;
     }
+    // For other timeframes or when history is not available, use filtered toots count
     return this.toots.length;
   }
 

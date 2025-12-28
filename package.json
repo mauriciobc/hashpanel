@@ -22,7 +22,7 @@
     "server": "node server-new.js",
     "server:old": "node server.js",
     "cli:old": "node main.js",
-    "dev": "concurrently \"npm run server\" \"npm run dev:watch\"",
+    "dev": "npm run dev:watch",
     "dev:server": "nodemon server-new.js",
     "dev:cli": "nodemon cli.js",
     "dev:watch": "nodemon --watch src --exec \"node server-new.js\"",

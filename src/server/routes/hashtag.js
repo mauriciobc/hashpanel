@@ -36,19 +36,29 @@ router.get('/:hashtag/stats', heavyRateLimit, asyncHandler(async (req, res) => {
     throw new ValidationError('Hashtag is required');
   }
   
+  // Validate timeframe parameter
+  const validTimeframes = ['today', 'week', 'month', 'all'];
+  if (!validTimeframes.includes(timeframe.toLowerCase())) {
+    throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`);
+  }
+  
   // Normalize hashtag - remove # sign if present
   const normalizedHashtag = hashtag.replace(/^#/, '');
+  const normalizedTimeframe = timeframe.toLowerCase();
   
-  logger.info('Hashtag stats requested', { original: hashtag, normalized: normalizedHashtag, timeframe });
+  logger.info('Hashtag stats requested', { original: hashtag, normalized: normalizedHashtag, timeframe: normalizedTimeframe });
   
   try {
     // Limit to 3 pages for stats endpoint to improve response time (3 pages = ~120 toots)
     // This is enough for accurate statistics while keeping response time under 5 seconds
-    const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { maxPages: 3 });
+    const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { 
+      maxPages: 3,
+      timeframe: normalizedTimeframe 
+    });
     
     const stats = {
       hashtag: normalizedHashtag,
-      timeframe,
+      timeframe: normalizedTimeframe,
       summary: {
         tootCount: analysis.getTodayCount(),
         uniqueUsers: analysis.getUniqueUserCount(),
@@ -138,15 +148,23 @@ router.get('/:hashtag/timeline', heavyRateLimit, asyncHandler(async (req, res) =
       averageRelevance: 0 // Would need to calculate from historical data
     }));
     
+    // Calculate summary statistics with safe guards for empty timeline
+    const totalUses = timeline.reduce((sum, day) => sum + day.uses, 0);
+    const averageDaily = timeline.length === 0 ? 0 : Math.round(totalUses / timeline.length);
+    const peakDay = timeline.length === 0 
+      ? { date: null, uses: 0, accounts: 0, averageRelevance: 0 }
+      : timeline.reduce((max, day) => day.uses > max.uses ? day : max, timeline[0]);
+    const activeDays = timeline.filter(day => day.uses > 0).length;
+    
     res.json({
       hashtag,
       period: `last ${days} days`,
       timeline,
       summary: {
-        totalUses: timeline.reduce((sum, day) => sum + day.uses, 0),
-        averageDaily: Math.round(timeline.reduce((sum, day) => sum + day.uses, 0) / timeline.length),
-        peakDay: timeline.reduce((max, day) => day.uses > max.uses ? day : max, timeline[0]),
-        activeDays: timeline.filter(day => day.uses > 0).length
+        totalUses,
+        averageDaily,
+        peakDay,
+        activeDays
       },
       recentActivity: {
         tootCount: analysis.getTodayCount(),
@@ -214,7 +232,7 @@ router.get('/:hashtag/analysis', heavyRateLimit, asyncHandler(async (req, res) =
  * GET /api/hashtag/:hashtag/users
  * Get most active users for a hashtag
  */
-router.get('/:hashtag/users', asyncHandler(async (req, res) => {
+router.get('/:hashtag/users', heavyRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
   const { limit = 20 } = req.query;
   

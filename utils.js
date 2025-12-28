@@ -56,6 +56,9 @@ export async function calculateSumOfUses(hist) {
 export async function getPresentDayTimestamp(history) {
   const presentDay = moment().tz('UTC').startOf('day').unix();
   const presentDayTimestamp = (await history).find((item) => item.day === presentDay.toString());
-  console.log(presentDayTimestamp, presentDay);
+export async function getPresentDayTimestamp(history) {
+  const presentDay = moment().tz('UTC').startOf('day').unix();
+  const presentDayTimestamp = (await history).find((item) => item.day === presentDay.toString());
   return presentDayTimestamp ? presentDayTimestamp.day : null;
+}  return presentDayTimestamp ? presentDayTimestamp.day : null;
 }

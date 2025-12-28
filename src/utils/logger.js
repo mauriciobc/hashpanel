@@ -1,6 +1,19 @@
 import winston from 'winston';
 import { env } from '../config/index.js';
 
+// Valid Winston log levels
+const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug', 'silly'];
+const DEFAULT_LOG_LEVEL = 'info';
+
+// Validate and normalize log level
+function getValidLogLevel(logLevel) {
+  // If falsy or not a valid Winston level, use default
+  if (!logLevel || !VALID_LOG_LEVELS.includes(logLevel.toLowerCase())) {
+    return DEFAULT_LOG_LEVEL;
+  }
+  return logLevel.toLowerCase();
+}
+
 // Custom format for consistent log structure
 const customFormat = winston.format.combine(
   winston.format.timestamp(),
@@ -23,7 +36,7 @@ const customFormat = winston.format.combine(
 
 // Create logger instance
 export const logger = winston.createLogger({
-  level: env.LOG_LEVEL,
+  level: getValidLogLevel(env.LOG_LEVEL),
   format: customFormat,
   defaultMeta: {
     service: 'hashbot2',
@@ -33,6 +46,7 @@ export const logger = winston.createLogger({
     // Console transport for development
     new winston.transports.Console({
       format: winston.format.combine(
+        winston.format.timestamp(),
         winston.format.colorize(),
         winston.format.simple(),
         winston.format.printf(({ level, message, timestamp, ...meta }) => {

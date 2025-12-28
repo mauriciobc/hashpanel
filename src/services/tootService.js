@@ -62,9 +62,14 @@ export class TootService {
       if (topToots.length > 0) {
         summaryLines.push('🏆 Principais posts:');
         
+        // Generate all links in parallel
+        const linkPromises = topToots.map(toot => generateTootLink(toot.id));
+        const links = await Promise.all(linkPromises);
+        
+        // Iterate over topToots and resolved links to build summary lines
         for (let i = 0; i < topToots.length; i++) {
           const toot = topToots[i];
-          const link = await generateTootLink(toot.id);
+          const link = links[i];
           
           summaryLines.push(
             `${i + 1}. @${toot.account.username} (Score: ${toot.relevanceScore})`,
@@ -117,9 +122,24 @@ export class TootService {
       currentLength += line.length + 1;
     }
     
-    // Add truncation notice
+    // Add truncation notice if needed, ensuring it fits within maxLength
     if (truncatedLines.length < summaryLines.length) {
-      truncatedLines.push('... (resumo truncado)');
+      const notice = '... (resumo truncado)';
+      // Include preceding newline if truncatedLines is not empty
+      const noticeLength = truncatedLines.length > 0 
+        ? notice.length + 1  // +1 for the newline before notice
+        : notice.length;
+      
+      // Remove lines until notice fits
+      while (currentLength + noticeLength > maxLength && truncatedLines.length > 0) {
+        const lastLine = truncatedLines.pop();
+        currentLength -= lastLine.length + 1; // +1 for the newline
+      }
+      
+      // Add notice if it fits
+      if (currentLength + noticeLength <= maxLength) {
+        truncatedLines.push(notice);
+      }
     }
     
     return truncatedLines.join('\n');
@@ -194,6 +214,24 @@ export class TootService {
   }
 
   /**
+   * Validate custom toot content
+   * Validates content without requiring hashtags (unlike validateSummary)
+   */
+  validateCustomToot(content) {
+    if (typeof content !== 'string') {
+      throw new ValidationError('Content must be a string');
+    }
+
+    if (content.trim().length === 0) {
+      throw new ValidationError('Content cannot be empty');
+    }
+
+    if (content.length > 500) {
+      throw new ValidationError(`Content exceeds 500 character limit (${content.length} characters)`);
+    }
+  }
+
+  /**
    * Update posting statistics
    */
   updatePostingStats(success) {
@@ -222,7 +260,7 @@ export class TootService {
 
     try {
       // Validate content
-      this.validateSummary(content);
+      this.validateCustomToot(content);
       
       // Create toot with custom options
       const result = await mastodonService.createToot(content, {

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import { appConfig as config } from '../config/index.js';
+import { SERVER_CONFIG } from '../constants/index.js';
 import { logger, loggers } from '../utils/logger.js';
 import { errorHandler, notFoundHandler, requestLogger } from '../middleware/errorHandler.js';
 import { apiRateLimit } from '../middleware/rateLimiter.js';
@@ -30,9 +31,10 @@ export class WebServer {
     this.app.use(compression({ threshold: 1024 }));
     
     // CORS configuration
+    // Uses CORS_OPTIONS from constants to ensure consistency
+    // When credentials: true, origin cannot be '*' - handled in constants
     this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
-      credentials: true,
+      ...SERVER_CONFIG.CORS_OPTIONS,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     }));
@@ -86,7 +88,7 @@ export class WebServer {
   /**
    * Health check endpoint
    */
-  async healthCheck(req, res) {
+  healthCheck = async (req, res) => {
     try {
       const health = {
         status: 'healthy',
@@ -135,7 +137,7 @@ export class WebServer {
   /**
    * Serve frontend application
    */
-  serveFrontend(req, res, next) {
+  serveFrontend = (req, res, next) => {
     // Don't serve frontend for API routes
     if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
       return next();

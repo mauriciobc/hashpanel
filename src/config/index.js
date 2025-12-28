@@ -20,13 +20,13 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   
   // Performance settings
-  API_TIMEOUT_MS: z.string().transform(Number).default("30000"),
-  RATE_LIMIT_DELAY_MS: z.string().transform(Number).default("1000"),
-  MAX_API_PAGES: z.string().transform(Number).default("20"),
-  TOOTS_PER_PAGE: z.string().transform(Number).default("40"),
+  API_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30000),
+  RATE_LIMIT_DELAY_MS: z.coerce.number().int().min(0).default(1000),
+  MAX_API_PAGES: z.coerce.number().int().min(1).default(20),
+  TOOTS_PER_PAGE: z.coerce.number().int().min(1).default(40),
   
   // Cache settings
-  CACHE_TTL_SECONDS: z.string().transform(Number).default("300"),
+  CACHE_TTL_SECONDS: z.coerce.number().int().min(0).default(300),
   ENABLE_CACHE: z.string().transform(val => val === "true").default("true")
 });
 

@@ -25,8 +25,8 @@ export class DataProcessor {
     try {
       logger.info(`Starting to process ${toots.length} toots`, { options });
       
-      // Reset stats for this batch
-      this.processingStats = {
+      // Local stats object scoped to this invocation to avoid race conditions
+      const localStats = {
         totalProcessed: toots.length,
         validToots: 0,
         ignoredToots: 0,
@@ -37,30 +37,35 @@ export class DataProcessor {
       let processedToots = toots;
       
       // Step 1: Filter valid toots
-      processedToots = this.filterValidToots(processedToots);
-      logger.debug(`After filtering valid toots: ${processedToots.length}`);
+      processedToots = this.filterValidToots(processedToots, localStats);
+      logger.debug(`After filtering valid toots: ${processedToots.length}`, { localStats });
       
       // Step 2: Remove ignored accounts
-      processedToots = this.removeIgnoredAccounts(processedToots);
-      logger.debug(`After removing ignored accounts: ${processedToots.length}`);
+      processedToots = this.removeIgnoredAccounts(processedToots, localStats);
+      logger.debug(`After removing ignored accounts: ${processedToots.length}`, { localStats });
       
       // Step 3: Calculate relevance scores
-      processedToots = this.calculateRelevanceScores(processedToots);
-      logger.debug(`After calculating relevance: ${processedToots.length}`);
+      processedToots = this.calculateRelevanceScores(processedToots, localStats);
+      logger.debug(`After calculating relevance: ${processedToots.length}`, { localStats });
       
       // Step 4: Sort by relevance (descending)
       processedToots = this.sortByRelevance(processedToots);
-      logger.debug(`After sorting by relevance: ${processedToots.length}`);
+      logger.debug(`After sorting by relevance: ${processedToots.length}`, { localStats });
       
       // Step 5: Apply optional filters
       if (options.filterByDate) {
         processedToots = this.filterByDate(processedToots, options.filterByDate);
-        logger.debug(`After filtering by date: ${processedToots.length}`);
+        logger.debug(`After filtering by date: ${processedToots.length}`, { localStats });
+      }
+      
+      if (options.timeframe) {
+        processedToots = this.filterByTimeframe(processedToots, options.timeframe);
+        logger.debug(`After filtering by timeframe: ${processedToots.length}`, { localStats });
       }
       
       if (options.limit) {
         processedToots = processedToots.slice(0, options.limit);
-        logger.debug(`After applying limit: ${processedToots.length}`);
+        logger.debug(`After applying limit: ${processedToots.length}`, { localStats });
       }
 
       const duration = Date.now() - startTime;
@@ -68,7 +73,7 @@ export class DataProcessor {
         inputCount: toots.length,
         outputCount: processedToots.length,
         duration,
-        stats: this.processingStats
+        stats: localStats
       });
 
       loggers.performance('toot_processing', duration, {
@@ -79,7 +84,8 @@ export class DataProcessor {
       return processedToots;
       
     } catch (error) {
-      loggers.error('Failed to process toots', error, { 
+      logger.error('Failed to process toots', { 
+        error,
         inputCount: toots.length, 
         options 
       });
@@ -94,22 +100,24 @@ export class DataProcessor {
   /**
    * Filter out invalid toots
    */
-  filterValidToots(toots) {
+  filterValidToots(toots, stats = null) {
     if (!Array.isArray(toots)) {
       throw new DataProcessingError('Input must be an array of toots', 'filter_valid');
     }
+
+    const statsToUse = stats || this.processingStats;
 
     const validToots = toots.filter(toot => {
       const isValid = this.isValidToot(toot);
       
       if (!isValid) {
-        this.processingStats.errors++;
+        statsToUse.errors++;
         logger.warn('Invalid toot filtered out', { 
           tootId: toot?.id, 
           accountId: toot?.account?.id 
         });
       } else {
-        this.processingStats.validToots++;
+        statsToUse.validToots++;
       }
       
       return isValid;
@@ -152,12 +160,15 @@ export class DataProcessor {
     // Numeric fields validation
     const numericFields = ['favourites_count', 'reblogs_count'];
     for (const field of numericFields) {
-      if (field in toot && (typeof toot[field] !== 'number' || toot[field] < 0)) {
-        logger.debug(`Invalid numeric field: ${field}`, { 
-          tootId: toot.id, 
-          value: toot[field] 
-        });
-        return false;
+      if (field in toot) {
+        const value = toot[field];
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+          logger.debug(`Invalid numeric field: ${field}`, { 
+            tootId: toot.id, 
+            value: value 
+          });
+          return false;
+        }
       }
     }
 
@@ -167,12 +178,14 @@ export class DataProcessor {
   /**
    * Remove toots from ignored accounts
    */
-  removeIgnoredAccounts(toots) {
+  removeIgnoredAccounts(toots, stats = null) {
+    const statsToUse = stats || this.processingStats;
+
     const filteredToots = toots.filter(toot => {
       const isIgnored = IGNORED_ACCOUNTS.has(toot.account.username);
       
       if (isIgnored) {
-        this.processingStats.ignoredToots++;
+        statsToUse.ignoredToots++;
         logger.debug(`Removed toot from ignored account: ${toot.account.username}`, {
           tootId: toot.id
         });
@@ -187,13 +200,15 @@ export class DataProcessor {
   /**
    * Calculate relevance scores for all toots
    */
-  calculateRelevanceScores(toots) {
+  calculateRelevanceScores(toots, stats = null) {
+    const statsToUse = stats || this.processingStats;
+
     const scoredToots = toots.map(toot => {
       try {
         return this.relevanceCalculator.calculateRelevance(toot);
       } catch (error) {
-        loggers.error(`Failed to calculate relevance for toot ${toot.id}`, error);
-        this.processingStats.errors++;
+        logger.error(`Failed to calculate relevance for toot ${toot.id}`, { error });
+        statsToUse.errors++;
         return null;
       }
     }).filter(Boolean); // Remove null results
@@ -203,9 +218,11 @@ export class DataProcessor {
 
   /**
    * Sort toots by relevance score (descending)
+   * @param {Array} toots - Array of toots to sort
+   * @returns {Array} A new sorted array (does not mutate the input array)
    */
   sortByRelevance(toots) {
-    return toots.sort((a, b) => {
+    return [...toots].sort((a, b) => {
       // Handle missing relevance scores
       const aScore = a.relevanceScore || 0;
       const bScore = b.relevanceScore || 0;
@@ -240,6 +257,47 @@ export class DataProcessor {
     });
 
     logger.debug(`Filtered toots by date ${targetDate}: ${filteredToots.length} remaining`);
+    
+    return filteredToots;
+  }
+
+  /**
+   * Filter toots by timeframe (today, week, month, all)
+   */
+  filterByTimeframe(toots, timeframe) {
+    if (!timeframe || timeframe === 'all') {
+      return toots;
+    }
+
+    const now = moment().tz(config.server.timezone);
+    let cutoffDate;
+
+    switch (timeframe.toLowerCase()) {
+      case 'today':
+        cutoffDate = now.clone().startOf('day');
+        break;
+      case 'week':
+        cutoffDate = now.clone().subtract(7, 'days').startOf('day');
+        break;
+      case 'month':
+        cutoffDate = now.clone().subtract(30, 'days').startOf('day');
+        break;
+      default:
+        logger.warn(`Unknown timeframe: ${timeframe}, returning all toots`);
+        return toots;
+    }
+
+    const filteredToots = toots.filter(toot => {
+      try {
+        const tootMoment = moment(toot.created_at).tz(config.server.timezone);
+        return tootMoment.isSameOrAfter(cutoffDate);
+      } catch (error) {
+        loggers.error(`Failed to parse date for toot ${toot.id}`, error);
+        return false;
+      }
+    });
+
+    logger.debug(`Filtered toots by timeframe ${timeframe}: ${filteredToots.length} remaining`);
     
     return filteredToots;
   }

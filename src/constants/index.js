@@ -45,10 +45,49 @@ export const CACHE_CONFIG = {
 // Server configuration
 export const SERVER_CONFIG = {
   DEFAULT_PORT: 3000,
-  CORS_OPTIONS: {
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true
-  },
+  CORS_OPTIONS: (() => {
+    const corsOrigin = process.env.CORS_ORIGIN;
+    
+    // If CORS_ORIGIN is explicitly set, use it
+    if (corsOrigin) {
+      // Support comma-separated list of origins
+      const allowedOrigins = corsOrigin.split(',').map(origin => origin.trim());
+      
+      // If only one origin, return it directly; otherwise return array
+      const origin = allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins;
+      
+      return {
+        origin,
+        credentials: true
+      };
+    }
+    
+    // If CORS_ORIGIN is not set, use dynamic origin handler
+    // This allows specific origins while maintaining credentials support
+    return {
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+          return callback(null, true);
+        }
+        
+        // In development, allow localhost origins
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        const localhostPattern = /^https?:\/\/localhost(:\d+)?$/;
+        
+        // Allow localhost in development or if explicitly allowed
+        if (isDevelopment && localhostPattern.test(origin)) {
+          return callback(null, true);
+        }
+        
+        // Default to allowing the origin (echo back the request origin)
+        // This is safer than wildcard when credentials: true
+        // In production, you should set CORS_ORIGIN explicitly
+        callback(null, origin);
+      },
+      credentials: true
+    };
+  })(),
   RATE_LIMIT_OPTIONS: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs

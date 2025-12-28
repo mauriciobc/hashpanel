@@ -1,10 +1,34 @@
 import { logger } from '../utils/logger.js';
 import { HashbotError } from '../errors/index.js';
+import { env } from '../config/index.js';
+
+// Try to import JWT error types for instanceof checks (optional dependency)
+let JsonWebTokenError, TokenExpiredError, NotBeforeError;
+try {
+  const jwt = await import('jsonwebtoken');
+  JsonWebTokenError = jwt.JsonWebTokenError;
+  TokenExpiredError = jwt.TokenExpiredError;
+  NotBeforeError = jwt.NotBeforeError;
+} catch {
+  // jsonwebtoken not installed, will use error.name checks only
+}
 
 // Express error handling middleware
 export const errorHandler = (error, req, res, next) => {
-  // Log the error
-  logger.error('Request error', error, {
+  // Build safe error object with only essential properties
+  const isDevelopment = env.NODE_ENV === 'development';
+  const enableDebug = process.env.DEBUG === 'true' || isDevelopment;
+  
+  const safeErrorData = {
+    name: error?.name || 'Error',
+    message: error?.message || 'Unknown error',
+    code: error?.code || null,
+    ...(enableDebug && error?.stack ? { stack: error.stack } : {})
+  };
+
+  // Log the error with safe data only (never pass full error object)
+  logger.error('Request error', {
+    error: safeErrorData,
     method: req.method,
     url: req.url,
     ip: req.ip,
@@ -41,12 +65,33 @@ export const errorHandler = (error, req, res, next) => {
     });
   }
 
-  // Handle JWT errors
-  if (error.name === 'JsonWebTokenError') {
+  // Handle JWT errors - check by error.name and instanceof (if jsonwebtoken is available)
+  const isJWTError = 
+    (JsonWebTokenError && error instanceof JsonWebTokenError) ||
+    (TokenExpiredError && error instanceof TokenExpiredError) ||
+    (NotBeforeError && error instanceof NotBeforeError) ||
+    error.name === 'JsonWebTokenError' ||
+    error.name === 'TokenExpiredError' ||
+    error.name === 'NotBeforeError';
+  
+  if (isJWTError) {
+    let code, message;
+    
+    if ((TokenExpiredError && error instanceof TokenExpiredError) || error.name === 'TokenExpiredError') {
+      code = 'TOKEN_EXPIRED';
+      message = 'Authentication token has expired';
+    } else if ((NotBeforeError && error instanceof NotBeforeError) || error.name === 'NotBeforeError') {
+      code = 'TOKEN_NOT_YET_VALID';
+      message = 'Authentication token is not yet valid';
+    } else {
+      code = 'INVALID_TOKEN';
+      message = 'Invalid authentication token';
+    }
+    
     return res.status(401).json({
       error: {
-        message: 'Invalid authentication token',
-        code: 'INVALID_TOKEN',
+        message,
+        code,
         timestamp: new Date().toISOString()
       }
     });

@@ -6,7 +6,12 @@ import { RateLimitError } from '../errors/index.js';
 // Basic rate limiting configuration
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 100;
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
   message: {
     error: {
       message: 'Too many requests from this IP, please try again later',
@@ -41,7 +46,12 @@ export const apiRateLimit = rateLimit({
 // Stricter rate limiting for posting endpoints
 export const postingRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // limit each IP to 10 posts per hour
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 10;
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
   message: {
     error: {
       message: 'Too many posts, please wait before posting again',
@@ -75,7 +85,12 @@ export const postingRateLimit = rateLimit({
 // Very strict rate limiting for expensive operations
 export const heavyRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 heavy requests per 15 minutes
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 5;
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
   message: {
     error: {
       message: 'Too many heavy requests, please wait before trying again',
@@ -112,9 +127,18 @@ export const heavyRateLimit = rateLimit({
 
 // Custom rate limiting middleware for specific endpoints
 export const createCustomRateLimit = (options = {}) => {
+  const baseMax = options.max || 100;
   return rateLimit({
     windowMs: options.windowMs || 15 * 60 * 1000,
-    max: options.max || 100,
+    max: typeof baseMax === 'function' 
+      ? (req) => {
+          const multiplier = req.rateLimitMultiplier ?? 1;
+          return Math.floor(baseMax(req) * multiplier);
+        }
+      : (req) => {
+          const multiplier = req.rateLimitMultiplier ?? 1;
+          return Math.floor(baseMax * multiplier);
+        },
     message: options.message || {
       error: {
         message: 'Rate limit exceeded',
@@ -144,56 +168,109 @@ export const createCustomRateLimit = (options = {}) => {
   });
 };
 
-// Rate limiting middleware that checks against Redis or database
-export const distributedRateLimit = async (req, res, next) => {
-  // This would implement distributed rate limiting using Redis or database
-  // For now, fall back to memory-based rate limiting
+// In-memory storage for distributed rate limiting (fallback when Redis is not available)
+// This is a thread-safe Map that stores request timestamps per key
+const rateLimitStore = new Map();
+
+// Cleanup interval to prevent memory leaks
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  const windowStart = now - (15 * 60 * 1000); // 15 minutes ago
   
-  // Get client identifier
-  const key = req.ip || req.connection.remoteAddress;
+  for (const [key, timestamps] of rateLimitStore.entries()) {
+    const validTimestamps = timestamps.filter(ts => ts > windowStart);
+    
+    if (validTimestamps.length === 0) {
+      rateLimitStore.delete(key);
+    } else {
+      rateLimitStore.set(key, validTimestamps);
+    }
+  }
+}, 5 * 60 * 1000); // Cleanup every 5 minutes
+
+// Rate limiting middleware that checks against Redis or database
+// Currently uses in-memory storage as fallback
+export const distributedRateLimit = async (req, res, next) => {
+  // Configuration
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxRequests = 100;
+  
+  // Get client identifier using modern API
+  const key = req.ip || req.socket?.remoteAddress || 'unknown';
   const endpoint = req.path;
   const limitKey = `rate_limit:${endpoint}:${key}`;
   
   try {
-    // Here you would check Redis/Database for current count
-    // For now, we'll use a simple in-memory counter
-    
     const now = Date.now();
-    const windowStart = now - (15 * 60 * 1000); // 15 minutes ago
+    const windowStart = now - windowMs;
     
-    // This is a placeholder - in production, use Redis
-    const currentCount = 0; // Get from storage
+    // Get or initialize timestamps for this key
+    if (!rateLimitStore.has(limitKey)) {
+      rateLimitStore.set(limitKey, []);
+    }
     
-    if (currentCount >= 100) {
+    const timestamps = rateLimitStore.get(limitKey);
+    
+    // Remove old timestamps outside the window
+    const validTimestamps = timestamps.filter(ts => ts > windowStart);
+    
+    // Check if limit is exceeded
+    const currentCount = validTimestamps.length;
+    
+    if (currentCount >= maxRequests) {
       logger.warn('Distributed rate limit exceeded', {
-        ip: req.ip,
+        ip: req.ip || key,
         endpoint,
-        currentCount
+        currentCount,
+        limit: maxRequests
       });
+      
+      const resetTime = new Date(now + windowMs);
+      const retryAfter = Math.ceil((resetTime.getTime() - now) / 1000);
       
       return res.status(429).json({
         error: {
           message: 'Rate limit exceeded',
-          code: 'DISTRIBUTED_RATE_LIMIT_EXCEEDED'
+          code: 'DISTRIBUTED_RATE_LIMIT_EXCEEDED',
+          retryAfter,
+          resetTime: resetTime.toISOString()
         }
       });
     }
     
+    // Add current request timestamp
+    validTimestamps.push(now);
+    rateLimitStore.set(limitKey, validTimestamps);
+    
     next();
     
   } catch (error) {
-    logger.error('Error in distributed rate limiting', error);
-    // Fail open - allow request if rate limiting fails
-    next();
+    logger.error('Error in distributed rate limiting', {
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip || key,
+      endpoint
+    });
+    
+    // Fail closed - deny request if rate limiting fails
+    // This prevents potential abuse when the rate limiter is unavailable
+    return res.status(503).json({
+      error: {
+        message: 'Service temporarily unavailable',
+        code: 'RATE_LIMIT_CHECK_FAILED'
+      }
+    });
   }
 };
 
 // Adaptive rate limiting based on server load
+// This middleware calculates a rate limit multiplier based on server memory usage
+// and stores it in req.rateLimitMultiplier. All rate limiters will automatically
+// apply this multiplier to their max limits when processing requests.
 export const adaptiveRateLimit = (req, res, next) => {
   // Adjust rate limits based on current server load
   const memoryUsage = process.memoryUsage();
   const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-  const cpuUsage = process.cpuUsage();
   
   // If server is under heavy load, reduce rate limits
   let multiplier = 1;
@@ -204,7 +281,7 @@ export const adaptiveRateLimit = (req, res, next) => {
     multiplier = 0.75; // Reduce by 25%
   }
   
-  // Store multiplier for other middleware to use
+  // Store multiplier for rate limiters to use
   req.rateLimitMultiplier = multiplier;
   
   logger.debug('Adaptive rate limiting applied', {
@@ -219,7 +296,12 @@ export const adaptiveRateLimit = (req, res, next) => {
 // Rate limiting with user authentication
 export const authenticatedRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Higher limit for authenticated users
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 200;
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
   keyGenerator: (req) => {
     return req.user?.id || ipKeyGenerator(req);
   },

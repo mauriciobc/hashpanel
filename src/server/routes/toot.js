@@ -5,9 +5,62 @@ import { tootService } from '../../services/tootService.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError, BusinessError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
+import { VALIDATION_CONFIG } from '../../constants/index.js';
 
 const router = Router();
 // Using singleton instances from services
+
+/**
+ * Sanitize values for safe logging to prevent log injection attacks
+ * @param {string} value - The value to sanitize
+ * @param {string} type - Type of value: 'hashtag', 'date', or 'generic'
+ * @returns {string} - Sanitized value or safe placeholder
+ */
+function sanitizeForLog(value, type = 'generic') {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // Convert to string if not already
+  let str = String(value);
+  
+  // Remove control characters and newlines (except spaces and tabs)
+  str = str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F\n\r]/g, '');
+  
+  // Limit length to prevent log flooding
+  const MAX_LENGTH = type === 'hashtag' ? VALIDATION_CONFIG.MAX_HASHTAG_LENGTH : 200;
+  if (str.length > MAX_LENGTH) {
+    str = str.substring(0, MAX_LENGTH) + '...';
+  }
+  
+  // Type-specific validation
+  if (type === 'hashtag') {
+    // Remove # if present for normalization
+    const normalized = str.replace(/^#/, '');
+    // Validate against hashtag pattern
+    if (!VALIDATION_CONFIG.HASHTAG_PATTERN.test(normalized)) {
+      return '[INVALID_HASHTAG]';
+    }
+    return normalized;
+  }
+  
+  if (type === 'date') {
+    // Validate ISO date format (YYYY-MM-DD)
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!isoDatePattern.test(str)) {
+      return '[INVALID_DATE]';
+    }
+    // Additional validation: check if it's a valid date
+    const date = new Date(str + 'T00:00:00Z');
+    if (isNaN(date.getTime())) {
+      return '[INVALID_DATE]';
+    }
+    return str;
+  }
+  
+  // For generic values, just return sanitized string
+  return str;
+}
 
 /**
  * POST /api/toot/generate
@@ -20,7 +73,10 @@ router.post('/generate', asyncHandler(async (req, res) => {
     throw new ValidationError('Hashtag is required');
   }
   
-  logger.info('Toot generation requested', { hashtag, date });
+  logger.info('Toot generation requested', { 
+    hashtag: sanitizeForLog(hashtag, 'hashtag'), 
+    date: sanitizeForLog(date, 'date') 
+  });
   
   try {
     // Analyze hashtag
@@ -70,6 +126,26 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
       options 
     });
     
+    // Validate content length before posting
+    if (content.length > VALIDATION_CONFIG.MAX_TOOT_LENGTH) {
+      logger.warn('Direct toot posting rejected: content exceeds character limit', {
+        contentLength: content.length,
+        maxLength: VALIDATION_CONFIG.MAX_TOOT_LENGTH,
+        exceededBy: content.length - VALIDATION_CONFIG.MAX_TOOT_LENGTH
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: `Content exceeds ${VALIDATION_CONFIG.MAX_TOOT_LENGTH} character limit (${content.length} characters)`,
+          code: 'CONTENT_TOO_LONG',
+          field: 'content',
+          contentLength: content.length,
+          maxLength: VALIDATION_CONFIG.MAX_TOOT_LENGTH
+        }
+      });
+    }
+    
     try {
       const result = await tootService.createCustomToot(content, options);
       
@@ -90,7 +166,10 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
     }
     
   } else if (hashtag) {
-    logger.info('Hashtag toot posting requested', { hashtag, options });
+    logger.info('Hashtag toot posting requested', { 
+      hashtag: sanitizeForLog(hashtag, 'hashtag'), 
+      options 
+    });
     
     try {
       // Analyze hashtag and generate summary
@@ -207,16 +286,23 @@ router.post('/daily', postingRateLimit, asyncHandler(async (req, res) => {
 router.get('/history', asyncHandler(async (req, res) => {
   const { limit = 10, offset = 0 } = req.query;
   
-  logger.info('Toot history requested', { limit, offset });
+  // Sanitize query parameters (convert to numbers and validate)
+  const sanitizedLimit = Math.max(1, Math.min(100, parseInt(limit) || 10));
+  const sanitizedOffset = Math.max(0, parseInt(offset) || 0);
+  
+  logger.info('Toot history requested', { 
+    limit: sanitizedLimit, 
+    offset: sanitizedOffset 
+  });
   
   try {
-    const history = await tootService.getPostingHistory(parseInt(limit));
+    const history = await tootService.getPostingHistory(sanitizedLimit);
     
     res.json({
       history: history.posts || [],
       pagination: {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
+        limit: sanitizedLimit,
+        offset: sanitizedOffset,
         total: history.total || 0
       },
       stats: tootService.getStats(),
@@ -238,22 +324,9 @@ router.get('/stats', asyncHandler(async (req, res) => {
   
   try {
     const stats = tootService.getStats();
-    const canPost = tootService.canPost();
     
     res.json({
-      posting: stats,
-      permissions: {
-        canPost: canPost.allowed,
-        reason: canPost.reason || null,
-        nextAllowedTime: canPost.nextAllowedTime || null
-      },
-      system: {
-        environment: process.env.NODE_ENV || 'development',
-        rateLimits: {
-          postingLimit: '10 per hour per IP',
-          dailyLimit: 'No specific limit'
-        }
-      },
+      stats,
       generatedAt: new Date().toISOString()
     });
     

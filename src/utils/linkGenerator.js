@@ -6,16 +6,54 @@ import { ValidationError } from '../errors/index.js';
 const cachedBaseUrl = (() => {
   try {
     const mastodonUrl = new URL(config.mastodon.url);
-    let baseUrl = mastodonUrl.origin;
-    if (mastodonUrl.pathname.includes('/api')) {
-      const pathParts = mastodonUrl.pathname.split('/').filter(part => part !== 'api' && part !== 'v1');
-      baseUrl = mastodonUrl.origin + '/' + pathParts.join('/');
+    
+    // Detect known API path patterns (e.g., /api, /api/v1, /api/v2, etc.)
+    const apiPathPattern = /^\/api(\/v\d+)?\/?$/;
+    const pathname = mastodonUrl.pathname;
+    
+    let baseUrl;
+    if (apiPathPattern.test(pathname)) {
+      // If path matches API pattern, use origin only
+      baseUrl = mastodonUrl.origin;
+      logger.debug('Detected API path pattern, using origin only', { 
+        pathname, 
+        baseUrl 
+      });
+    } else {
+      // Otherwise, combine origin with pathname, normalizing slashes
+      const normalizedPathname = pathname.endsWith('/') 
+        ? pathname.slice(0, -1) 
+        : pathname;
+      baseUrl = mastodonUrl.origin + normalizedPathname;
+      logger.debug('Using origin with pathname', { 
+        pathname, 
+        normalizedPathname, 
+        baseUrl 
+      });
     }
-    logger.debug('Cached base URL', { baseUrl });
+    
     return baseUrl;
   } catch (error) {
-    logger.error('Failed to parse Mastodon URL for caching', error);
-    return config.mastodon.url;
+    logger.error('Failed to parse Mastodon URL for caching', { 
+      url: config.mastodon.url, 
+      error: error.message 
+    });
+    
+    // Try to extract normalized origin from config URL as fallback
+    try {
+      const fallbackUrl = new URL(config.mastodon.url);
+      logger.debug('Using normalized origin as fallback', { 
+        origin: fallbackUrl.origin 
+      });
+      return fallbackUrl.origin;
+    } catch (fallbackError) {
+      logger.error('Failed to extract origin from config URL', { 
+        url: config.mastodon.url, 
+        error: fallbackError.message 
+      });
+      // Last resort: return config URL as-is (may be malformed)
+      return config.mastodon.url;
+    }
   }
 })();
 
