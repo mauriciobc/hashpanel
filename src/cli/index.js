@@ -1,5 +1,5 @@
 import { logger, loggers } from '../utils/logger.js';
-import { HASHTAGS } from '../constants/index.js';
+import { HASHTAGS, getFirstHashtagForDay } from '../constants/index.js';
 import { appConfig as config } from '../config/index.js';
 import { ConfigurationError, BusinessError } from '../errors/index.js';
 import { HashtagService } from '../services/hashtagService.js';
@@ -116,6 +116,7 @@ export class CLIApplication {
 
   /**
    * Get the daily hashtag for a specific date
+   * Returns the first hashtag if multiple are configured for the day
    */
   getDailyHashtag(date = null) {
     const targetDate = date ? new Date(date) : new Date();
@@ -125,13 +126,14 @@ export class CLIApplication {
       throw new BusinessError('Invalid day of week calculated');
     }
     
-    const hashtag = HASHTAGS[dayOfWeek];
+    const hashtagEntry = HASHTAGS[dayOfWeek];
     
-    if (!hashtag) {
+    if (!hashtagEntry) {
       throw new BusinessError(`No hashtag configured for day ${dayOfWeek}`);
     }
     
-    return hashtag;
+    // Return first hashtag if multiple are configured
+    return getFirstHashtagForDay(hashtagEntry);
   }
 
   /**

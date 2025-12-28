@@ -158,6 +158,91 @@ docker network connect hashpanel-network caddy
 
 Ou configure no docker-compose.yml para que ambos os serviços usem a mesma rede.
 
+### Scripts de Instalação e Configuração do Caddy
+
+Scripts prontos para uso dentro do container Caddy (baseado na [imagem oficial](https://github.com/caddyserver/caddy-docker)):
+
+#### 1. `caddy-install.sh` - Instalação e Verificação Completa
+
+Script completo que verifica e configura o Caddy:
+
+```bash
+# Acessar o container Caddy
+docker exec -it caddy sh
+
+# Executar instalação/verificação
+./caddy-install.sh
+```
+
+O script verifica:
+- ✅ Versão do Caddy instalada
+- ✅ Estrutura de diretórios (/config, /data)
+- ✅ Existência e validade do Caddyfile
+- ✅ Conectividade com o container hashpanel
+- ✅ Status do processo Caddy
+- ✅ Diretórios de logs
+
+#### 2. `caddy-setup.sh` - Setup Rápido
+
+Cria um Caddyfile básico automaticamente:
+
+```bash
+# Dentro do container Caddy
+./caddy-setup.sh
+
+# Ou especificar caminho customizado
+./caddy-setup.sh /config/Caddyfile
+```
+
+Variáveis de ambiente opcionais:
+- `HASHPANEL_HOST` - Nome do container hashpanel (padrão: `hashpanel`)
+- `HASHPANEL_PORT` - Porta do hashpanel (padrão: `3000`)
+- `CADDY_PORT` - Porta do Caddy (padrão: `32768`)
+
+#### 3. `caddy-test.sh` - Testes de Conectividade
+
+Testa a configuração e conectividade:
+
+```bash
+# Dentro do container Caddy
+./caddy-test.sh
+```
+
+O script testa:
+- 🔍 Conectividade direta com hashpanel
+- 🔍 Health check do hashpanel
+- 🔍 Proxy reverso através do Caddy
+- 🔍 Validação do Caddyfile
+
+#### Executar Diretamente (sem entrar no container)
+
+```bash
+# Instalação completa
+docker exec caddy ./caddy-install.sh
+
+# Setup rápido
+docker exec caddy ./caddy-setup.sh
+
+# Testes
+docker exec caddy ./caddy-test.sh
+```
+
+#### Comandos Úteis do Caddy
+
+```bash
+# Validar Caddyfile
+caddy validate --config /etc/caddy/Caddyfile
+
+# Testar configuração (dry-run)
+caddy adapt --config /etc/caddy/Caddyfile
+
+# Recarregar configuração (sem downtime)
+caddy reload --config /etc/caddy/Caddyfile
+
+# Ver logs
+tail -f /var/log/caddy/*.log
+```
+
 ## 🔍 Verificação do Deploy
 
 ### 1. Verificar se o container está rodando
@@ -227,7 +312,123 @@ hashpanel/
 ├── .dockerignore          # Arquivos ignorados no build
 ├── Caddyfile.example      # Exemplo de configuração do Caddy
 ├── .env                   # Variáveis de ambiente (não commitado)
+├── install.sh             # Script de instalação completo (hashpanel)
+├── install-quick.sh        # Script de instalação rápida (hashpanel)
+├── caddy-install.sh       # Script de instalação/verificação (Caddy)
+├── caddy-setup.sh         # Script de setup rápido (Caddy)
+├── caddy-test.sh          # Script de testes (Caddy)
+├── install-from-github.sh  # Instalação via GitHub (interativo)
+├── install-hashpanel-from-github.sh  # Instalação HashPanel via GitHub
+├── install-caddy-from-github.sh      # Instalação Caddy via GitHub
 └── DEPLOY.md              # Este arquivo
+```
+
+## 📥 Instalação via GitHub
+
+### Instalação Automática (Recomendado)
+
+Você pode instalar diretamente do GitHub sem precisar clonar o repositório:
+
+#### HashPanel
+
+```bash
+# Dentro do container hashpanel ou no host
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-hashpanel-from-github.sh | sh
+
+# Ou com wget
+wget -qO- https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-hashpanel-from-github.sh | sh
+
+# Com opções (ex: modo produção)
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-hashpanel-from-github.sh | sh -s -- --production
+```
+
+#### Caddy
+
+```bash
+# Dentro do container Caddy
+# Instalação completa
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-caddy-from-github.sh | sh -s -- install
+
+# Setup rápido
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-caddy-from-github.sh | sh -s -- setup
+
+# Testes
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-caddy-from-github.sh | sh -s -- test
+```
+
+#### Script Interativo
+
+Para escolher qual script executar:
+
+```bash
+# Baixar e executar script interativo
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-from-github.sh | sh
+
+# Ou especificar diretamente
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-from-github.sh | sh -s -- hashpanel
+curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-from-github.sh | sh -s -- caddy
+```
+
+### Variáveis de Ambiente
+
+Você pode customizar o repositório e branch:
+
+```bash
+# Usar branch diferente
+GITHUB_BRANCH=develop curl -sfL https://raw.githubusercontent.com/mauriciobc/hashpanel/main/install-hashpanel-from-github.sh | sh
+
+# Usar fork diferente
+GITHUB_REPO=seu-usuario/hashpanel GITHUB_BRANCH=main curl -sfL https://raw.githubusercontent.com/seu-usuario/hashpanel/main/install-hashpanel-from-github.sh | sh
+```
+
+## 🔧 Instalação Manual no Container
+
+Se você precisar instalar ou reinstalar dependências dentro do container em execução:
+
+### Opção 1: Instalação Completa (Recomendado)
+
+```bash
+# Acessar o container
+docker exec -it hashpanel sh
+
+# Executar script de instalação completo
+./install.sh
+
+# Ou para instalação apenas de produção
+./install.sh --production
+```
+
+O script `install.sh` faz:
+- ✅ Verifica Node.js e npm
+- ✅ Cria diretórios necessários (logs)
+- ✅ Instala dependências npm
+- ✅ Verifica variáveis de ambiente obrigatórias
+- ✅ Verifica permissões
+- ✅ Fornece feedback detalhado
+
+### Opção 2: Instalação Rápida
+
+Para reinstalação rápida de dependências apenas:
+
+```bash
+# Acessar o container
+docker exec -it hashpanel sh
+
+# Executar script rápido
+./install-quick.sh
+
+# Ou para produção
+./install-quick.sh --production
+```
+
+### Executar Diretamente sem Entrar no Container
+
+```bash
+# Instalação completa
+docker exec hashpanel ./install.sh
+
+# Instalação rápida
+docker exec hashpanel ./install-quick.sh --production
 ```
 
 ## 🚀 Atualizações

@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
-import { heavyRateLimit } from '../../middleware/rateLimiter.js';
+import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
+import { HASHTAGS, getHashtagsForDay, getFirstHashtagForDay } from '../../constants/index.js';
 
 const router = Router();
 // Using singleton instance from service
@@ -28,7 +29,7 @@ router.get('/current', asyncHandler(async (req, res) => {
  * GET /api/hashtag/:hashtag/stats
  * Get statistics for a specific hashtag
  */
-router.get('/:hashtag/stats', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
   const { timeframe = 'today' } = req.query;
   
@@ -127,7 +128,7 @@ router.get('/:hashtag/stats', heavyRateLimit, asyncHandler(async (req, res) => {
  * GET /api/hashtag/:hashtag/timeline
  * Get timeline data for a hashtag
  */
-router.get('/:hashtag/timeline', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/:hashtag/timeline', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
   const { days = 7, limit = 50 } = req.query;
   
@@ -188,7 +189,7 @@ router.get('/:hashtag/timeline', heavyRateLimit, asyncHandler(async (req, res) =
  * GET /api/hashtag/:hashtag/analysis
  * Get detailed analysis for a hashtag
  */
-router.get('/:hashtag/analysis', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/:hashtag/analysis', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
   const { includeToots = false, limit = 100 } = req.query;
   
@@ -232,7 +233,7 @@ router.get('/:hashtag/analysis', heavyRateLimit, asyncHandler(async (req, res) =
  * GET /api/hashtag/:hashtag/users
  * Get most active users for a hashtag
  */
-router.get('/:hashtag/users', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/:hashtag/users', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
   const { limit = 20 } = req.query;
   
@@ -286,29 +287,28 @@ router.get('/daily', asyncHandler(async (req, res) => {
   logger.info('Daily hashtags requested');
   
   try {
-    const dailyHashtags = [
-      'silentsunday',    // Sunday
-      'segundaficha',     // Monday
-      'tercinema',        // Tuesday
-      'quartacapa',       // Wednesday
-      'musiquinta',       // Thursday
-      'sextaserie',       // Friday
-      'caturday'          // Saturday
-    ];
-    
     const today = new Date().getDay();
-    const currentHashtag = dailyHashtags[today];
+    const currentHashtagEntry = HASHTAGS[today];
+    const currentHashtag = getFirstHashtagForDay(currentHashtagEntry);
+    
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    const dailySchedule = HASHTAGS.map((hashtagEntry, dayIndex) => {
+      const hashtags = getHashtagsForDay(hashtagEntry);
+      // Use the first hashtag for display (backward compatibility)
+      const displayHashtag = hashtags[0];
+      
+      return {
+        day: dayIndex,
+        name: dayNames[dayIndex],
+        hashtag: displayHashtag,
+        hashtags: hashtags, // Include all hashtags for the day
+        isToday: today === dayIndex
+      };
+    });
     
     res.json({
-      dailySchedule: [
-        { day: 0, name: 'Sunday', hashtag: 'silentsunday', isToday: today === 0 },
-        { day: 1, name: 'Monday', hashtag: 'segundaficha', isToday: today === 1 },
-        { day: 2, name: 'Tuesday', hashtag: 'tercinema', isToday: today === 2 },
-        { day: 3, name: 'Wednesday', hashtag: 'quartacapa', isToday: today === 3 },
-        { day: 4, name: 'Thursday', hashtag: 'musiquinta', isToday: today === 4 },
-        { day: 5, name: 'Friday', hashtag: 'sextaserie', isToday: today === 5 },
-        { day: 6, name: 'Saturday', hashtag: 'caturday', isToday: today === 6 }
-      ],
+      dailySchedule,
       current: {
         day: today,
         hashtag: currentHashtag

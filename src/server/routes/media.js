@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
-import { heavyRateLimit } from '../../middleware/rateLimiter.js';
+import { lightRateLimit } from '../../middleware/rateLimiter.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 
@@ -76,7 +76,7 @@ function validateImageUrl(url) {
  * - url: The image URL to proxy (required, URL encoded)
  * - cache: Whether to use cache (default: true)
  */
-router.get('/proxy', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/proxy', lightRateLimit, asyncHandler(async (req, res) => {
   // Lazy load fetch if not available
   let fetchFunction = fetch;
   if (!fetchFunction) {

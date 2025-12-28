@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
-import { heavyRateLimit } from '../../middleware/rateLimiter.js';
+import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
@@ -12,7 +12,7 @@ const router = Router();
  * GET /api/dashboard/stats
  * Get comprehensive dashboard statistics
  */
-router.get('/stats', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
   const { timeframe = 'today' } = req.query;
   
   // Validate timeframe parameter type
@@ -174,7 +174,7 @@ function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max = 365) 
  * GET /api/dashboard/timeline
  * Get timeline data for the past week
  */
-router.get('/timeline', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/timeline', moderateRateLimit, asyncHandler(async (req, res) => {
   const days = validateDaysParameter(req.query.days, 7, 1, 365);
   
   logger.info('Dashboard timeline requested', { days });
@@ -245,7 +245,7 @@ router.get('/performance', asyncHandler(async (req, res) => {
  * GET /api/dashboard/alerts
  * Get system alerts and warnings
  */
-router.get('/alerts', heavyRateLimit, asyncHandler(async (req, res) => {
+router.get('/alerts', moderateRateLimit, asyncHandler(async (req, res) => {
   logger.info('Dashboard alerts requested');
   
   try {

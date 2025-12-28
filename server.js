@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { HASHTAGS } from './constants.js';
+import { HASHTAGS, getFirstHashtagForDay } from './constants.js';
 import { PREFERRED_TIMEZONE } from './config.js';
 import { getHashtagUse, presentDayHashtagUse, fetchTootsFromAPI, getTrendingTags } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate, generateTootLink } from './utils.js';
@@ -27,9 +27,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Get current day's hashtag
+// Get current day's hashtag (returns first if multiple are configured)
 function getCurrentHashtag() {
-  return HASHTAGS[new Date().getDay()];
+  const hashtagEntry = HASHTAGS[new Date().getDay()];
+  return getFirstHashtagForDay(hashtagEntry);
 }
 
 // Hashtag statistics endpoint

@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hashpanel - Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +43,17 @@
       --transition-fast: 0.15s ease;
       --transition-base: 0.3s ease;
       --transition-slow: 0.5s ease;
+    }
+
+    @property --gradient-angle {
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes rotate-glow {
+      0% { --gradient-angle: 0deg; }
+      100% { --gradient-angle: 360deg; }
     }
 
     * {
@@ -114,6 +127,21 @@
       line-height: 1.5;
     }
 
+    /* Status Bar Container - holds status bar and daily hashtags side by side */
+    .status-container {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 992px) {
+      .status-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Status Bar */
     .status-bar {
       background: var(--bg-card);
@@ -121,7 +149,6 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       padding: 1rem 1.5rem;
-      margin-bottom: 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -129,11 +156,56 @@
       gap: 1rem;
       animation: fadeIn 0.8s ease;
       transition: all var(--transition-base);
+      position: relative;
     }
 
     .status-bar:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(102, 126, 234, 0.3);
+      border-color: transparent;
+    }
+
+    .status-bar::before,
+    .status-bar::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      background: conic-gradient(
+        from var(--gradient-angle),
+        #667eea,
+        #764ba2,
+        #f093fb,
+        #f5576c,
+        #4facfe,
+        #00f2fe,
+        #667eea
+      );
+      border-radius: inherit;
+      animation: rotate-glow 3s linear infinite;
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      /* Masking technique to only show the border */
+      padding: 2px;
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    .status-bar:hover::before {
+      opacity: 1;
+    }
+
+    .status-bar::after {
+      filter: blur(20px);
+      -webkit-mask: none; /* Glow shouldn't be masked or it disappears */
+      mask-composite: auto;
+      z-index: -2;
+    }
+
+    .status-bar:hover::after {
+      opacity: 0.6;
     }
 
     .status-info {
@@ -142,6 +214,34 @@
       gap: 0.75rem;
       color: var(--text-secondary);
       font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+      flex-wrap: wrap;
+    }
+
+    /* Rate Limit Indicator Styles */
+    .rate-limit-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .rate-limit-indicator.warning {
+      background: rgba(250, 112, 154, 0.15) !important;
+      border-color: rgba(250, 112, 154, 0.3) !important;
+      color: #fa709a;
+    }
+
+    .rate-limit-indicator.critical {
+      background: rgba(255, 107, 107, 0.15) !important;
+      border-color: rgba(255, 107, 107, 0.3) !important;
+      color: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
+
+    .rate-limit-indicator.limited {
+      background: rgba(255, 107, 107, 0.2) !important;
+      border-color: rgba(255, 107, 107, 0.5) !important;
+      color: #ff6b6b;
     }
 
     .status-dot {
@@ -193,6 +293,183 @@
       transform: rotate(180deg);
     }
 
+    /* Daily Hashtags Card */
+    .daily-hashtags-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.5rem;
+      animation: fadeIn 0.8s ease;
+      transition: all var(--transition-base);
+      min-width: 0;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      position: relative;
+    }
+
+    .daily-hashtags-card:hover {
+      background: var(--bg-card-hover);
+      border-color: transparent;
+    }
+
+    .daily-hashtags-card::before,
+    .daily-hashtags-card::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      background: conic-gradient(
+        from var(--gradient-angle),
+        #667eea,
+        #764ba2,
+        #f093fb,
+        #f5576c,
+        #4facfe,
+        #00f2fe,
+        #667eea
+      );
+      border-radius: inherit;
+      animation: rotate-glow 3s linear infinite;
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      padding: 2px;
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    .daily-hashtags-card:hover::before {
+      opacity: 1;
+    }
+
+    .daily-hashtags-card::after {
+      filter: blur(20px);
+      -webkit-mask: none;
+      mask-composite: auto;
+      z-index: -2;
+    }
+
+    .daily-hashtags-card:hover::after {
+      opacity: 0.6;
+    }
+
+    .daily-hashtags-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0;
+      margin-right: 0.75rem;
+    }
+
+    .daily-hashtags-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .daily-hashtags-header h3 {
+      font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .daily-hashtags-pills {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 0.5rem;
+      align-items: center;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex: 1;
+      min-width: 0;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .daily-hashtags-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hashtag-pill {
+      background: rgba(102, 126, 234, 0.15);
+      border: 1px solid rgba(102, 126, 234, 0.3);
+      color: var(--text-primary);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-xl);
+      font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .hashtag-pill:hover {
+      background: rgba(102, 126, 234, 0.25);
+      border-color: rgba(102, 126, 234, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .hashtag-pill:active {
+      transform: translateY(0);
+    }
+
+    .hashtag-pill.active {
+      background: var(--primary-gradient);
+      border-color: transparent;
+      color: white;
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+    }
+
+    .hashtag-pill.active:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    .hashtag-pill.loading {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .hashtag-pill.loading:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hashtag-pill .pill-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.6;
+    }
+
+    .hashtag-pill.active .pill-indicator {
+      opacity: 1;
+    }
+
     /* Bento Grid Layout */
     .bento-grid {
       display: grid;
@@ -210,7 +487,7 @@
       border-radius: var(--radius-lg);
       padding: 1.5rem;
       position: relative;
-      overflow: hidden;
+      overflow: visible; /* Changed from hidden to allow glow */
       transition: all var(--transition-base);
       animation: fadeInUp 0.6s ease backwards;
       cursor: pointer;
@@ -241,31 +518,56 @@
       grid-row: 1;
     }
 
-    .kpi-card::before {
-      content: '';
+    .kpi-card::before,
+    .kpi-card::after {
+      content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--primary-gradient);
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform var(--transition-base);
+      inset: -2px;
+      z-index: -1;
+      background: conic-gradient(
+        from var(--gradient-angle),
+        #667eea,
+        #764ba2,
+        #f093fb,
+        #f5576c,
+        #4facfe,
+        #00f2fe,
+        #667eea
+      );
+      border-radius: inherit;
+      animation: rotate-glow 3s linear infinite;
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      padding: 2px;
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
     }
 
     .kpi-card:hover {
       transform: translateY(-8px);
       background: var(--bg-card-hover);
-      border-color: rgba(102, 126, 234, 0.4);
-      box-shadow: var(--shadow-xl), var(--shadow-glow);
+      border-color: transparent;
     }
 
     .kpi-card:hover::before {
-      transform: scaleX(1);
+      opacity: 1;
     }
 
-    .kpi-card.primary::before { background: var(--primary-gradient); }
+    .kpi-card::after {
+      filter: blur(20px);
+      -webkit-mask: none;
+      mask-composite: auto;
+      z-index: -2;
+    }
+
+    .kpi-card:hover::after {
+      opacity: 0.6;
+    }
+
+    .kpi-card.primary { } /* Removed ::before scale logic */
     .kpi-card.success::before { background: var(--success-gradient); }
     .kpi-card.info::before { background: var(--info-gradient); }
     .kpi-card.warning::before { background: var(--warning-gradient); }
@@ -327,13 +629,60 @@
       transition: all var(--transition-base);
       display: flex;
       flex-direction: column;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow: visible; /* Changed from hidden to allow glow */
+      position: relative;
     }
 
     .content-card:hover {
       background: var(--bg-card-hover);
-      border-color: rgba(102, 126, 234, 0.3);
-      box-shadow: var(--shadow-lg);
+      border-color: transparent;
       transform: translateY(-4px);
+    }
+
+    .content-card::before,
+    .content-card::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      background: conic-gradient(
+        from var(--gradient-angle),
+        #667eea,
+        #764ba2,
+        #f093fb,
+        #f5576c,
+        #4facfe,
+        #00f2fe,
+        #667eea
+      );
+      border-radius: inherit;
+      animation: rotate-glow 3s linear infinite;
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      padding: 2px;
+      -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    .content-card:hover::before {
+      opacity: 1;
+    }
+
+    .content-card::after {
+      filter: blur(20px);
+      -webkit-mask: none;
+      mask-composite: auto;
+      z-index: -2;
+    }
+
+    .content-card:hover::after {
+      opacity: 0.6;
     }
 
     .content-card.top-toots {
@@ -342,10 +691,62 @@
       animation-delay: 0.5s;
     }
 
+    /* Top toots table - ensure it fits within column */
+    .content-card.top-toots .table-wrapper {
+      overflow-x: auto;
+      overflow-y: visible;
+      max-height: none;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .content-card.top-toots #topTootsContent {
+      overflow: visible;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .content-card.top-toots .table-wrapper .table {
+      width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
+    }
+
+    .content-card.top-toots .table-wrapper .table th,
+    .content-card.top-toots .table-wrapper .table td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    /* Allow wrapping in author column */
+    .content-card.top-toots .table-wrapper .table td:first-child {
+      white-space: normal;
+    }
+
+    /* Prevent button text breaking in link column */
+    .content-card.top-toots .table-wrapper .table td:last-child {
+      white-space: nowrap;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+
     .content-card.trending-tags {
       grid-column: span 6;
       grid-row: 2;
       animation-delay: 0.6s;
+    }
+
+    .content-card.trending-tags .table-wrapper {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
     }
 
     .content-card.full-width {
@@ -381,68 +782,183 @@
       font-size: 1.25rem;
     }
 
-    /* Tables */
-    .table-wrapper {
+    /* Tables - Using high specificity to override Bootstrap without !important */
+    .content-card .table-wrapper {
       overflow-x: auto;
+      overflow-y: visible;
       border-radius: var(--radius-md);
+      background: transparent;
+      background-color: transparent;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
     }
 
-    .table {
+    .content-card .table-wrapper .table,
+    .content-card .table {
       width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
-      background: rgba(255, 255, 255, 0.03);
+      background: transparent;
+      background-color: transparent;
       color: var(--text-primary);
+      margin-bottom: 0;
     }
 
-    .table thead {
-      background: rgba(102, 126, 234, 0.25);
+    /* Override Bootstrap table striped and hover styles with higher specificity */
+    .content-card .table-wrapper .table-striped > tbody > tr:nth-of-type(odd) > *,
+    .content-card .table-striped > tbody > tr:nth-of-type(odd) > * {
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
-    .table thead th {
+    .content-card .table-wrapper .table-hover > tbody > tr:hover > *,
+    .content-card .table-hover > tbody > tr:hover > * {
+      background-color: rgba(102, 126, 234, 0.25);
+    }
+
+    .content-card .table-wrapper .table thead,
+    .content-card .table thead {
+      background: rgba(102, 126, 234, 0.35);
+      background-color: rgba(102, 126, 234, 0.35);
+    }
+
+    .content-card .table-wrapper .table thead th,
+    .content-card .table thead th {
       padding: 1rem;
       text-align: left;
       font-weight: 600;
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #e0e7ff;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.4);
+      color: #ffffff;
+      border-bottom: 2px solid rgba(102, 126, 234, 0.5);
+      background-color: rgba(102, 126, 234, 0.35);
+      background: rgba(102, 126, 234, 0.35);
+      border-color: var(--border-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .table tbody tr {
+    /* Column width distribution for Top Performers table */
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(1),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(1) {
+      width: 20%;
+    }
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(2),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(2) {
+      width: 12%;
+    }
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(3),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(3) {
+      width: 12%;
+    }
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(4),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(4) {
+      width: 12%;
+    }
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(5),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(5) {
+      width: 16%;
+    }
+    .content-card.top-toots .table-wrapper .table thead th:nth-child(6),
+    .content-card.top-toots .table-wrapper .table tbody td:nth-child(6) {
+      width: 28%;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+
+    /* Column width distribution for Trending Tags table */
+    .content-card.trending-tags .table-wrapper .table thead th:nth-child(1),
+    .content-card.trending-tags .table-wrapper .table tbody td:nth-child(1) {
+      width: 35%;
+    }
+    .content-card.trending-tags .table-wrapper .table thead th:nth-child(2),
+    .content-card.trending-tags .table-wrapper .table tbody td:nth-child(2) {
+      width: 20%;
+    }
+    .content-card.trending-tags .table-wrapper .table thead th:nth-child(3),
+    .content-card.trending-tags .table-wrapper .table tbody td:nth-child(3) {
+      width: 20%;
+    }
+    .content-card.trending-tags .table-wrapper .table thead th:nth-child(4),
+    .content-card.trending-tags .table-wrapper .table tbody td:nth-child(4) {
+      width: 25%;
+    }
+
+    .content-card .table-wrapper .table tbody tr,
+    .content-card .table tbody tr {
       transition: all var(--transition-fast);
       border-bottom: 1px solid var(--border-color);
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(255, 255, 255, 0.05);
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
-    .table tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.04);
+    .content-card .table-wrapper .table tbody tr:nth-child(even),
+    .content-card .table tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.08);
+      background-color: rgba(255, 255, 255, 0.08);
     }
 
-    .table tbody tr:hover {
-      background: rgba(102, 126, 234, 0.2) !important;
+    .content-card .table-wrapper .table tbody tr:hover,
+    .content-card .table tbody tr:hover {
+      background: rgba(102, 126, 234, 0.25);
+      background-color: rgba(102, 126, 234, 0.25);
       transform: scale(1.01);
     }
 
-    .table tbody tr[data-clickable="true"] {
+    .content-card .table-wrapper .table tbody tr[data-clickable="true"],
+    .content-card .table tbody tr[data-clickable="true"] {
       cursor: pointer;
     }
 
-    .table tbody tr[data-clickable="true"]:hover {
-      background: rgba(102, 126, 234, 0.25) !important;
+    .content-card .table-wrapper .table tbody tr[data-clickable="true"]:hover,
+    .content-card .table tbody tr[data-clickable="true"]:hover {
+      background: rgba(102, 126, 234, 0.3);
+      background-color: rgba(102, 126, 234, 0.3);
     }
 
-    .table tbody td {
+    .content-card .table-wrapper .table tbody td,
+    .content-card .table tbody td {
       padding: 1.25rem 1rem;
-      color: var(--text-primary);
+      color: #ffffff;
       font-size: clamp(0.875rem, 1.8vw, 1rem);
       line-height: 1.5;
+      background-color: transparent;
+      background: transparent;
+      border-color: var(--border-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-wrap: break-word;
+      word-break: break-word;
     }
 
-    .table tbody td:first-child {
+    /* Allow text wrapping in specific columns */
+    .content-card .table-wrapper .table tbody td:first-child {
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .content-card .table-wrapper .table tbody td:first-child,
+    .content-card .table tbody td:first-child {
       font-weight: 600;
       color: #ffffff;
+    }
+
+    .content-card .table-wrapper .table tbody td a,
+    .content-card .table tbody td a {
+      color: #ffffff;
+      text-decoration: none;
+      transition: color var(--transition-fast);
+      font-weight: 500;
+    }
+
+    .content-card .table-wrapper .table tbody td a:hover,
+    .content-card .table tbody td a:hover {
+      color: #8b9cff;
+      text-decoration: underline;
     }
 
     /* Badges */
@@ -466,26 +982,29 @@
       border-radius: var(--radius-md);
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       font-weight: 500;
-      background: rgba(102, 126, 234, 0.2);
-      color: var(--text-primary);
+      background: rgba(102, 126, 234, 0.3);
+      color: #ffffff;
+      border: 1px solid rgba(102, 126, 234, 0.4);
     }
 
     .trend-badge.rising {
-      background: rgba(67, 233, 123, 0.2);
-      color: #43e97b;
+      background: rgba(67, 233, 123, 0.3);
+      color: #ffffff;
+      border: 1px solid rgba(67, 233, 123, 0.5);
     }
 
     .trend-badge.falling {
-      background: rgba(255, 107, 107, 0.2);
-      color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.3);
+      color: #ffffff;
+      border: 1px solid rgba(255, 107, 107, 0.5);
     }
 
     /* Buttons */
     .btn-link {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
+      gap: 0.35rem;
+      padding: 0.4rem 0.75rem;
       border-radius: var(--radius-md);
       background: rgba(102, 126, 234, 0.2);
       color: var(--text-primary);
@@ -494,6 +1013,8 @@
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       transition: all var(--transition-base);
       border: 1px solid rgba(102, 126, 234, 0.3);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .btn-link:hover {
@@ -719,6 +1240,14 @@
     @media (max-width: 768px) {
       body {
         padding: 1rem;
+      }
+
+      .status-container {
+        grid-template-columns: 1fr;
+      }
+
+      .daily-hashtags-card {
+        padding: 0.875rem 1rem;
       }
 
       .dashboard-header h1 {
@@ -1170,25 +1699,46 @@
   <div class="container">
     <!-- Header -->
     <header class="dashboard-header">
-      <h1>📊 Hashpanel</h1>
+      <h1>Hashpanel</h1>
       <p>Dashboard de monitoramento de hashtags do Mastodon</p>
     </header>
 
-    <!-- Status Bar -->
-    <div class="status-bar">
-      <div class="status-info">
-        <span class="status-dot"></span>
-        <span id="lastUpdated">Última atualização: --</span>
-        <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: var(--secondary-gradient); border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
-          ← Voltar para hashtag diária
+    <!-- Status Container - holds status bar and daily hashtags side by side -->
+    <div class="status-container">
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-info">
+          <span class="status-dot"></span>
+          <span id="lastUpdated">Última atualização: --</span>
+          <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: var(--secondary-gradient); border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
+            ← Voltar para hashtag diária
+          </button>
+          <!-- Rate Limit Indicator -->
+          <div id="rateLimitIndicator" class="rate-limit-indicator" style="display: none; margin-left: 0.75rem; padding: 0.4rem 0.75rem; background: rgba(102, 126, 234, 0.15); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: var(--radius-md); font-size: clamp(0.75rem, 1.2vw, 0.85rem); transition: all var(--transition-base);">
+            <span id="rateLimitText">Requisições: --/--</span>
+            <span id="rateLimitReset" style="margin-left: 0.5rem; color: var(--text-secondary); font-size: 0.8em;"></span>
+          </div>
+        </div>
+        <button class="refresh-btn" onclick="loadData()" id="refreshBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          Atualizar
         </button>
       </div>
-      <button class="refresh-btn" onclick="loadData()" id="refreshBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-        </svg>
-        Atualizar
-      </button>
+
+      <!-- Daily Hashtags Card -->
+      <div class="daily-hashtags-card" id="dailyHashtagsCard">
+        <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+          <div class="daily-hashtags-header">
+            <div class="daily-hashtags-icon">📅</div>
+            <h3>Hashtags Diárias</h3>
+          </div>
+          <div class="daily-hashtags-pills" id="dailyHashtagsPills">
+            <div class="hashtag-pill loading">Carregando...</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -1294,6 +1844,165 @@
     // State management for cleanup
     let refreshInterval = null;
     let currentAbortedController = null;
+    let isLoadingData = false; // Prevent overlapping loadData calls
+
+    // Rate Limit State Management
+    const rateLimitState = {
+      limit: null,
+      remaining: null,
+      reset: null,
+      updateTimer: null
+    };
+
+    // Format time remaining until reset
+    function formatTimeRemaining(resetTimestamp) {
+      if (!resetTimestamp) return '';
+      
+      const now = Date.now();
+      const reset = resetTimestamp * 1000; // Convert to milliseconds
+      const diff = Math.max(0, reset - now);
+      
+      if (diff === 0) return 'Resetado';
+      
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      
+      if (minutes > 0) {
+        return `Reset em ${minutes}m ${seconds}s`;
+      }
+      return `Reset em ${seconds}s`;
+    }
+
+    // Update rate limit indicator UI
+    function updateRateLimitIndicator(limit, remaining, reset) {
+      const indicator = document.getElementById('rateLimitIndicator');
+      const textEl = document.getElementById('rateLimitText');
+      const resetEl = document.getElementById('rateLimitReset');
+      
+      if (!indicator || !textEl || !resetEl) return;
+      
+      // Update state
+      rateLimitState.limit = limit;
+      rateLimitState.remaining = remaining;
+      rateLimitState.reset = reset;
+      
+      // Show indicator if we have data
+      if (limit !== null && remaining !== null) {
+        indicator.style.display = 'flex';
+        
+        // Update text
+        textEl.textContent = `Requisições: ${remaining}/${limit}`;
+        
+        // Update reset time
+        if (reset) {
+          resetEl.textContent = formatTimeRemaining(reset);
+        }
+        
+        // Update styling based on remaining requests
+        indicator.classList.remove('warning', 'critical', 'limited');
+        
+        if (remaining === 0) {
+          indicator.classList.add('limited');
+          textEl.textContent = 'Limite atingido!';
+        } else if (remaining <= limit * 0.2) {
+          indicator.classList.add('critical');
+        } else if (remaining <= limit * 0.5) {
+          indicator.classList.add('warning');
+        }
+        
+        // Update refresh button state
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          if (remaining === 0) {
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('loading');
+            refreshBtn.title = 'Limite de requisições atingido. Aguarde o reset.';
+          } else {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove('loading');
+            refreshBtn.title = '';
+          }
+        }
+      } else {
+        indicator.style.display = 'none';
+      }
+      
+      // Schedule next update
+      if (rateLimitState.updateTimer) {
+        clearInterval(rateLimitState.updateTimer);
+      }
+      
+      if (reset) {
+        rateLimitState.updateTimer = setInterval(() => {
+          const resetEl = document.getElementById('rateLimitReset');
+          if (resetEl && rateLimitState.reset) {
+            resetEl.textContent = formatTimeRemaining(rateLimitState.reset);
+            
+            // Check if reset time has passed
+            const now = Date.now();
+            const resetTime = rateLimitState.reset * 1000;
+            if (now >= resetTime) {
+              // Reset state - will be updated on next request
+              rateLimitState.limit = null;
+              rateLimitState.remaining = null;
+              rateLimitState.reset = null;
+              indicator.style.display = 'none';
+              clearInterval(rateLimitState.updateTimer);
+            }
+          }
+        }, 1000); // Update every second
+      }
+    }
+
+    // Extract rate limit info from response headers
+    function extractRateLimitInfo(response) {
+      const limit = response.headers.get('RateLimit-Limit');
+      const remaining = response.headers.get('RateLimit-Remaining');
+      const reset = response.headers.get('RateLimit-Reset');
+      
+      if (limit || remaining || reset) {
+        return {
+          limit: limit ? parseInt(limit, 10) : null,
+          remaining: remaining ? parseInt(remaining, 10) : null,
+          reset: reset ? parseInt(reset, 10) : null
+        };
+      }
+      return null;
+    }
+
+    // Enhanced fetch wrapper that tracks rate limits
+    async function fetchWithRateLimitTracking(url, options = {}) {
+      try {
+        const response = await fetch(url, options);
+        
+        // Extract rate limit info from headers
+        const rateLimitInfo = extractRateLimitInfo(response);
+        if (rateLimitInfo) {
+          updateRateLimitIndicator(
+            rateLimitInfo.limit,
+            rateLimitInfo.remaining,
+            rateLimitInfo.reset
+          );
+        }
+        
+        // Handle rate limit errors
+        if (response.status === 429) {
+          const rateLimitInfo = extractRateLimitInfo(response);
+          if (rateLimitInfo) {
+            updateRateLimitIndicator(
+              rateLimitInfo.limit,
+              0, // No remaining requests
+              rateLimitInfo.reset
+            );
+          }
+        }
+        
+        return response;
+      } catch (error) {
+        // Re-throw errors
+        throw error;
+      }
+    }
 
     // Normalize hashtag - remove # sign if present
     function normalizeHashtag(hashtag) {
@@ -1988,7 +2697,7 @@
             </thead>
             <tbody>
               ${topToots.slice(0, 5).map((toot, index) => {
-                let buttonHTML = '<span style="color: var(--text-muted);">N/A</span>';
+                let buttonHTML = '<span style="color: var(--text-secondary); opacity: 0.8;">N/A</span>';
                 if (toot.link) {
                   // Map media with all possible URL fields
                   const mediaData = (toot.media || []).map(m => {
@@ -2062,14 +2771,14 @@
         console.log(`Loading hashtag data for: "${hashtag}" (normalized: "${normalizedHashtag}")`);
         
         // Fetch current daily hashtag
-        const dailyHashtagRes = await fetch(`${API_BASE}/hashtag/current`);
+        const dailyHashtagRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/current`);
         if (!dailyHashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
         const dailyData = await dailyHashtagRes.json();
         const isDailyHashtag = normalizedHashtag.toLowerCase() === dailyData.hashtag.toLowerCase(); 
         // Fetch stats for the selected hashtag (using normalized hashtag without #)
         const statsUrl = `${API_BASE}/hashtag/${encodeURIComponent(normalizedHashtag)}/stats`;
         console.log(`Fetching stats from: ${statsUrl}`);
-        const statsRes = await fetch(statsUrl);
+        const statsRes = await fetchWithRateLimitTracking(statsUrl);
         
         if (!statsRes.ok) {
           let errorMessage = `Falha ao carregar estatísticas para #${hashtag}`;
@@ -2100,7 +2809,7 @@
         }
 
         // Fetch trending tags (keep them)
-        const trendingRes = await fetch(`${API_BASE}/trending?limit=10`);
+        const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`);
         if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
         const { tags: trendingTags } = await trendingRes.json();
  
@@ -2108,6 +2817,9 @@
         renderKPICards(stats);
         renderTopToots(stats.topToots || []);
         renderTrendingTags(trendingTags, hashtag);
+        
+        // Update active pill
+        updateActivePill(normalizedHashtag);
  
         // Update last updated time and show/hide back button
         const now = new Date();
@@ -2195,24 +2907,158 @@
       });
     }
 
+    // Load and render daily hashtags
+    let currentSelectedHashtag = null;
+
+    async function loadDailyHashtags() {
+      const pillsContainer = document.getElementById('dailyHashtagsPills');
+      
+      try {
+        const response = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/daily`);
+        if (!response.ok) throw new Error('Falha ao carregar hashtags diárias');
+        
+        const data = await response.json();
+        const { dailySchedule, current } = data;
+        
+        // Clear loading state
+        pillsContainer.innerHTML = '';
+        
+        // Find today's hashtags only
+        const todayData = dailySchedule.find(day => day.isToday);
+        
+        if (!todayData) {
+          pillsContainer.innerHTML = `
+            <div class="hashtag-pill loading" style="color: var(--text-secondary);">
+              Nenhuma hashtag encontrada para hoje
+            </div>
+          `;
+          return;
+        }
+        
+        // Get hashtags array - endpoint always returns array in hashtags field
+        // The endpoint uses getHashtagsForDay() which always returns an array
+        const hashtags = Array.isArray(todayData.hashtags) && todayData.hashtags.length > 0
+          ? todayData.hashtags
+          : (todayData.hashtag ? [todayData.hashtag] : []);
+        
+        // Ensure we have hashtags to display
+        if (!hashtags || hashtags.length === 0) {
+          pillsContainer.innerHTML = `
+            <div class="hashtag-pill loading" style="color: var(--text-secondary);">
+              Nenhuma hashtag configurada para hoje
+            </div>
+          `;
+          return;
+        }
+        
+        // Render pills only for today's hashtags
+        hashtags.forEach((hashtag, index) => {
+          const pill = document.createElement('div');
+          pill.className = 'hashtag-pill';
+          
+          // Mark first hashtag as active by default
+          if (index === 0) {
+            pill.classList.add('active');
+            currentSelectedHashtag = hashtag;
+          }
+          
+          pill.innerHTML = `
+            <span class="pill-indicator"></span>
+            <span>#${hashtag}</span>
+          `;
+          
+          // Add click handler
+          pill.addEventListener('click', () => {
+            // Remove active class from all pills
+            document.querySelectorAll('.hashtag-pill').forEach(p => {
+              if (!p.classList.contains('loading')) {
+                p.classList.remove('active');
+              }
+            });
+            // Add active class to clicked pill
+            pill.classList.add('active');
+            // Load data for selected hashtag
+            currentSelectedHashtag = hashtag;
+            loadHashtagData(hashtag);
+          });
+          
+          pillsContainer.appendChild(pill);
+        });
+        
+      } catch (error) {
+        console.error('Error loading daily hashtags:', error);
+        pillsContainer.innerHTML = `
+          <div class="hashtag-pill loading" style="color: var(--text-secondary);">
+            Erro ao carregar hashtags
+          </div>
+        `;
+      }
+    }
+
+    // Update active pill when hashtag changes
+    function updateActivePill(hashtag) {
+      const pills = document.querySelectorAll('.hashtag-pill');
+      const normalizedHashtag = normalizeHashtag(hashtag);
+      
+      pills.forEach(pill => {
+        // Skip loading pills
+        if (pill.classList.contains('loading')) return;
+        
+        const pillText = pill.textContent.trim();
+        // Extract hashtag from pill text (format: #hashtag DayName)
+        const pillHashtagMatch = pillText.match(/#(\w+)/);
+        const pillHashtag = pillHashtagMatch ? pillHashtagMatch[1] : null;
+        
+        if (pillHashtag && pillHashtag.toLowerCase() === normalizedHashtag.toLowerCase()) {
+          // Remove active class from all pills
+          pills.forEach(p => {
+            if (!p.classList.contains('loading')) {
+              p.classList.remove('active');
+            }
+          });
+          // Add active class to matching pill
+          pill.classList.add('active');
+          currentSelectedHashtag = hashtag;
+        }
+      });
+    }
+
     // Main data loading function - uses new API structure
     async function loadData() {
+      // Prevent overlapping calls
+      if (isLoadingData) {
+        return;
+      }
+      
+      isLoadingData = true;
       cleanupBeforeLoad();
       showLoading();
       
       try {
-        // Fetch current hashtag first
-        const hashtagRes = await fetch(`${API_BASE}/hashtag/current`);
+        const signal = currentAbortedController?.signal;
+        
+        // Fetch current hashtag first - WITH abort signal
+        const hashtagRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/current`, { signal });
+        
         if (!hashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
         const { hashtag } = await hashtagRes.json();
 
-        // Fetch dashboard stats for current hashtag
-        const statsRes = await fetch(`${API_BASE}/hashtag/${hashtag}/stats`);
-        if (!statsRes.ok) throw new Error('Falha ao carregar estatísticas');
+        // Fetch dashboard stats for current hashtag - WITH abort signal
+        const statsRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/${hashtag}/stats`, { signal });
+        
+        if (!statsRes.ok) {
+          // Handle rate limiting with user-friendly message
+          if (statsRes.status === 429) {
+            const errorData = await statsRes.json().catch(() => ({}));
+            const retryAfter = errorData.error?.retryAfter || 15;
+            throw new Error(`Limite de requisições atingido. Aguarde ${retryAfter} segundos antes de tentar novamente.`);
+          }
+          throw new Error('Falha ao carregar estatísticas');
+        }
         const stats = await statsRes.json();
 
-        // Fetch trending tags
-        const trendingRes = await fetch(`${API_BASE}/trending?limit=10`);
+        // Fetch trending tags - WITH abort signal
+        const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`, { signal });
         if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
         const { tags: trendingTags } = await trendingRes.json();
 
@@ -2220,6 +3066,9 @@
         renderKPICards(stats);
         renderTopToots(stats.topToots || []);
         renderTrendingTags(trendingTags, hashtag);
+        
+        // Update active pill
+        updateActivePill(hashtag);
 
         // Update last updated time and hide back button
         const now = new Date();
@@ -2230,12 +3079,20 @@
 
         hideLoading();
       } catch (error) {
+        // Don't show error for aborted requests (user-initiated cancellation)
+        if (error.name === 'AbortError') {
+          return; // Silently ignore aborted requests
+        }
+        
         console.error('Error loading data:', error);
         showError(error.message || 'Erro inesperado ao carregar dados');
+      } finally {
+        isLoadingData = false;
       }
     }
 
     // Initialize dashboard
+    loadDailyHashtags(); // Load daily hashtags pills first
     loadData();
     
     // Set up auto-refresh interval (every 5 minutes)

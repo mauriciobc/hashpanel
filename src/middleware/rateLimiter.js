@@ -1,15 +1,15 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { RateLimitError } from '../errors/index.js';
 
 // Basic rate limiting configuration
+// Increased from 100 to 200 requests per 15 minutes for better UX
 export const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: (req) => {
     // Apply adaptive rate limiting multiplier if available
-    const baseLimit = 100;
+    const baseLimit = 200; // Increased from 100 for better UX
     const multiplier = req.rateLimitMultiplier ?? 1;
     return Math.floor(baseLimit * multiplier);
   },
@@ -83,12 +83,97 @@ export const postingRateLimit = rateLimit({
   }
 });
 
-// Very strict rate limiting for expensive operations
+// Rate limiting for moderate operations (dashboard stats, hashtag analysis)
+// Increased from 5 to 20 requests per 15 minutes for better UX
+export const moderateRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 20; // Increased from 5 for better UX
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
+  message: {
+    error: {
+      message: 'Too many requests, please wait before trying again',
+      code: 'MODERATE_RATE_LIMIT_EXCEEDED',
+      retryAfter: 900
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health' || req.path === '/api/health';
+  },
+  handler: (req, res) => {
+    const resetTime = new Date(Date.now() + 15 * 60 * 1000);
+    const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
+    
+    logger.warn('Moderate rate limit exceeded', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      url: req.url
+    });
+    
+    res.status(429).json({
+      error: {
+        message: 'Too many requests, please wait before trying again',
+        code: 'MODERATE_RATE_LIMIT_EXCEEDED',
+        retryAfter,
+        resetTime: resetTime.toISOString()
+      }
+    });
+  }
+});
+
+// Rate limiting for light operations (media proxy, simple endpoints)
+// More permissive for frequently accessed resources
+export const lightRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes (shorter window for better UX)
+  max: (req) => {
+    // Apply adaptive rate limiting multiplier if available
+    const baseLimit = 100; // High limit for light operations
+    const multiplier = req.rateLimitMultiplier ?? 1;
+    return Math.floor(baseLimit * multiplier);
+  },
+  message: {
+    error: {
+      message: 'Too many requests, please wait a moment before trying again',
+      code: 'LIGHT_RATE_LIMIT_EXCEEDED',
+      retryAfter: 300 // 5 minutes in seconds
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const resetTime = new Date(Date.now() + 5 * 60 * 1000);
+    const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
+    
+    logger.warn('Light rate limit exceeded', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      url: req.url
+    });
+    
+    res.status(429).json({
+      error: {
+        message: 'Too many requests, please wait a moment before trying again',
+        code: 'LIGHT_RATE_LIMIT_EXCEEDED',
+        retryAfter,
+        resetTime: resetTime.toISOString()
+      }
+    });
+  }
+});
+
+// Very strict rate limiting for expensive operations (kept for truly heavy operations)
+// Increased from 5 to 10 requests per 15 minutes
 export const heavyRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: (req) => {
     // Apply adaptive rate limiting multiplier if available
-    const baseLimit = 5;
+    const baseLimit = 10; // Increased from 5 for better UX
     const multiplier = req.rateLimitMultiplier ?? 1;
     return Math.floor(baseLimit * multiplier);
   },
@@ -193,14 +278,13 @@ const cleanupInterval = setInterval(() => {
 
 /**
  * Generates a unique client identifier for rate limiting.
- * Attempts to use IP address first, then falls back to a composite hash
- * of available headers to avoid collapsing all unknown clients into one bucket.
+ * Uses IP address from req.ip or req.socket.remoteAddress.
  * 
  * @param {Object} req - Express request object
  * @returns {string|null} Client identifier for rate limiting, or null if no reliable identifier exists
  */
 function getClientIdentifier(req) {
-  // Primary: Try to get IP address from request
+  // Try to get IP address from request
   const ip = req.ip || req.socket?.remoteAddress;
   
   // Check if IP is valid (not undefined, null, or 'unknown')
@@ -209,41 +293,20 @@ function getClientIdentifier(req) {
     return ip;
   }
   
-  // Fallback: Build composite identifier from headers
-  // This creates a unique key per client even when IP is unavailable
-  const headers = {
-    userAgent: req.get('User-Agent') || '',
-    forwardedFor: req.get('X-Forwarded-For') || '',
-    forwardedProto: req.get('X-Forwarded-Proto') || '',
-    acceptLanguage: req.get('Accept-Language') || '',
-    acceptEncoding: req.get('Accept-Encoding') || ''
-  };
-  
-  // Create a composite string from available headers
-  const composite = [
-    headers.userAgent,
-    headers.forwardedFor,
-    headers.forwardedProto,
-    headers.acceptLanguage,
-    headers.acceptEncoding
-  ].filter(Boolean).join('|');
-  
-  // If we have any identifying information, hash it to create a stable identifier
-  if (composite) {
-    const hash = crypto.createHash('sha256').update(composite).digest('hex');
-    return `composite:${hash.substring(0, 16)}`; // Use first 16 chars for readability
-  }
-  
-  // No reliable identifier available - return null to trigger fail-closed behavior
+  // Fail-closed: Return null if no reliable IP is present
+  // We intentionally fail-closed for unidentifiable clients to prevent security issues.
+  // If header-based identification is ever required, it must include explicit documentation
+  // and additional safeguards (e.g., trusted proxy validation or authentication) rather
+  // than using mutable client headers.
   return null;
 }
 
 // Rate limiting middleware that checks against Redis or database
 // Currently uses in-memory storage as fallback
 export const distributedRateLimit = async (req, res, next) => {
-  // Configuration
+  // Configuration - increased from 100 to 200 for better UX
   const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxRequests = 100;
+  const maxRequests = 200; // Increased from 100 for better UX
   
   // Get client identifier using robust identification method
   const key = getClientIdentifier(req);
@@ -259,7 +322,7 @@ export const distributedRateLimit = async (req, res, next) => {
       method: req.method
     });
     
-    return res.status(403).json({
+    return res.status(400).json({
       error: {
         message: 'Unable to identify client. Request rejected for security reasons.',
         code: 'CLIENT_IDENTIFICATION_FAILED',

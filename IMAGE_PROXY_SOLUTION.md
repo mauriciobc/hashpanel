@@ -32,7 +32,7 @@ Frontend (Browser) → Backend API (/api/media/proxy) → Mastodon CDN → Backe
 - ✅ Validação de URL (apenas HTTP/HTTPS)
 - ✅ Whitelist de domínios permitidos
 - ✅ Cache em memória (1 hora TTL, max 100 itens)
-- ✅ Rate limiting (heavyRateLimit: 5 req/15min)
+- ✅ Rate limiting (lightRateLimit: 100 req/5min)
 - ✅ Timeout de 10 segundos
 - ✅ Limite de tamanho (10MB)
 - ✅ Validação de Content-Type
@@ -62,7 +62,7 @@ GET /api/media/proxy?url=https%3A%2F%2Fi.cdn.ursal.zone%2Fcache%2Fmedia_attachme
 2. **Domínios**: Whitelist de CDNs do Mastodon
 3. **Content-Type**: Apenas `image/*`
 4. **Tamanho**: Máximo 10MB
-5. **Rate Limiting**: 5 requisições por 15 minutos por IP
+5. **Rate Limiting**: 100 requisições por 5 minutos por IP (lightRateLimit)
 
 ### Whitelist de Domínios
 

@@ -3,6 +3,7 @@ import { dataProcessor } from './dataProcessor.js';
 import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { BusinessError, NotFoundError } from '../errors/index.js';
+import { HASHTAGS, getFirstHashtagForDay } from '../constants/index.js';
 import moment from 'moment-timezone';
 import NodeCache from 'node-cache';
 
@@ -17,28 +18,20 @@ export class HashtagService {
 
   /**
    * Get the daily hashtag based on current date
+   * Returns the first hashtag if multiple are configured for the day
    */
   getDailyHashtag(date = null) {
     const targetDate = date ? new Date(date) : new Date();
     const dayOfWeek = targetDate.getDay();
     
-    const hashtags = [
-      'silentsunday',    // Sunday
-      'segundaficha',     // Monday
-      'tercinema',        // Tuesday
-      'quartacapa',       // Wednesday
-      'musiquinta',       // Thursday
-      'sextaserie',       // Friday
-      'caturday'          // Saturday
-    ];
+    const hashtagEntry = HASHTAGS[dayOfWeek];
     
-    const hashtag = hashtags[dayOfWeek];
-    
-    if (!hashtag) {
+    if (!hashtagEntry) {
       throw new BusinessError(`No hashtag configured for day ${dayOfWeek}`);
     }
     
-    return hashtag;
+    // Return first hashtag if multiple are configured
+    return getFirstHashtagForDay(hashtagEntry);
   }
 
   /**

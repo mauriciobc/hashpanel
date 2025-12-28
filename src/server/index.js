@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import { appConfig as config } from '../config/index.js';
-import { SERVER_CONFIG } from '../constants/index.js';
+import { SERVER_CONFIG, validateCorsConfig } from '../constants/index.js';
 import { logger, loggers } from '../utils/logger.js';
 import { errorHandler, notFoundHandler, requestLogger } from '../middleware/errorHandler.js';
 import { apiRateLimit } from '../middleware/rateLimiter.js';
@@ -162,6 +162,10 @@ export class WebServer {
     if (this.isStarted) {
       throw new Error('Server is already started');
     }
+
+    // Validate CORS configuration before starting server
+    // This ensures fast failure if production config is invalid
+    validateCorsConfig();
 
     return new Promise((resolve, reject) => {
       try {

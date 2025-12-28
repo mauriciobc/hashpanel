@@ -1,4 +1,4 @@
-import { HASHTAGS, TOOTS_PER_PAGE } from './constants.js';
+import { HASHTAGS, TOOTS_PER_PAGE, getFirstHashtagForDay } from './constants.js';
 import { PREFERRED_TIMEZONE } from './config.js';
 import { fetchTootsFromAPI, getTrendingTags } from './api.js';
 import { sortTootsByRelevance, removeIgnoredToots, filterTootsByDate } from './utils.js';
@@ -7,7 +7,8 @@ import readline from 'readline';
 import moment from'moment-timezone';
 
 async function main() {
-  const hashtag = HASHTAGS[new Date().getDay()];
+  const hashtagEntry = HASHTAGS[new Date().getDay()];
+  const hashtag = getFirstHashtagForDay(hashtagEntry);
   const currentDate = moment().tz(PREFERRED_TIMEZONE).format('YYYY-MM-DD');
   const toots = await fetchToots(hashtag);
   const sortedToots = await sortTootsByRelevance(toots);
