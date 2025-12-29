@@ -42,6 +42,17 @@ export class HashtagService {
       throw new BusinessError('Hashtag is required');
     }
 
+    const maxPages = options.maxPages || config.performance.maxApiPages;
+    const timeframe = options.timeframe || 'today';
+    const cacheKey = `analysis_${hashtag}_${maxPages}_${timeframe}`;
+
+    // Check analysis cache
+    const cachedAnalysis = this.cache.get(cacheKey);
+    if (cachedAnalysis) {
+      logger.debug(`Using cached analysis for hashtag: ${hashtag}`, { timeframe, maxPages });
+      return cachedAnalysis;
+    }
+
     logger.info(`Starting hashtag analysis for: ${hashtag}`, { options });
 
     try {
@@ -50,19 +61,19 @@ export class HashtagService {
       
       // Validate and normalize timeframe parameter
       const allowedTimeframes = ['today', 'week', 'month', 'all'];
-      let timeframe = options.timeframe || 'today';
+      let normalizedTimeframe = timeframe;
       
-      if (!allowedTimeframes.includes(timeframe)) {
-        logger.warn(`Invalid timeframe '${timeframe}' provided, normalizing to 'all'`, {
+      if (!allowedTimeframes.includes(normalizedTimeframe)) {
+        logger.warn(`Invalid timeframe '${normalizedTimeframe}' provided, normalizing to 'all'`, {
           hashtag,
-          invalidTimeframe: timeframe,
+          invalidTimeframe: normalizedTimeframe,
           allowedTimeframes
         });
-        timeframe = 'all';
+        normalizedTimeframe = 'all';
       }
       
       // Determine filtering strategy based on timeframe
-      const shouldFilterByDate = timeframe === 'today';
+      const shouldFilterByDate = normalizedTimeframe === 'today';
       
       // Fetch data in parallel
       const [allToots, hashtagHistory] = await Promise.all([
@@ -78,21 +89,24 @@ export class HashtagService {
       if (shouldFilterByDate) {
         // For 'today', use date filter for precision
         processOptions.filterByDate = today;
-      } else if (timeframe !== 'all') {
+      } else if (normalizedTimeframe !== 'all') {
         // For 'week' or 'month', use timeframe filter
-        processOptions.timeframe = timeframe;
+        processOptions.timeframe = normalizedTimeframe;
       }
       // For 'all', no date filtering
 
       const processedToots = dataProcessor.processToots(allToots, processOptions);
 
       // Create analysis result
-      const analysis = new HashtagAnalysis(hashtag, today, processedToots, hashtagHistory, timeframe);
+      const analysis = new HashtagAnalysis(hashtag, today, processedToots, hashtagHistory, normalizedTimeframe);
       
+      // Cache the result
+      this.cache.set(cacheKey, analysis);
+
       logger.info(`Completed analysis for hashtag: ${hashtag}`, {
         totalToots: allToots.length,
         filteredToots: processedToots.length,
-        timeframe,
+        timeframe: normalizedTimeframe,
         weeklyTotal: analysis.getWeeklyTotal()
       });
 

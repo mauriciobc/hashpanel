@@ -50,10 +50,10 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
   logger.info('Hashtag stats requested', { original: hashtag, normalized: normalizedHashtag, timeframe: normalizedTimeframe });
   
   try {
-    // Limit to 3 pages for stats endpoint to improve response time (3 pages = ~120 toots)
-    // This is enough for accurate statistics while keeping response time under 5 seconds
+    // Limit to 1 page for stats endpoint to improve response time (~40 toots)
+    // This is enough for accurate statistics while keeping response time under 1 second
     const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { 
-      maxPages: 3,
+      maxPages: 1,
       timeframe: normalizedTimeframe 
     });
     
@@ -91,6 +91,10 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
       tootCount: stats.summary.tootCount,
       uniqueUsers: stats.summary.uniqueUsers
     });
+    
+    // Performance: Add cache control headers (2 minutes)
+    res.setHeader('Cache-Control', 'public, max-age=120');
+    res.setHeader('Vary', 'Accept-Encoding');
     
     res.json(stats);
     

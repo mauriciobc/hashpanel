@@ -1169,6 +1169,24 @@
       20%, 40%, 60%, 80% { transform: translateX(5px); }
     }
 
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideInUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
     /* Responsive Bento Grid - Better space utilization */
     @media (max-width: 1400px) {
       .bento-grid {
@@ -1373,7 +1391,7 @@
       }
     }
 
-    /* Modal Styles */
+    /* Drawer Styles (converted from Modal) */
     .modal-backdrop {
       display: none;
       position: fixed;
@@ -1384,28 +1402,50 @@
       background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(8px);
       z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
       animation: fadeIn 0.3s ease;
     }
 
     .modal-backdrop.active {
-      display: flex;
+      display: block;
     }
 
     .modal {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-xl);
-      max-width: 600px;
-      width: 100%;
-      max-height: 90vh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-xl), var(--shadow-glow);
-      animation: fadeInUp 0.3s ease;
+      position: fixed;
+      z-index: 1001;
+    }
+
+    /* Desktop: Drawer from right */
+    @media (min-width: 768px) {
+      .modal {
+        top: 0;
+        right: 0;
+        left: auto;
+        bottom: auto;
+        width: 500px;
+        height: 100vh;
+        border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+        border-right: none;
+        animation: slideInRight 0.3s ease;
+      }
+    }
+
+    /* Mobile: Drawer from bottom */
+    @media (max-width: 767px) {
+      .modal {
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        max-height: 90vh;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        border-bottom: none;
+        animation: slideInUp 0.3s ease;
+      }
     }
 
     .modal-header {
@@ -1848,6 +1888,43 @@
     let refreshInterval = null;
     let currentAbortedController = null;
     let isLoadingData = false; // Prevent overlapping loadData calls
+
+    // Client-side cache configuration
+    const CACHE_KEY = 'hashpanel_stats_cache';
+    const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
+    /**
+     * Get cached data for a hashtag
+     */
+    function getCachedStats(hashtag) {
+      try {
+        const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+        const entry = cache[hashtag];
+        if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+          console.log(`Using client cache for hashtag: ${hashtag}`);
+          return entry.data;
+        }
+      } catch (e) {
+        console.warn('Failed to read from client cache:', e);
+      }
+      return null;
+    }
+
+    /**
+     * Set cached data for a hashtag
+     */
+    function setCachedStats(hashtag, data) {
+      try {
+        const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+        cache[hashtag] = {
+          data,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+      } catch (e) {
+        console.warn('Failed to write to client cache:', e);
+      }
+    }
 
     // Rate Limit State Management
     const rateLimitState = {
@@ -2773,43 +2850,72 @@
         const normalizedHashtag = normalizeHashtag(hashtag);
         console.log(`Loading hashtag data for: "${hashtag}" (normalized: "${normalizedHashtag}")`);
         
-        // Fetch current daily hashtag
+        // 1. Parallel fetch daily hashtag and check cache
         const dailyHashtagRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/current`);
         if (!dailyHashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
         const dailyData = await dailyHashtagRes.json();
         const isDailyHashtag = normalizedHashtag.toLowerCase() === dailyData.hashtag.toLowerCase(); 
-        // Fetch stats for the selected hashtag (using normalized hashtag without #)
+
+        const cachedStats = getCachedStats(normalizedHashtag);
+        if (cachedStats) {
+          console.log(`Rendering cached stats for selected hashtag: ${normalizedHashtag}`);
+          renderKPICards(cachedStats);
+          renderTopToots(cachedStats.topToots || []);
+          
+          // Background fetch trending tags to keep view consistent
+          const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`);
+          if (trendingRes.ok) {
+            const { tags: trendingTags } = await trendingRes.json();
+            renderTrendingTags(trendingTags, hashtag);
+          }
+          
+          updateActivePill(normalizedHashtag);
+          
+          const now = new Date();
+          document.getElementById('lastUpdated').textContent = 
+            `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
+          
+          const backBtn = document.getElementById('backToDailyBtn');
+          backBtn.style.display = isDailyHashtag ? 'none' : 'inline-flex';
+          
+          hideLoading();
+        }
+
+        // 2. Fetch stats for the selected hashtag
         const statsUrl = `${API_BASE}/hashtag/${encodeURIComponent(normalizedHashtag)}/stats`;
-        console.log(`Fetching stats from: ${statsUrl}`);
+        console.log(`Fetching fresh stats from: ${statsUrl}`);
         const statsRes = await fetchWithRateLimitTracking(statsUrl);
         
         if (!statsRes.ok) {
+          if (cachedStats) {
+            console.warn('Background refresh failed, keeping cached data');
+            return;
+          }
+
           let errorMessage = `Falha ao carregar estatísticas para #${hashtag}`;
-          
-          // Try to get more specific error message from response
+          // ... rest of error handling ...
           try {
             const errorData = await statsRes.json();
             if (errorData.error && errorData.error.message) {
               errorMessage = errorData.error.message;
             }
           } catch (e) {
-            // If we can't parse JSON, use status code
             if (statsRes.status === 404) {
               errorMessage = `A hashtag #${hashtag} não foi encontrada ou não possui dados recentes.`;
             } else if (statsRes.status >= 500) {
               errorMessage = `Erro no servidor ao buscar dados para #${hashtag}. Tente novamente mais tarde.`;
             }
           }
-          
           throw new Error(errorMessage);
         }
         
         const stats = await statsRes.json(); 
-        // Check if we have valid data
         if (!stats) {
-          console.warn(`No valid stats data for hashtag: ${hashtag}`);
           throw new Error(`Dados inválidos retornados para #${hashtag}`);
         }
+
+        // 3. Update cache and render fresh data
+        setCachedStats(normalizedHashtag, stats);
 
         // Fetch trending tags (keep them)
         const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`);
@@ -3040,16 +3146,44 @@
       try {
         const signal = currentAbortedController?.signal;
         
-        // Fetch current hashtag first - WITH abort signal
-        const hashtagRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/current`, { signal });
+        // 1. Parallel fetch current hashtag and trending tags
+        const [hashtagRes, trendingRes] = await Promise.all([
+          fetchWithRateLimitTracking(`${API_BASE}/hashtag/current`, { signal }),
+          fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`, { signal })
+        ]);
         
         if (!hashtagRes.ok) throw new Error('Falha ao carregar hashtag atual');
-        const { hashtag } = await hashtagRes.json();
+        if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
 
-        // Fetch dashboard stats for current hashtag - WITH abort signal
+        const { hashtag } = await hashtagRes.json();
+        const { tags: trendingTags } = await trendingRes.json();
+
+        // 2. Check for cached stats before fetching
+        const cachedStats = getCachedStats(hashtag);
+        if (cachedStats) {
+          console.log(`Rendering cached stats for: ${hashtag}`);
+          renderKPICards(cachedStats);
+          renderTopToots(cachedStats.topToots || []);
+          renderTrendingTags(trendingTags, hashtag);
+          updateActivePill(hashtag);
+          
+          const now = new Date();
+          document.getElementById('lastUpdated').textContent = 
+            `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
+          
+          hideLoading();
+        }
+
+        // 3. Fetch fresh dashboard stats for current hashtag
         const statsRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/${hashtag}/stats`, { signal });
         
         if (!statsRes.ok) {
+          // If we already showed cached data, don't show error for background fetch
+          if (cachedStats) {
+            console.warn('Background refresh failed, keeping cached data');
+            return;
+          }
+
           // Handle rate limiting with user-friendly message
           if (statsRes.status === 429) {
             const errorData = await statsRes.json().catch(() => ({}));
@@ -3058,12 +3192,11 @@
           }
           throw new Error('Falha ao carregar estatísticas');
         }
+        
         const stats = await statsRes.json();
-
-        // Fetch trending tags - WITH abort signal
-        const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`, { signal });
-        if (!trendingRes.ok) throw new Error('Falha ao carregar tags em alta');
-        const { tags: trendingTags } = await trendingRes.json();
+        
+        // 4. Update cache and render fresh data
+        setCachedStats(hashtag, stats);
 
         // Render all sections
         renderKPICards(stats);
