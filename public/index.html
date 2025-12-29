@@ -1870,13 +1870,13 @@
         </div>
         <div style="padding: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
           <div>
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Ano:</label>
+            <label for="yearSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Ano:</label>
             <select id="yearSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 120px;">
               <!-- Populated by JavaScript -->
             </select>
           </div>
           <div>
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtag:</label>
+            <label for="hashtagSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtag:</label>
             <select id="hashtagSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 200px;">
               <option value="all">Todas as hashtags</option>
               <!-- Populated by JavaScript -->
@@ -1918,7 +1918,7 @@
       </div>
 
       <!-- Charts -->
-      <div class="bento-grid" style="grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); margin-bottom: 1.5rem;">
+      <div class="bento-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); margin-bottom: 1.5rem;">
         <div class="content-card">
           <div class="card-header">
             <div class="card-header-icon">📊</div>
@@ -3713,6 +3713,7 @@
           }
           aggregatedWeeks[week.weekNumber].totalUses += week.totalUses;
           aggregatedWeeks[week.weekNumber].totalAccounts += week.totalAccounts;
+          aggregatedWeeks[week.weekNumber].daysCounted += week.daysCounted || 0;
           totalUses += week.totalUses;
           totalAccounts += week.totalAccounts;
         });
@@ -3721,7 +3722,7 @@
       
       const weeklyData = Object.values(aggregatedWeeks).sort((a, b) => a.weekNumber - b.weekNumber);
       weeklyData.forEach(week => {
-        week.dailyAverage = week.totalUses / 7; // Approximate daily average
+        week.dailyAverage = week.daysCounted > 0 ? week.totalUses / week.daysCounted : week.totalUses / 7;
       });
       
       const avgWeekly = weeklyData.length > 0 ? totalUses / weeklyData.length : 0;

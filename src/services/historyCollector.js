@@ -10,25 +10,74 @@ import { appConfig as config } from '../config/index.js';
  */
 export class HistoryCollector {
   constructor() {
-    this.collectedCount = 0;
-    this.errorCount = 0;
-    this.skippedCount = 0;
+    // Operation-specific statistics buckets
+    this.stats = {
+      allHashtags: {
+        collected: 0,
+        skipped: 0,
+        errors: 0,
+        lastRun: null,
+        lastReset: null
+      },
+      hashtagData: {
+        collected: 0,
+        skipped: 0,
+        errors: 0,
+        lastRun: null,
+        lastReset: null
+      },
+      dateRange: {
+        collected: 0,
+        skipped: 0,
+        errors: 0,
+        lastRun: null,
+        lastReset: null
+      }
+    };
+  }
+
+  /**
+   * Reset statistics for a specific operation
+   * @param {string} operation - Operation name: 'allHashtags', 'hashtagData', or 'dateRange'
+   * @private
+   */
+  _resetStats(operation) {
+    if (this.stats[operation]) {
+      this.stats[operation].collected = 0;
+      this.stats[operation].skipped = 0;
+      this.stats[operation].errors = 0;
+      this.stats[operation].lastReset = new Date().toISOString();
+    }
+  }
+
+  /**
+   * Update statistics for a specific operation
+   * @param {string} operation - Operation name: 'allHashtags', 'hashtagData', or 'dateRange'
+   * @param {string} type - Type of update: 'collected', 'skipped', or 'errors'
+   * @private
+   */
+  _updateStats(operation, type) {
+    if (this.stats[operation] && this.stats[operation][type] !== undefined) {
+      this.stats[operation][type]++;
+      this.stats[operation].lastRun = new Date().toISOString();
+    }
   }
 
   /**
    * Collect history data for a single hashtag
    * @param {string} hashtag - Hashtag to collect data for
    * @param {string} date - Date in YYYY-MM-DD format (defaults to today)
+   * @param {string} operationContext - Operation context: 'allHashtags' when called from collectAllHashtags, 'hashtagData' when called directly
    * @returns {Promise<boolean>} True if collected, false if skipped
    */
-  async collectHashtagData(hashtag, date = null) {
+  async collectHashtagData(hashtag, date = null, operationContext = 'hashtagData') {
     const targetDate = date || moment().tz(config.server.timezone).format('YYYY-MM-DD');
 
     try {
       // Check if we already have data for this date
       if (databaseService.hasDataForDate(hashtag, targetDate)) {
         logger.debug(`Skipping ${hashtag} for ${targetDate} - data already exists`);
-        this.skippedCount++;
+        this._updateStats(operationContext, 'skipped');
         return false;
       }
 
@@ -56,7 +105,7 @@ export class HistoryCollector {
         accounts: dayData.accounts || 0
       });
 
-      this.collectedCount++;
+      this._updateStats(operationContext, 'collected');
       logger.info(`Successfully collected data for ${hashtag} on ${targetDate}`, {
         uses: dayData.uses,
         accounts: dayData.accounts
@@ -65,7 +114,7 @@ export class HistoryCollector {
       return true;
 
     } catch (error) {
-      this.errorCount++;
+      this._updateStats(operationContext, 'errors');
       loggers.error(`Failed to collect data for ${hashtag} on ${targetDate}`, error);
       
       // Don't throw - continue with other hashtags
@@ -83,10 +132,8 @@ export class HistoryCollector {
     
     logger.info(`Starting history collection for all hashtags on ${targetDate}`);
 
-    // Reset counters
-    this.collectedCount = 0;
-    this.errorCount = 0;
-    this.skippedCount = 0;
+    // Reset statistics for this operation
+    this._resetStats('allHashtags');
 
     // Get all unique hashtags from configuration
     const allHashtags = new Set();
@@ -105,7 +152,7 @@ export class HistoryCollector {
       const batch = hashtagsArray.slice(i, i + batchSize);
       
       await Promise.all(
-        batch.map(hashtag => this.collectHashtagData(hashtag, targetDate))
+        batch.map(hashtag => this.collectHashtagData(hashtag, targetDate, 'allHashtags'))
       );
 
       // Small delay between batches to respect rate limits
@@ -114,13 +161,14 @@ export class HistoryCollector {
       }
     }
 
+    const stats = this.stats.allHashtags;
     const summary = {
       date: targetDate,
       totalHashtags: hashtagsArray.length,
-      collected: this.collectedCount,
-      skipped: this.skippedCount,
-      errors: this.errorCount,
-      success: this.errorCount === 0
+      collected: stats.collected,
+      skipped: stats.skipped,
+      errors: stats.errors,
+      success: stats.errors === 0
     };
 
     logger.info('History collection completed', summary);
@@ -150,6 +198,9 @@ export class HistoryCollector {
 
     logger.info(`Collecting history data for date range: ${startDate} to ${endDate}`);
 
+    // Reset statistics for this operation
+    this._resetStats('dateRange');
+
     const allSummaries = [];
     let currentDate = start.clone();
 
@@ -160,6 +211,12 @@ export class HistoryCollector {
       const summary = await this.collectAllHashtags(dateStr);
       allSummaries.push(summary);
 
+      // Aggregate stats from this day into dateRange bucket
+      this.stats.dateRange.collected += summary.collected;
+      this.stats.dateRange.skipped += summary.skipped;
+      this.stats.dateRange.errors += summary.errors;
+      this.stats.dateRange.lastRun = new Date().toISOString();
+
       // Move to next day
       currentDate.add(1, 'day');
 
@@ -169,12 +226,13 @@ export class HistoryCollector {
       }
     }
 
+    const stats = this.stats.dateRange;
     const totalSummary = {
       dateRange: { start: startDate, end: endDate },
       totalDays: allSummaries.length,
-      totalCollected: allSummaries.reduce((sum, s) => sum + s.collected, 0),
-      totalSkipped: allSummaries.reduce((sum, s) => sum + s.skipped, 0),
-      totalErrors: allSummaries.reduce((sum, s) => sum + s.errors, 0),
+      totalCollected: stats.collected,
+      totalSkipped: stats.skipped,
+      totalErrors: stats.errors,
       dailySummaries: allSummaries
     };
 
@@ -184,14 +242,32 @@ export class HistoryCollector {
 
   /**
    * Get collection statistics
-   * @returns {Object} Statistics about recent collections
+   * @returns {Object} Statistics about recent collections per operation
    */
   getStats() {
     return {
-      lastRun: {
-        collected: this.collectedCount,
-        skipped: this.skippedCount,
-        errors: this.errorCount
+      byOperation: {
+        allHashtags: {
+          collected: this.stats.allHashtags.collected,
+          skipped: this.stats.allHashtags.skipped,
+          errors: this.stats.allHashtags.errors,
+          lastRun: this.stats.allHashtags.lastRun,
+          lastReset: this.stats.allHashtags.lastReset
+        },
+        hashtagData: {
+          collected: this.stats.hashtagData.collected,
+          skipped: this.stats.hashtagData.skipped,
+          errors: this.stats.hashtagData.errors,
+          lastRun: this.stats.hashtagData.lastRun,
+          lastReset: this.stats.hashtagData.lastReset
+        },
+        dateRange: {
+          collected: this.stats.dateRange.collected,
+          skipped: this.stats.dateRange.skipped,
+          errors: this.stats.dateRange.errors,
+          lastRun: this.stats.dateRange.lastRun,
+          lastReset: this.stats.dateRange.lastReset
+        }
       }
     };
   }

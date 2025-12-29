@@ -8,7 +8,7 @@ import { errorHandler, notFoundHandler, requestLogger } from '../middleware/erro
 import { apiRateLimit } from '../middleware/rateLimiter.js';
 import { apiRoutes } from './routes/index.js';
 import { mastodonService } from '../services/mastodon.js';
-import { database } from '../database/index.js';
+import { getDatabase } from '../database/index.js';
 
 export class WebServer {
   constructor() {
@@ -119,7 +119,7 @@ export class WebServer {
 
       // Test database connectivity
       try {
-        const dbHealth = database.healthCheck();
+        const dbHealth = getDatabase().healthCheck();
         health.services.database = dbHealth.status;
         if (dbHealth.status !== 'healthy') {
           health.status = 'degraded';

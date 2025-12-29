@@ -368,42 +368,6 @@ router.get('/daily', asyncHandler(async (req, res) => {
 }));
 
 /**
- * GET /api/hashtag/:hashtag/history/weekly
- * Get weekly historical data for a specific hashtag
- */
-router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (req, res) => {
-  const { hashtag } = req.params;
-  const { year } = req.query;
-  
-  if (!hashtag) {
-    throw new ValidationError('Hashtag is required');
-  }
-  
-  // Default to current year if not specified
-  const targetYear = year ? parseInt(year) : new Date().getFullYear();
-  
-  if (isNaN(targetYear) || targetYear < 2020 || targetYear > 2100) {
-    throw new ValidationError('Invalid year parameter');
-  }
-  
-  logger.info('Weekly history requested', { hashtag, year: targetYear });
-  
-  try {
-    const result = databaseService.aggregateWeeklyData(hashtag, targetYear);
-    
-    // Performance: Add cache control headers (5 minutes for historical data)
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    res.setHeader('Vary', 'Accept-Encoding');
-    
-    res.json(result);
-    
-  } catch (error) {
-    logger.error(`Failed to get weekly history for hashtag: ${hashtag}`, error);
-    throw error;
-  }
-}));
-
-/**
  * GET /api/hashtag/history/weekly
  * Get weekly historical data for all hashtags
  */
@@ -420,7 +384,7 @@ router.get('/history/weekly', moderateRateLimit, asyncHandler(async (req, res) =
   logger.info('All hashtags weekly history requested', { year: targetYear });
   
   try {
-    const allData = databaseService.getAllHashtagsWeeklyHistory(targetYear);
+    const allData = await databaseService.getAllHashtagsWeeklyHistory(targetYear);
     
     // Calculate summary across all hashtags
     const allHashtags = Object.keys(allData);
@@ -442,6 +406,42 @@ router.get('/history/weekly', moderateRateLimit, asyncHandler(async (req, res) =
     
   } catch (error) {
     logger.error(`Failed to get all hashtags weekly history for year: ${targetYear}`, error);
+    throw error;
+  }
+}));
+
+/**
+ * GET /api/hashtag/:hashtag/history/weekly
+ * Get weekly historical data for a specific hashtag
+ */
+router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (req, res) => {
+  const { hashtag } = req.params;
+  const { year } = req.query;
+  
+  if (!hashtag) {
+    throw new ValidationError('Hashtag is required');
+  }
+  
+  // Default to current year if not specified
+  const targetYear = year ? parseInt(year) : new Date().getFullYear();
+  
+  if (isNaN(targetYear) || targetYear < 2020 || targetYear > 2100) {
+    throw new ValidationError('Invalid year parameter');
+  }
+  
+  logger.info('Weekly history requested', { hashtag, year: targetYear });
+  
+  try {
+    const result = await databaseService.aggregateWeeklyData(hashtag, targetYear);
+    
+    // Performance: Add cache control headers (5 minutes for historical data)
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Vary', 'Accept-Encoding');
+    
+    res.json(result);
+    
+  } catch (error) {
+    logger.error(`Failed to get weekly history for hashtag: ${hashtag}`, error);
     throw error;
   }
 }));

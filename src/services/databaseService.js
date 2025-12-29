@@ -1,4 +1,4 @@
-import { database } from '../database/index.js';
+import { getDatabase } from '../database/index.js';
 import { getISOWeek } from '../database/migrations.js';
 import { logger } from '../utils/logger.js';
 import moment from 'moment-timezone';
@@ -9,7 +9,7 @@ import { appConfig as config } from '../config/index.js';
  */
 export class DatabaseService {
   constructor() {
-    this.db = database.getDatabase();
+    this.db = getDatabase().getDatabase();
   }
 
   /**
@@ -21,12 +21,18 @@ export class DatabaseService {
    */
   saveDailyHashtagData(hashtag, date, data) {
     try {
+      // Check if data already exists
+      if (this.hasDataForDate(hashtag, date)) {
+        logger.debug(`Data already exists for ${hashtag} on ${date}, skipping insert`);
+        return false;
+      }
+
       const { year, weekNumber } = getISOWeek(date);
       const uses = parseInt(data.uses) || 0;
       const accounts = parseInt(data.accounts) || 0;
 
       const stmt = this.db.prepare(`
-        INSERT OR REPLACE INTO hashtag_history 
+        INSERT INTO hashtag_history 
         (hashtag, date, year, week_number, uses, accounts, collected_at)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `);
@@ -147,7 +153,7 @@ export class DatabaseService {
       return result?.latest_date || null;
     } catch (error) {
       logger.error(`Failed to get latest collection date for ${hashtag}`, error);
-      return null;
+      throw error;
     }
   }
 
@@ -156,20 +162,22 @@ export class DatabaseService {
    * @param {string} hashtag - Hashtag name
    * @param {string} date - Date in YYYY-MM-DD format
    * @returns {boolean} True if data exists
+   * @throws {Error} Re-throws database errors to allow callers to distinguish "no data" from exceptions
    */
   hasDataForDate(hashtag, date) {
     try {
       const stmt = this.db.prepare(`
-        SELECT COUNT(*) as count
+        SELECT 1
         FROM hashtag_history
         WHERE hashtag = ? AND date = ?
+        LIMIT 1
       `);
 
       const result = stmt.get(hashtag, date);
-      return (result?.count || 0) > 0;
+      return result !== undefined;
     } catch (error) {
       logger.error(`Failed to check data existence for ${hashtag} on ${date}`, error);
-      return false;
+      throw error;
     }
   }
 
@@ -180,28 +188,23 @@ export class DatabaseService {
    */
   getDateRange(hashtag = null) {
     try {
-      let stmt;
-      if (hashtag) {
-        stmt = this.db.prepare(`
-          SELECT MIN(date) as min_date, MAX(date) as max_date
-          FROM hashtag_history
-          WHERE hashtag = ?
-        `);
-      } else {
-        stmt = this.db.prepare(`
-          SELECT MIN(date) as min_date, MAX(date) as max_date
-          FROM hashtag_history
-        `);
-      }
-
+      const baseQuery = `
+        SELECT MIN(date) as min_date, MAX(date) as max_date
+        FROM hashtag_history
+      `;
+      const whereClause = hashtag ? ' WHERE hashtag = ?' : '';
+      const query = baseQuery + whereClause;
+      
+      const stmt = this.db.prepare(query);
       const result = hashtag ? stmt.get(hashtag) : stmt.get();
+      
       return {
         minDate: result?.min_date || null,
         maxDate: result?.max_date || null
       };
     } catch (error) {
       logger.error('Failed to get date range', error);
-      return { minDate: null, maxDate: null };
+      throw error;
     }
   }
 

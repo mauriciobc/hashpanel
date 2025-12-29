@@ -29,8 +29,16 @@ export class DatabaseService {
       logger.warn(`Could not create database directory: ${dbDir}`, error);
     }
 
-    this.db = new Database(dbPath);
     this.dbPath = dbPath;
+    this._initializeConnection();
+  }
+
+  /**
+   * Initialize database connection
+   * @private
+   */
+  _initializeConnection() {
+    this.db = new Database(this.dbPath);
     
     // Enable WAL mode for better concurrency
     this.db.pragma('journal_mode = WAL');
@@ -38,13 +46,17 @@ export class DatabaseService {
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
     
-    logger.info('Database connection established', { path: dbPath });
+    logger.info('Database connection established', { path: this.dbPath });
   }
 
   /**
    * Get database instance
+   * Recreates connection if it was closed
    */
   getDatabase() {
+    if (!this.db) {
+      this._initializeConnection();
+    }
     return this.db;
   }
 
@@ -61,6 +73,7 @@ export class DatabaseService {
   close() {
     if (this.db) {
       this.db.close();
+      this.db = null;
       logger.info('Database connection closed');
     }
   }
@@ -70,7 +83,8 @@ export class DatabaseService {
    */
   migrate() {
     try {
-      runMigrations(this.db);
+      const db = this.getDatabase();
+      runMigrations(db);
       logger.info('Database migrations completed');
     } catch (error) {
       logger.error('Failed to run migrations', error);
@@ -83,7 +97,8 @@ export class DatabaseService {
    */
   getStats() {
     try {
-      const stats = this.db.prepare(`
+      const db = this.getDatabase();
+      const stats = db.prepare(`
         SELECT 
           COUNT(*) as total_records,
           COUNT(DISTINCT hashtag) as unique_hashtags,
@@ -112,7 +127,8 @@ export class DatabaseService {
    */
   healthCheck() {
     try {
-      this.db.prepare('SELECT 1').get();
+      const db = this.getDatabase();
+      db.prepare('SELECT 1').get();
       return { status: 'healthy', connected: true };
     } catch (error) {
       logger.error('Database health check failed', error);
@@ -126,6 +142,7 @@ let dbInstance = null;
 
 /**
  * Get database instance (singleton)
+ * Must be called explicitly to initialize the database connection and run migrations
  */
 export function getDatabase() {
   if (!dbInstance) {
@@ -135,6 +152,3 @@ export function getDatabase() {
   }
   return dbInstance;
 }
-
-// Export singleton instance
-export const database = getDatabase();

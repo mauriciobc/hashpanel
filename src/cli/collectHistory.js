@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * CLI script to collect hashtag history data
  * Can be run manually or via cron job
@@ -12,15 +10,26 @@
 
 import { historyCollector } from '../services/historyCollector.js';
 import { logger } from '../utils/logger.js';
-import { database } from '../database/index.js';
+import { getDatabase } from '../database/index.js';
 
 async function main() {
+  // Initialize database connection
+  const database = getDatabase();
+  
   const args = process.argv.slice(2);
+  let exitCode = 0;
   
   try {
     // Parse arguments
     const dateIndex = args.indexOf('--date');
     const rangeIndex = args.indexOf('--range');
+    
+    // Validate mutual exclusivity
+    if (dateIndex !== -1 && rangeIndex !== -1) {
+      console.error('Error: Flags --date and --range are mutually exclusive');
+      exitCode = 1;
+      return;
+    }
     
     if (rangeIndex !== -1) {
       // Collect date range
@@ -29,7 +38,8 @@ async function main() {
       
       if (!startDate || !endDate) {
         console.error('Error: --range requires start and end dates (YYYY-MM-DD)');
-        process.exit(1);
+        exitCode = 1;
+        return;
       }
       
       console.log(`Collecting history data from ${startDate} to ${endDate}...`);
@@ -48,7 +58,8 @@ async function main() {
       
       if (!date) {
         console.error('Error: --date requires a date (YYYY-MM-DD)');
-        process.exit(1);
+        exitCode = 1;
+        return;
       }
       
       console.log(`Collecting history data for ${date}...`);
@@ -75,16 +86,17 @@ async function main() {
     }
     
     console.log('\n✅ Collection completed successfully');
-    process.exit(0);
     
   } catch (error) {
+    exitCode = 1;
     logger.error('Collection script failed', error);
     console.error('\n❌ Collection failed:', error.message);
-    process.exit(1);
   } finally {
     // Close database connection
     database.close();
   }
+  
+  process.exit(exitCode);
 }
 
 // Run the script
