@@ -6,3 +6,4 @@ data/
 *.db-wal
 *.md
 !README.md
+logs/combined.log

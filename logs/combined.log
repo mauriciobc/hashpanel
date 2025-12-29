@@ -8430,3 +8430,542 @@
 {"timestamp":"2025-12-29T23:23:13.967Z","level":"INFO","message":"Completed analysis for hashtag: segundaficha","service":"hashbot2","environment":"development","totalToots":40,"filteredToots":9,"timeframe":"today","weeklyTotal":9}
 {"timestamp":"2025-12-29T23:23:13.967Z","level":"INFO","message":"Successfully generated stats for hashtag: segundaficha","service":"hashbot2","environment":"development","tootCount":9,"uniqueUsers":8}
 {"timestamp":"2025-12-29T23:23:13.969Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/segundaficha/stats","statusCode":200,"duration":1122,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:24:30.793Z","level":"INFO","message":"Database connection established","service":"hashbot2","environment":"development","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+{"timestamp":"2025-12-29T23:24:30.795Z","level":"INFO","message":"Running database migrations...","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.796Z","level":"INFO","message":"Database migrations completed successfully","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.796Z","level":"INFO","message":"Database migrations completed","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.844Z","level":"INFO","message":"Collecting history data for date range: 2025-12-22 to 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.845Z","level":"INFO","message":"Collecting data for 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.845Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.845Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.845Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.845Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:30.846Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:31.573Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:24:31.573Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":727,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:24:31.573Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:31.574Z","level":"WARN","message":"No data found for videomingo on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:32.097Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:24:32.098Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":251,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:24:32.098Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:32.098Z","level":"WARN","message":"No data found for silentsunday on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:32.624Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:24:32.625Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":777,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:24:32.625Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:32.625Z","level":"WARN","message":"No data found for segundaficha on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:33.627Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:33.627Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:33.627Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:33.939Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:24:33.939Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":312,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:24:33.939Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:33.940Z","level":"WARN","message":"No data found for tercinema on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:34.860Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":232,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"WARN","message":"No data found for quartacapa on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":233,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:34.861Z","level":"WARN","message":"No data found for tersoftware on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:35.862Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:35.862Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:35.862Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:36.091Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:24:36.091Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":228,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:24:36.091Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:36.091Z","level":"WARN","message":"No data found for quartoon on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:37.114Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:24:37.114Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":250,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:24:37.114Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:37.115Z","level":"WARN","message":"No data found for rabisquarta on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:37.115Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:24:37.115Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":252,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:24:37.115Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:37.115Z","level":"WARN","message":"No data found for musiquinta on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:38.117Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:38.117Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:38.117Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-22","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:38.348Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:24:38.348Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":231,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:24:38.348Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:38.349Z","level":"WARN","message":"No data found for quintattoo on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:39.340Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":222,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"WARN","message":"No data found for sabafoto on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":223,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:24:39.341Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:39.342Z","level":"WARN","message":"No data found for sextaserie on 2025-12-22","service":"hashbot2","environment":"development","availableDates":["2025-12-29","2025-12-28","2025-12-27"]}
+{"timestamp":"2025-12-29T23:24:39.342Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-22","totalHashtags":12,"collected":0,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:24:39.342Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-22","totalHashtags":12,"collected":0,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:24:41.343Z","level":"INFO","message":"Collecting data for 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.344Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.344Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.344Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.344Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.344Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:41.568Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:24:41.568Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":224,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:24:41.568Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:41.574Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:42.563Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:24:42.563Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":218,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:24:42.564Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:42.569Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:42.570Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:24:42.570Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":226,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:24:42.570Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:42.573Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-23","service":"hashbot2","environment":"development","uses":"3","accounts":"3"}
+{"timestamp":"2025-12-29T23:24:43.575Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:43.575Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:43.575Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:43.872Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:24:43.872Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":297,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:24:43.872Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:43.878Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-23","service":"hashbot2","environment":"development","uses":"74","accounts":"36"}
+{"timestamp":"2025-12-29T23:24:44.897Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:24:44.897Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":321,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:24:44.897Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:44.906Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:44.906Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:24:44.906Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":331,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:24:44.906Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:44.909Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-23","service":"hashbot2","environment":"development","uses":"14","accounts":"12"}
+{"timestamp":"2025-12-29T23:24:45.911Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:45.911Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:45.911Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:46.131Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:24:46.131Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":220,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:24:46.131Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:46.136Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:47.149Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:24:47.149Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":238,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:24:47.149Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:47.153Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:47.153Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:24:47.153Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":242,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:24:47.153Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:47.156Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-23","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:24:48.156Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:48.157Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:48.157Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-23","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:48.480Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:24:48.480Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":323,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:24:48.480Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:48.487Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:49.381Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:24:49.381Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":223,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:24:49.381Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:49.392Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:49.393Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:24:49.393Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":235,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:24:49.393Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:49.397Z","level":"INFO","message":"Successfully collected data for sextaserie on 2025-12-23","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:49.397Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-23","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:24:49.397Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-23","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:24:51.398Z","level":"INFO","message":"Collecting data for 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.398Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.398Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.398Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.399Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.399Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:51.617Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:24:51.618Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":218,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:24:51.618Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:51.623Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:52.678Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:24:52.678Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":278,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:24:52.679Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:52.684Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:52.685Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:24:52.685Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":286,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:24:52.685Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:52.688Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-24","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:24:53.688Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:53.688Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:53.688Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:53.915Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:24:53.915Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":227,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:24:53.915Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:53.920Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-24","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:24:54.934Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:24:54.934Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":244,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:24:54.934Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:54.938Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:54.938Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:24:54.938Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":250,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:24:54.938Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:54.942Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-24","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:24:55.943Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:55.943Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:55.943Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:56.162Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:24:56.162Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":219,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:24:56.162Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:56.166Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:57.185Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:24:57.185Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":239,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:24:57.185Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:57.190Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:57.191Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:24:57.191Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":246,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:24:57.191Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:57.194Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-24","service":"hashbot2","environment":"development","uses":"7","accounts":"2"}
+{"timestamp":"2025-12-29T23:24:58.194Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:58.195Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:58.195Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-24","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:24:58.417Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:24:58.418Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":222,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:24:58.418Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:58.423Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:59.415Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:24:59.415Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":219,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:24:59.415Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:59.420Z","level":"INFO","message":"Successfully collected data for sextaserie on 2025-12-24","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:24:59.420Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:24:59.421Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":224,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:24:59.421Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:24:59.424Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-24","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:24:59.424Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-24","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:24:59.424Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-24","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:01.424Z","level":"INFO","message":"Collecting data for 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.425Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.425Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.425Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.425Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.425Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:01.645Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:25:01.645Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":220,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:25:01.646Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:01.650Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:02.714Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:25:02.714Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":288,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:25:02.714Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:02.718Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-25","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:25:02.719Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:25:02.719Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":293,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:25:02.719Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:02.722Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:03.722Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:03.722Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:03.722Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:03.946Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:25:03.946Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":224,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:25:03.946Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:03.951Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-25","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:04.968Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:25:04.968Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":245,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:25:04.968Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:04.973Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:04.974Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:25:04.974Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":251,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:25:04.974Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:04.977Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:05.978Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:05.978Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:05.978Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:06.298Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:25:06.299Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":320,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:25:06.299Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:06.304Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:07.215Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:25:07.215Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":236,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:25:07.215Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:07.230Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-25","service":"hashbot2","environment":"development","uses":"75","accounts":"51"}
+{"timestamp":"2025-12-29T23:25:07.230Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:25:07.230Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":252,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:25:07.230Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:07.233Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-25","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:08.234Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:08.234Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:08.234Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-25","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:08.454Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:25:08.454Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":220,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:25:08.454Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:08.460Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-25","service":"hashbot2","environment":"development","uses":"5","accounts":"5"}
+{"timestamp":"2025-12-29T23:25:09.458Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:25:09.458Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":222,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:25:09.458Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:09.463Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-25","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:09.464Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:25:09.464Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":230,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:25:09.464Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:09.467Z","level":"INFO","message":"Successfully collected data for sextaserie on 2025-12-25","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:09.467Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-25","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:09.467Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-25","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:11.467Z","level":"INFO","message":"Collecting data for 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.467Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.467Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.467Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.468Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.468Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:11.692Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:25:11.692Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":224,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:25:11.692Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:11.696Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:12.749Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:25:12.749Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":281,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:25:12.750Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:12.755Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:12.755Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:25:12.755Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":287,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:25:12.755Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:12.758Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:13.759Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:13.760Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:13.760Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:13.987Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:25:13.987Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":227,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:25:13.987Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:13.991Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:14.977Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:25:14.977Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":217,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:25:14.978Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:14.982Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:14.983Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:25:14.983Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":223,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:25:14.983Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:14.986Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:15.988Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:15.988Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:15.988Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:16.231Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:25:16.231Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":243,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:25:16.232Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:16.236Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:17.255Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:25:17.255Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":266,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:25:17.255Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:17.260Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:17.260Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:25:17.260Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":271,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:25:17.260Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:17.263Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-26","service":"hashbot2","environment":"development","uses":"8","accounts":"8"}
+{"timestamp":"2025-12-29T23:25:18.263Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:18.263Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:18.264Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-26","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:18.504Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:25:18.504Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":240,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:25:18.504Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:18.508Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:19.483Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:25:19.483Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":219,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:25:19.483Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:19.488Z","level":"INFO","message":"Successfully collected data for sextaserie on 2025-12-26","service":"hashbot2","environment":"development","uses":"43","accounts":"35"}
+{"timestamp":"2025-12-29T23:25:19.490Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:25:19.490Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":226,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:25:19.490Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:19.493Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-26","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:19.493Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-26","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:19.493Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-26","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:21.494Z","level":"INFO","message":"Collecting data for 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.494Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.494Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.495Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.495Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.495Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:21.714Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:25:21.714Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":219,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:25:21.714Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:21.719Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:22.785Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:25:22.785Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":290,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:25:22.785Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:22.789Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:22.789Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:25:22.789Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":294,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:25:22.789Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:22.792Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-27","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:25:23.793Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:23.794Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:23.794Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:24.013Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:25:24.014Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":219,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:25:24.014Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:24.019Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:25.038Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:25:25.038Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":243,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:25:25.038Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:25.042Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:25.042Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:25:25.042Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":247,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:25:25.042Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:25.045Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:26.046Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:26.047Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:26.047Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:26.268Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:25:26.268Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":221,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:25:26.268Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:26.273Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:27.291Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:25:27.291Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":243,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:25:27.291Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:27.296Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:27.297Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:25:27.297Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":249,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:25:27.297Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:27.300Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-27","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:28.301Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:28.301Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:28.301Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-27","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:28.523Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:25:28.524Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":222,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:25:28.524Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:28.528Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-27","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:29.524Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:25:29.524Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":223,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:25:29.524Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:29.531Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-27","service":"hashbot2","environment":"development","uses":"33","accounts":"29"}
+{"timestamp":"2025-12-29T23:25:29.531Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+{"timestamp":"2025-12-29T23:25:29.531Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":230,"endpoint":"tags/sextaserie","method":"get"}
+{"timestamp":"2025-12-29T23:25:29.531Z","level":"INFO","message":"Fetched hashtag statistics for: sextaserie","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:29.534Z","level":"INFO","message":"Successfully collected data for sextaserie on 2025-12-27","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:29.534Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-27","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:29.534Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-27","totalHashtags":12,"collected":12,"skipped":0,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:31.534Z","level":"INFO","message":"Collecting data for 2025-12-28","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:31.535Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-28","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:31.535Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:34.536Z","level":"INFO","message":"History collection completed","service":"hashbot2","environment":"development","date":"2025-12-28","totalHashtags":12,"collected":0,"skipped":12,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:34.537Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"history_collection_completed","date":"2025-12-28","totalHashtags":12,"collected":0,"skipped":12,"errors":0,"success":true}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Collecting data for 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Starting history collection for all hashtags on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Found 12 unique hashtags to collect","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Collecting history data for videomingo on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Collecting history data for silentsunday on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:36.538Z","level":"INFO","message":"Collecting history data for segundaficha on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:37.346Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/videomingo","userId":null}
+{"timestamp":"2025-12-29T23:25:37.346Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":808,"endpoint":"tags/videomingo","method":"get"}
+{"timestamp":"2025-12-29T23:25:37.346Z","level":"INFO","message":"Fetched hashtag statistics for: videomingo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:37.351Z","level":"INFO","message":"Successfully collected data for videomingo on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:37.838Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/silentsunday","userId":null}
+{"timestamp":"2025-12-29T23:25:37.838Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":300,"endpoint":"tags/silentsunday","method":"get"}
+{"timestamp":"2025-12-29T23:25:37.839Z","level":"INFO","message":"Fetched hashtag statistics for: silentsunday","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:37.843Z","level":"INFO","message":"Successfully collected data for silentsunday on 2025-12-29","service":"hashbot2","environment":"development","uses":"33","accounts":"25"}
+{"timestamp":"2025-12-29T23:25:38.451Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:25:38.452Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":913,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:25:38.452Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:38.457Z","level":"INFO","message":"Successfully collected data for segundaficha on 2025-12-29","service":"hashbot2","environment":"development","uses":"9","accounts":"8"}
+{"timestamp":"2025-12-29T23:25:39.458Z","level":"INFO","message":"Collecting history data for tercinema on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:39.458Z","level":"INFO","message":"Collecting history data for tersoftware on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:39.458Z","level":"INFO","message":"Collecting history data for quartacapa on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:39.680Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2025-12-29T23:25:39.680Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":222,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2025-12-29T23:25:39.680Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:39.686Z","level":"INFO","message":"Successfully collected data for tercinema on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:40.690Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/tersoftware","userId":null}
+{"timestamp":"2025-12-29T23:25:40.690Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":231,"endpoint":"tags/tersoftware","method":"get"}
+{"timestamp":"2025-12-29T23:25:40.690Z","level":"INFO","message":"Fetched hashtag statistics for: tersoftware","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:40.696Z","level":"INFO","message":"Successfully collected data for tersoftware on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:40.696Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartacapa","userId":null}
+{"timestamp":"2025-12-29T23:25:40.696Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":237,"endpoint":"tags/quartacapa","method":"get"}
+{"timestamp":"2025-12-29T23:25:40.696Z","level":"INFO","message":"Fetched hashtag statistics for: quartacapa","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:40.700Z","level":"INFO","message":"Successfully collected data for quartacapa on 2025-12-29","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:41.700Z","level":"INFO","message":"Collecting history data for quartoon on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:41.700Z","level":"INFO","message":"Collecting history data for rabisquarta on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:41.701Z","level":"INFO","message":"Collecting history data for musiquinta on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:41.934Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quartoon","userId":null}
+{"timestamp":"2025-12-29T23:25:41.934Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":233,"endpoint":"tags/quartoon","method":"get"}
+{"timestamp":"2025-12-29T23:25:41.934Z","level":"INFO","message":"Fetched hashtag statistics for: quartoon","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:41.939Z","level":"INFO","message":"Successfully collected data for quartoon on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:42.957Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/rabisquarta","userId":null}
+{"timestamp":"2025-12-29T23:25:42.957Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":256,"endpoint":"tags/rabisquarta","method":"get"}
+{"timestamp":"2025-12-29T23:25:42.957Z","level":"INFO","message":"Fetched hashtag statistics for: rabisquarta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:42.962Z","level":"INFO","message":"Successfully collected data for rabisquarta on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:25:42.963Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/musiquinta","userId":null}
+{"timestamp":"2025-12-29T23:25:42.963Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":263,"endpoint":"tags/musiquinta","method":"get"}
+{"timestamp":"2025-12-29T23:25:42.963Z","level":"INFO","message":"Fetched hashtag statistics for: musiquinta","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:42.965Z","level":"INFO","message":"Successfully collected data for musiquinta on 2025-12-29","service":"hashbot2","environment":"development","uses":"2","accounts":"2"}
+{"timestamp":"2025-12-29T23:25:43.966Z","level":"INFO","message":"Collecting history data for quintattoo on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:43.966Z","level":"INFO","message":"Collecting history data for sextaserie on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:43.966Z","level":"INFO","message":"Collecting history data for sabafoto on 2025-12-29","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:25:44.186Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/quintattoo","userId":null}
+{"timestamp":"2025-12-29T23:25:44.186Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":220,"endpoint":"tags/quintattoo","method":"get"}
+{"timestamp":"2025-12-29T23:25:44.187Z","level":"INFO","message":"Fetched hashtag statistics for: quintattoo","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:44.190Z","level":"INFO","message":"Successfully collected data for quintattoo on 2025-12-29","service":"hashbot2","environment":"development","uses":"1","accounts":"1"}
+{"timestamp":"2025-12-29T23:25:45.184Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/sabafoto","userId":null}
+{"timestamp":"2025-12-29T23:25:45.184Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":217,"endpoint":"tags/sabafoto","method":"get"}
+{"timestamp":"2025-12-29T23:25:45.184Z","level":"INFO","message":"Fetched hashtag statistics for: sabafoto","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:25:45.188Z","level":"INFO","message":"Successfully collected data for sabafoto on 2025-12-29","service":"hashbot2","environment":"development","uses":"0","accounts":"0"}
+{"timestamp":"2025-12-29T23:27:41.105Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/tersoftware/history/weekly?year=2025","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:27:41.106Z","level":"INFO","message":"Weekly history requested","service":"hashbot2","environment":"development","hashtag":"tersoftware","year":2025}
+{"timestamp":"2025-12-29T23:27:41.106Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/tersoftware/history/weekly?year=2025","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:27:45.547Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/musiquinta/history/weekly?year=2025","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:27:45.549Z","level":"INFO","message":"Weekly history requested","service":"hashbot2","environment":"development","hashtag":"musiquinta","year":2025}
+{"timestamp":"2025-12-29T23:27:45.549Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/musiquinta/history/weekly?year=2025","statusCode":200,"duration":2,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:28:12.111Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/trending?limit=10","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:28:12.112Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/current","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:28:12.112Z","level":"INFO","message":"Trending tags requested","service":"hashbot2","environment":"development","limit":10,"offset":0}
+{"timestamp":"2025-12-29T23:28:12.113Z","level":"INFO","message":"Current hashtag requested","service":"hashbot2","environment":"development","hashtag":"segundaficha"}
+{"timestamp":"2025-12-29T23:28:12.113Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/current","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:28:12.113Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/?limit=10","statusCode":200,"duration":2,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:28:12.120Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/segundaficha/stats","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:28:12.121Z","level":"INFO","message":"Hashtag stats requested","service":"hashbot2","environment":"development","original":"segundaficha","normalized":"segundaficha","timeframe":"today"}
+{"timestamp":"2025-12-29T23:28:12.121Z","level":"INFO","message":"Successfully generated stats for hashtag: segundaficha","service":"hashbot2","environment":"development","tootCount":9,"uniqueUsers":8}
+{"timestamp":"2025-12-29T23:28:12.121Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/segundaficha/stats","statusCode":304,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:11.233Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:11.236Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/","statusCode":200,"duration":3,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:11.326Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:11.326Z","level":"INFO","message":"Daily hashtags requested","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:30:11.327Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/daily","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:11.327Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/current","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:11.327Z","level":"INFO","message":"Current hashtag requested","service":"hashbot2","environment":"development","hashtag":"segundaficha"}
+{"timestamp":"2025-12-29T23:30:11.327Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/current","statusCode":200,"duration":0,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:11.328Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/trending?limit=10","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:11.328Z","level":"INFO","message":"Trending tags requested","service":"hashbot2","environment":"development","limit":10,"offset":0}
+{"timestamp":"2025-12-29T23:30:12.172Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"trends/tags","userId":null}
+{"timestamp":"2025-12-29T23:30:12.172Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":844,"endpoint":"trends/tags","method":"get"}
+{"timestamp":"2025-12-29T23:30:12.172Z","level":"INFO","message":"Fetched 30 trending tags","service":"hashbot2","environment":"development","limit":100,"offset":0}
+{"timestamp":"2025-12-29T23:30:12.173Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/?limit=10","statusCode":200,"duration":845,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:12.183Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/segundaficha/stats","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:12.184Z","level":"INFO","message":"Hashtag stats requested","service":"hashbot2","environment":"development","original":"segundaficha","normalized":"segundaficha","timeframe":"today"}
+{"timestamp":"2025-12-29T23:30:12.184Z","level":"INFO","message":"Starting hashtag analysis for: segundaficha","service":"hashbot2","environment":"development","options":{"maxPages":1,"timeframe":"today"}}
+{"timestamp":"2025-12-29T23:30:12.184Z","level":"INFO","message":"Starting to fetch all toots for hashtag: segundaficha","service":"hashbot2","environment":"development","maxPages":1}
+{"timestamp":"2025-12-29T23:30:12.184Z","level":"INFO","message":"Fetching toots for hashtag: segundaficha","service":"hashbot2","environment":"development","params":{"limit":40}}
+{"timestamp":"2025-12-29T23:30:13.017Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"tags/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:30:13.017Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":688,"endpoint":"tags/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:30:13.017Z","level":"INFO","message":"Fetched hashtag statistics for: segundaficha","service":"hashbot2","environment":"development","following":false,"historyLength":7}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"development","method":"GET","url":"timelines/tag/segundaficha","userId":null}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":890,"endpoint":"timelines/tag/segundaficha","method":"get"}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Successfully fetched 40 toots for hashtag: segundaficha","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"toots_fetched","hashtag":"segundaficha","count":40}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Completed fetching toots for hashtag: segundaficha","service":"hashbot2","environment":"development","totalToots":40,"pagesFetched":1}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"development","event":"all_toots_fetched","hashtag":"segundaficha","count":40,"pages":1}
+{"timestamp":"2025-12-29T23:30:13.219Z","level":"INFO","message":"Starting to process 40 toots","service":"hashbot2","environment":"development","options":{"filterByDate":"2025-12-29"}}
+{"timestamp":"2025-12-29T23:30:13.220Z","level":"INFO","message":"Completed processing toots","service":"hashbot2","environment":"development","inputCount":40,"outputCount":9,"duration":1,"stats":{"totalProcessed":40,"validToots":40,"ignoredToots":3,"errors":0}}
+{"timestamp":"2025-12-29T23:30:13.220Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"toot_processing","duration":1,"inputCount":40,"outputCount":9}
+{"timestamp":"2025-12-29T23:30:13.220Z","level":"INFO","message":"Completed analysis for hashtag: segundaficha","service":"hashbot2","environment":"development","totalToots":40,"filteredToots":9,"timeframe":"today","weeklyTotal":9}
+{"timestamp":"2025-12-29T23:30:13.221Z","level":"INFO","message":"Successfully generated stats for hashtag: segundaficha","service":"hashbot2","environment":"development","tootCount":9,"uniqueUsers":8}
+{"timestamp":"2025-12-29T23:30:13.221Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/segundaficha/stats","statusCode":200,"duration":1038,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:32.925Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:32.926Z","level":"INFO","message":"Daily hashtags requested","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:30:32.927Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/daily","statusCode":200,"duration":2,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:32.937Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/history/weekly?year=2025","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:32.938Z","level":"INFO","message":"All hashtags weekly history requested","service":"hashbot2","environment":"development","year":2025}
+{"timestamp":"2025-12-29T23:30:32.939Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/history/weekly?year=2025","statusCode":200,"duration":2,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:30:49.313Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/musiquinta/history/weekly?year=2025&week=52","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:30:49.314Z","level":"INFO","message":"Weekly history requested","service":"hashbot2","environment":"development","hashtag":"musiquinta","year":2025,"week":"52"}
+{"timestamp":"2025-12-29T23:30:49.314Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/musiquinta/history/weekly?year=2025&week=52","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:32.563Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:32.566Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/","statusCode":200,"duration":3,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:32.645Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:32.646Z","level":"INFO","message":"Daily hashtags requested","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:32:32.646Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/daily","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:32.646Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/trending?limit=10","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:32.646Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/current","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:32.647Z","level":"INFO","message":"Trending tags requested","service":"hashbot2","environment":"development","limit":10,"offset":0}
+{"timestamp":"2025-12-29T23:32:32.647Z","level":"INFO","message":"Current hashtag requested","service":"hashbot2","environment":"development","hashtag":"segundaficha"}
+{"timestamp":"2025-12-29T23:32:32.647Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/current","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:32.647Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/?limit=10","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:32.713Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/segundaficha/stats","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:32.714Z","level":"INFO","message":"Hashtag stats requested","service":"hashbot2","environment":"development","original":"segundaficha","normalized":"segundaficha","timeframe":"today"}
+{"timestamp":"2025-12-29T23:32:32.714Z","level":"INFO","message":"Successfully generated stats for hashtag: segundaficha","service":"hashbot2","environment":"development","tootCount":9,"uniqueUsers":8}
+{"timestamp":"2025-12-29T23:32:32.714Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/segundaficha/stats","statusCode":304,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:51.824Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:51.824Z","level":"INFO","message":"Daily hashtags requested","service":"hashbot2","environment":"development"}
+{"timestamp":"2025-12-29T23:32:51.825Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/daily","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+{"timestamp":"2025-12-29T23:32:57.185Z","level":"INFO","message":"Request started","service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/musiquinta/history/weekly?year=2025","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0"}
+{"timestamp":"2025-12-29T23:32:57.185Z","level":"INFO","message":"Weekly history requested","service":"hashbot2","environment":"development","hashtag":"musiquinta","year":2025}
+{"timestamp":"2025-12-29T23:32:57.186Z","level":"INFO","message":"Request completed","service":"hashbot2","environment":"development","method":"GET","url":"/musiquinta/history/weekly?year=2025","statusCode":304,"duration":1,"ip":"127.0.0.1"}
