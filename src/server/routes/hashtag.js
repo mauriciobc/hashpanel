@@ -435,7 +435,7 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
   try {
     // If date is specified, return daily data for that date
     if (date) {
-      const dailyData = databaseService.getDailyData(hashtag, date);
+      const dailyData = await databaseService.getDailyData(hashtag, date);
       if (!dailyData) {
         return res.json({
           hashtag,
@@ -469,7 +469,7 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
         throw new ValidationError('Invalid week parameter (must be 1-53)');
       }
       
-      const weeklyData = databaseService.getWeeklyHistoryByWeek(hashtag, targetYear, weekNumber);
+      const weeklyData = await databaseService.getWeeklyHistoryByWeek(hashtag, targetYear, weekNumber);
       
       if (weeklyData.length === 0) {
         return res.json({

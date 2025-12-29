@@ -32,7 +32,7 @@ fi
 
 # Tornar script executável
 chmod +x "$CRON_SCRIPT"
-echo -e "${GREEN}✅ Script de cron tornando executável${NC}"
+echo -e "${GREEN}✅ Script de cron tornado executável${NC}"
 
 # Obter hora para execução (padrão: 02:00)
 read -p "Hora para execução diária (formato HH:MM, padrão 02:00): " CRON_TIME

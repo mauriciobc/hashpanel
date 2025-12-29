@@ -144,47 +144,83 @@ async function analyzeAPIResponse(hashtag) {
     }
     
     // Verificar dados de hoje
+    // A API do Mastodon retorna 'day' como Unix timestamp (segundos)
+    // Precisamos converter para comparar com a data de hoje
     const today = moment().tz(config.server.timezone).format('YYYY-MM-DD');
     logInfo(`\nBuscando dados para hoje (${today}):`);
-    const todayData = history.find(day => day.day === today);
+    
+    // Helper para converter timestamp Unix para data string
+    const convertDayToDateString = (day) => {
+      const dayTimestamp = parseInt(day);
+      if (isNaN(dayTimestamp)) {
+        return day; // Já é string de data
+      }
+      // API usa UTC para agregação de dados
+      return moment.unix(dayTimestamp).tz(config.server.timezone).format('YYYY-MM-DD');
+    };
+    
+    // Buscar dados de hoje convertendo o timestamp
+    let matchedTimestamp = null;
+    const todayData = history.find(day => {
+      const dayDate = convertDayToDateString(day.day);
+      if (dayDate === today) {
+        matchedTimestamp = day.day;
+        return true;
+      }
+      return false;
+    });
     
     if (todayData) {
       logSuccess('Dados de hoje encontrados!');
+      logInfo(`  Timestamp original: ${matchedTimestamp}`);
+      logInfo(`  Data formatada: ${convertDayToDateString(matchedTimestamp)}`);
       logData(JSON.stringify(todayData, null, 2));
     } else {
-      logWarning('Dados de hoje NÃO encontrados');
-      logInfo('Tentando variações de formato...');
-      
-      // Tentar diferentes formatos de data
-      const todayVariations = [
-        today,
-        moment().tz(config.server.timezone).format('YYYY/MM/DD'),
-        moment().tz(config.server.timezone).format('DD-MM-YYYY'),
-        moment().tz(config.server.timezone).format('DD/MM/YYYY')
-      ];
-      
-      todayVariations.forEach(variation => {
-        const found = history.find(day => day.day === variation);
-        if (found) {
-          logSuccess(`Encontrado com formato: "${variation}"`);
-        }
-      });
+      logWarning('Dados de hoje NÃO encontrados na resposta da API');
+      logInfo('Isso pode significar que a API ainda não agregou os dados de hoje.');
       
       // Mostrar datas mais próximas
       logInfo('\nDatas mais próximas de hoje:');
+      // Criar now uma vez com timezone para reutilizar
+      const now = moment().tz(config.server.timezone);
+      
       const sortedDates = history
         .filter(item => item.day)
-        .map(item => ({
-          ...item,
-          dateMoment: moment(item.day, ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD-MM-YYYY'], true)
-        }))
+        .map(item => {
+          // Detectar se é timestamp numérico
+          const ts = parseInt(item.day);
+          let dateMoment;
+          
+          if (!isNaN(ts)) {
+            // É timestamp - verificar se é segundos ou milissegundos
+            // Timestamps Unix geralmente são em segundos (10 dígitos ou menos)
+            // Milissegundos têm 13 dígitos
+            const timestampLength = ts.toString().length;
+            if (timestampLength <= 10) {
+              // Segundos - usar moment.unix()
+              dateMoment = moment.unix(ts).tz(config.server.timezone);
+            } else {
+              // Milissegundos - usar moment() diretamente
+              dateMoment = moment(ts).tz(config.server.timezone);
+            }
+          } else {
+            // É string de data - tentar parsear com timezone
+            dateMoment = moment.tz(item.day, ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD-MM-YYYY'], config.server.timezone, true);
+          }
+          
+          return {
+            ...item,
+            dateMoment
+          };
+        })
         .filter(item => item.dateMoment.isValid())
-        .sort((a, b) => Math.abs(a.dateMoment.diff(moment())) - Math.abs(b.dateMoment.diff(moment())))
+        .sort((a, b) => Math.abs(a.dateMoment.diff(now)) - Math.abs(b.dateMoment.diff(now)))
         .slice(0, 5);
       
       sortedDates.forEach((item, idx) => {
-        const daysDiff = item.dateMoment.diff(moment(), 'days');
-        logInfo(`  ${idx + 1}. ${item.day} (${daysDiff > 0 ? '+' : ''}${daysDiff} dias)`);
+        const daysDiff = item.dateMoment.diff(now, 'days');
+        const formattedDate = item.dateMoment.format('YYYY-MM-DD');
+        logInfo(`  ${idx + 1}. ${formattedDate} (timestamp: ${item.day}, ${daysDiff > 0 ? '+' : ''}${daysDiff} dias)`);
       });
     }
     

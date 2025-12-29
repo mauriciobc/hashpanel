@@ -2,51 +2,23 @@
  * Script para limpar dados do banco de dados
  * 
  * Uso:
- *   node clear-database.js              # Limpa todos os dados
- *   node clear-database.js --confirm    # Requer confirmação
+ *   node clear-database.js              # Requer confirmação (não executa)
+ *   node clear-database.js --confirm    # Confirma e prossegue com a limpeza
  */
 
 import { getDatabase } from './src/database/index.js';
 import { logger } from './src/utils/logger.js';
 
-const colors = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  green: '\x1b[32m',
-  cyan: '\x1b[36m'
-};
-
-function log(message, color = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
-}
-
-function logError(message) {
-  log(`❌ ${message}`, 'red');
-}
-
-function logWarning(message) {
-  log(`⚠️  ${message}`, 'yellow');
-}
-
-function logSuccess(message) {
-  log(`✅ ${message}`, 'green');
-}
-
-function logInfo(message) {
-  log(`ℹ️  ${message}`, 'cyan');
-}
-
 async function main() {
   const args = process.argv.slice(2);
-  const needsConfirmation = args.includes('--confirm');
+  const isConfirmed = args.includes('--confirm');
   
   let database;
   
   try {
-    log('\n' + '='.repeat(60));
-    log('LIMPEZA DO BANCO DE DADOS', 'red');
-    log('='.repeat(60) + '\n');
+    logger.info('\n' + '='.repeat(60));
+    logger.error('LIMPEZA DO BANCO DE DADOS');
+    logger.info('='.repeat(60) + '\n');
     
     database = getDatabase();
     const db = database.getDatabase();
@@ -61,33 +33,31 @@ async function main() {
       FROM hashtag_history
     `).get();
     
-    logInfo('Estatísticas atuais:');
-    logInfo(`  Total de registros: ${statsBefore.total_records || 0}`);
-    logInfo(`  Hashtags únicos: ${statsBefore.unique_hashtags || 0}`);
-    logInfo(`  Data mais antiga: ${statsBefore.oldest_date || 'N/A'}`);
-    logInfo(`  Data mais recente: ${statsBefore.newest_date || 'N/A'}`);
+    logger.info('ℹ️  Estatísticas atuais:');
+    logger.info(`  Total de registros: ${statsBefore.total_records || 0}`);
+    logger.info(`  Hashtags únicos: ${statsBefore.unique_hashtags || 0}`);
+    logger.info(`  Data mais antiga: ${statsBefore.oldest_date || 'N/A'}`);
+    logger.info(`  Data mais recente: ${statsBefore.newest_date || 'N/A'}`);
     
     if (statsBefore.total_records === 0) {
-      logWarning('Banco de dados já está vazio.');
+      logger.warn('⚠️  Banco de dados já está vazio.');
       return;
     }
     
     // Confirmação se necessário
-    if (needsConfirmation) {
-      logWarning('\n⚠️  ATENÇÃO: Esta operação irá DELETAR TODOS os dados!');
-      logWarning('Digite "CONFIRMAR" para continuar:');
-      
-      // Em produção, você usaria readline, mas para simplicidade:
-      logError('Use sem --confirm para limpar automaticamente');
+    if (!isConfirmed) {
+      logger.warn('\n⚠️  ATENÇÃO: Esta operação irá DELETAR TODOS os dados!');
+      logger.warn('Use --confirm para prosseguir com a limpeza.');
+      logger.error('❌ Operação cancelada. Use --confirm para confirmar a deleção.');
       process.exit(1);
     }
     
-    logWarning('\n⚠️  Limpando todos os dados do banco...');
+    logger.warn('\n⚠️  Limpando todos os dados do banco...');
     
     // Limpar todos os dados
     const result = db.prepare('DELETE FROM hashtag_history').run();
     
-    logSuccess(`\n✅ ${result.changes} registros deletados com sucesso!`);
+    logger.info(`\n✅ ${result.changes} registros deletados com sucesso!`);
     
     // Verificar estatísticas depois
     const statsAfter = db.prepare(`
@@ -95,17 +65,16 @@ async function main() {
       FROM hashtag_history
     `).get();
     
-    logInfo(`\nRegistros restantes: ${statsAfter.total_records || 0}`);
+    logger.info(`\nRegistros restantes: ${statsAfter.total_records || 0}`);
     
     if (statsAfter.total_records === 0) {
-      logSuccess('Banco de dados limpo completamente!');
+      logger.info('✅ Banco de dados limpo completamente!');
     } else {
-      logError('Ainda há registros no banco. Algo deu errado.');
+      logger.error('❌ Ainda há registros no banco. Algo deu errado.');
     }
     
   } catch (error) {
-    logError(`Erro ao limpar banco: ${error.message}`);
-    console.error(error);
+    logger.error(`❌ Erro ao limpar banco: ${error.message}`, error);
     process.exit(1);
   } finally {
     if (database) {

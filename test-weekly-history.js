@@ -58,6 +58,19 @@ function logWarning(message) {
 }
 
 /**
+ * Obtém todos os hashtags únicos de HASHTAGS
+ * @returns {string[]} Array de hashtags únicos
+ */
+function getAllUniqueHashtags() {
+  const allHashtags = new Set();
+  HASHTAGS.forEach(dayHashtags => {
+    const hashtags = getHashtagsForDay(dayHashtags);
+    hashtags.forEach(tag => allHashtags.add(tag));
+  });
+  return Array.from(allHashtags);
+}
+
+/**
  * Verifica estatísticas do banco de dados
  */
 function checkDatabaseStats() {
@@ -93,13 +106,7 @@ function checkHashtagData() {
   
   try {
     // Obter todos os hashtags únicos
-    const allHashtags = new Set();
-    HASHTAGS.forEach(dayHashtags => {
-      const hashtags = getHashtagsForDay(dayHashtags);
-      hashtags.forEach(tag => allHashtags.add(tag));
-    });
-    
-    const hashtagsArray = Array.from(allHashtags);
+    const hashtagsArray = getAllUniqueHashtags();
     logInfo(`Total de hashtags configurados: ${hashtagsArray.length}`);
     
     const hashtagStats = [];
@@ -179,13 +186,13 @@ function testWeeklyAggregation() {
   
   try {
     const currentYear = new Date().getFullYear();
-    const allHashtags = new Set();
-    HASHTAGS.forEach(dayHashtags => {
-      const hashtags = getHashtagsForDay(dayHashtags);
-      hashtags.forEach(tag => allHashtags.add(tag));
-    });
+    const hashtagsArray = getAllUniqueHashtags();
     
-    const hashtagsArray = Array.from(allHashtags);
+    if (hashtagsArray.length === 0) {
+      logError('Nenhum hashtag configurado para teste.');
+      return false;
+    }
+    
     const testHashtag = hashtagsArray[0];
     
     logInfo(`Testando agregação semanal para: ${testHashtag} (ano ${currentYear})`);
@@ -253,21 +260,24 @@ async function testAPIEndpoints() {
       logInfo(`  Total de hashtags: ${data.summary.totalHashtags}`);
       logInfo(`  Hashtags: ${data.summary.hashtags.slice(0, 5).join(', ')}${data.summary.hashtags.length > 5 ? '...' : ''}`);
     } catch (error) {
-      if (error.message.includes('ECONNREFUSED')) {
+      if (error.code === 'ECONNREFUSED' || error.cause?.code === 'ECONNREFUSED') {
         logWarning('Servidor não está rodando. Inicie com: npm run server');
+        return false;
       } else {
         logError(`Erro no endpoint: ${error.message}`);
+        return false;
       }
-      return false;
     }
     
     // Teste 2: Histórico semanal de um hashtag específico
-    const allHashtags = new Set();
-    HASHTAGS.forEach(dayHashtags => {
-      const hashtags = getHashtagsForDay(dayHashtags);
-      hashtags.forEach(tag => allHashtags.add(tag));
-    });
-    const testHashtag = Array.from(allHashtags)[0];
+    const hashtagsArray = getAllUniqueHashtags();
+    
+    if (hashtagsArray.length === 0) {
+      logError('Nenhum hashtag configurado para teste.');
+      return false;
+    }
+    
+    const testHashtag = hashtagsArray[0];
     
     logInfo(`\nTestando: GET /api/hashtag/${testHashtag}/history/weekly`);
     try {
@@ -288,7 +298,7 @@ async function testAPIEndpoints() {
         logInfo(`\nPrimeira semana: Semana ${data.weeklyData[0].weekNumber} (${data.weeklyData[0].weekStart} - ${data.weeklyData[0].weekEnd})`);
       }
     } catch (error) {
-      if (error.message.includes('ECONNREFUSED')) {
+      if (error.code === 'ECONNREFUSED' || error.cause?.code === 'ECONNREFUSED') {
         logWarning('Servidor não está rodando.');
       } else {
         logError(`Erro no endpoint: ${error.message}`);

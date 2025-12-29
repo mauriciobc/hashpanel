@@ -3477,7 +3477,7 @@
         }
 
         // 3. Fetch fresh dashboard stats for current hashtag
-        const statsRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/${hashtag}/stats`, { signal });
+        const statsRes = await fetchWithRateLimitTracking(`${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/stats`, { signal });
         
         if (!statsRes.ok) {
           // If we already showed cached data, don't show error for background fetch
@@ -3608,7 +3608,7 @@
     }
 
     // Update filter visibility based on filter type
-    function updateFilters() {
+    async function updateFilters() {
       const filterType = document.getElementById('filterTypeSelect').value;
       const weekContainer = document.getElementById('weekFilterContainer');
       const dayContainer = document.getElementById('dayFilterContainer');
@@ -3618,10 +3618,15 @@
       
       // Load weeks if week filter is selected
       if (filterType === 'week') {
-        loadAvailableWeeks();
+        try {
+          await loadAvailableWeeks();
+        } catch (error) {
+          console.error('Error loading available weeks:', error);
+          // Continue execution even if loading weeks fails
+        }
       }
       
-      // Load history with new filters
+      // Load history with new filters (after weeks are loaded if needed)
       loadWeeklyHistory();
     }
 
@@ -3637,7 +3642,7 @@
       }
       
       try {
-        const url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+        const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to load weeks');
         
@@ -3712,7 +3717,7 @@
         }
         
         // Build URL with filters
-        url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+        url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
         if (filterType === 'week' && week) {
           url += `&week=${week}`;
         } else if (filterType === 'day' && day) {
