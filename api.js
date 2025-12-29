@@ -1,5 +1,5 @@
 import { MASTODON_URL, CLIENT_KEY, CLIENT_SECRET, ACCESS_TOKEN } from './config.js';
-import Mastodon from'mastodon-api';
+import Mastodon from 'mastodon-api';
 import { getPresentDayTimestamp } from './utils.js';
 
 const M = new Mastodon({
@@ -20,20 +20,19 @@ export async function fetchTootsFromAPI(hashtag, params) {
   }
 }
 
-
 export async function getHashtagUse(hashtag) {
-    try {
-      const response = await M.get(`tags/${hashtag}`);
-      const accounts = response.data.accounts;
-      const history = response.data.history;
-      return history;
-    } catch (error) {
-      console.error(`Error fetching hashtag use: ${error}`);
-      throw error;
-    }
+  try {
+    const response = await M.get(`tags/${hashtag}`);
+    const accounts = response.data.accounts;
+    const history = response.data.history;
+    return history;
+  } catch (error) {
+    console.error(`Error fetching hashtag use: ${error}`);
+    throw error;
   }
+}
 
-  // Function that returns the result of getHashtagUse timestamp matching the present day timestamp
+// Function that returns the result of getHashtagUse timestamp matching the present day timestamp
 export async function presentDayHashtagUse(hashtag) {
   const history = await getHashtagUse(hashtag);
   const presentDay = await getPresentDayTimestamp(history);
@@ -47,6 +46,35 @@ export async function getTrendingTags(limit = 10, offset = 0) {
     return trendingTags;
   } catch (error) {
     console.error(`Error fetching trending tags: ${error}`);
+    throw error;
+  }
+}
+
+// Function to get the structured toot data
+export async function getTootEmbed(tootId) {
+  try {
+    const response = await M.get(`statuses/${tootId}`);
+    const toot = response.data;
+    
+    // Extract the essential toot data
+    return {
+      id: toot.id,
+      content: toot.content,
+      created_at: toot.created_at,
+      account: {
+        display_name: toot.account.display_name,
+        username: toot.account.username,
+        avatar: toot.account.avatar,
+        url: toot.account.url
+      },
+      media_attachments: toot.media_attachments,
+      favourites_count: toot.favourites_count,
+      reblogs_count: toot.reblogs_count,
+      replies_count: toot.replies_count,
+      url: toot.url
+    };
+  } catch (error) {
+    console.error(`Error fetching toot data: ${error}`);
     throw error;
   }
 }
