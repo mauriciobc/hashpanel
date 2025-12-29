@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
+import { databaseService } from '../../services/databaseService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { HASHTAGS, getHashtagsForDay, getFirstHashtagForDay } from '../../constants/index.js';
@@ -362,6 +363,85 @@ router.get('/daily', asyncHandler(async (req, res) => {
     
   } catch (error) {
     logger.error('Failed to get daily hashtags', error);
+    throw error;
+  }
+}));
+
+/**
+ * GET /api/hashtag/:hashtag/history/weekly
+ * Get weekly historical data for a specific hashtag
+ */
+router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (req, res) => {
+  const { hashtag } = req.params;
+  const { year } = req.query;
+  
+  if (!hashtag) {
+    throw new ValidationError('Hashtag is required');
+  }
+  
+  // Default to current year if not specified
+  const targetYear = year ? parseInt(year) : new Date().getFullYear();
+  
+  if (isNaN(targetYear) || targetYear < 2020 || targetYear > 2100) {
+    throw new ValidationError('Invalid year parameter');
+  }
+  
+  logger.info('Weekly history requested', { hashtag, year: targetYear });
+  
+  try {
+    const result = databaseService.aggregateWeeklyData(hashtag, targetYear);
+    
+    // Performance: Add cache control headers (5 minutes for historical data)
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Vary', 'Accept-Encoding');
+    
+    res.json(result);
+    
+  } catch (error) {
+    logger.error(`Failed to get weekly history for hashtag: ${hashtag}`, error);
+    throw error;
+  }
+}));
+
+/**
+ * GET /api/hashtag/history/weekly
+ * Get weekly historical data for all hashtags
+ */
+router.get('/history/weekly', moderateRateLimit, asyncHandler(async (req, res) => {
+  const { year } = req.query;
+  
+  // Default to current year if not specified
+  const targetYear = year ? parseInt(year) : new Date().getFullYear();
+  
+  if (isNaN(targetYear) || targetYear < 2020 || targetYear > 2100) {
+    throw new ValidationError('Invalid year parameter');
+  }
+  
+  logger.info('All hashtags weekly history requested', { year: targetYear });
+  
+  try {
+    const allData = databaseService.getAllHashtagsWeeklyHistory(targetYear);
+    
+    // Calculate summary across all hashtags
+    const allHashtags = Object.keys(allData);
+    const summary = {
+      year: targetYear,
+      totalHashtags: allHashtags.length,
+      hashtags: allHashtags
+    };
+    
+    // Performance: Add cache control headers (5 minutes for historical data)
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Vary', 'Accept-Encoding');
+    
+    res.json({
+      year: targetYear,
+      data: allData,
+      summary
+    });
+    
+  } catch (error) {
+    logger.error(`Failed to get all hashtags weekly history for year: ${targetYear}`, error);
     throw error;
   }
 }));

@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler, requestLogger } from '../middleware/erro
 import { apiRateLimit } from '../middleware/rateLimiter.js';
 import { apiRoutes } from './routes/index.js';
 import { mastodonService } from '../services/mastodon.js';
+import { database } from '../database/index.js';
 
 export class WebServer {
   constructor() {
@@ -113,6 +114,18 @@ export class WebServer {
         health.services.mastodon = 'healthy';
       } catch (error) {
         health.services.mastodon = 'unhealthy';
+        health.status = 'degraded';
+      }
+
+      // Test database connectivity
+      try {
+        const dbHealth = database.healthCheck();
+        health.services.database = dbHealth.status;
+        if (dbHealth.status !== 'healthy') {
+          health.status = 'degraded';
+        }
+      } catch (error) {
+        health.services.database = 'unhealthy';
         health.status = 'degraded';
       }
 

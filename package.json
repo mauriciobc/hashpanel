@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "better-sqlite3": "^12.5.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -33,7 +34,9 @@
     "clean": "rm -rf logs node_modules/.cache",
     "logs": "tail -f logs/combined.log",
     "status": "node cli.js status",
-    "analyze": "node cli.js analyze"
+    "analyze": "node cli.js analyze",
+    "collect:history": "node src/cli/collectHistory.js",
+    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.database.migrate())\""
   },
   "author": "",
   "license": "ISC",

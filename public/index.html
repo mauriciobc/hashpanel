@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       /* Design System Colors */
@@ -1742,8 +1743,16 @@
   <div class="container">
     <!-- Header -->
     <header class="dashboard-header">
-      <h1>Hashpanel</h1>
-      <p>Dashboard de monitoramento de hashtags do Mastodon</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <h1>Hashpanel</h1>
+          <p>Dashboard de monitoramento de hashtags do Mastodon</p>
+        </div>
+        <nav style="display: flex; gap: 0.5rem;">
+          <button id="navDashboard" class="nav-btn active" onclick="showView('dashboard')" style="background: var(--primary-gradient); border: none; color: white; padding: 0.6rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Dashboard</button>
+          <button id="navHistory" class="nav-btn" onclick="showView('history')" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Histórico Semanal</button>
+        </nav>
+      </div>
     </header>
 
     <!-- Status Container - holds status bar and daily hashtags side by side -->
@@ -1803,8 +1812,10 @@
       <button class="error-btn" onclick="loadData()">Tentar Novamente</button>
     </div>
 
-    <!-- Bento Grid Container -->
-    <div class="bento-grid" id="bentoGrid">
+    <!-- Dashboard View -->
+    <div id="dashboardView">
+      <!-- Bento Grid Container -->
+      <div class="bento-grid" id="bentoGrid">
       <!-- KPI Cards will be inserted here by JavaScript -->
 
       <!-- Top Toots Card -->
@@ -1841,6 +1852,115 @@
               <tr>
                 <td colspan="4" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
                   Carregando tags em alta...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Weekly History View -->
+    <div id="historyView" style="display: none;">
+      <div class="content-card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-header-icon">📊</div>
+          <h3>Histórico Semanal de Hashtags</h3>
+        </div>
+        <div style="padding: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+          <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Ano:</label>
+            <select id="yearSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 120px;">
+              <!-- Populated by JavaScript -->
+            </select>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtag:</label>
+            <select id="hashtagSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 200px;">
+              <option value="all">Todas as hashtags</option>
+              <!-- Populated by JavaScript -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="bento-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom: 1.5rem;">
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">📈</div>
+            <h4>Total de Usos</h4>
+          </div>
+          <div id="summaryTotalUses" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+        </div>
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">👥</div>
+            <h4>Total de Contas</h4>
+          </div>
+          <div id="summaryTotalAccounts" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--success-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+        </div>
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">📅</div>
+            <h4>Semanas com Dados</h4>
+          </div>
+          <div id="summaryWeeks" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--info-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+        </div>
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">⭐</div>
+            <h4>Média Semanal</h4>
+          </div>
+          <div id="summaryAverage" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--warning-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="bento-grid" style="grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); margin-bottom: 1.5rem;">
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">📊</div>
+            <h4>Evolução Semanal - Total de Usos</h4>
+          </div>
+          <div style="padding: 1.5rem; position: relative; height: 300px;">
+            <canvas id="weeklyUsesChart"></canvas>
+          </div>
+        </div>
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-icon">👥</div>
+            <h4>Evolução Semanal - Contas Únicas</h4>
+          </div>
+          <div style="padding: 1.5rem; position: relative; height: 300px;">
+            <canvas id="weeklyAccountsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-header-icon">📋</div>
+          <h4>Dados Detalhados por Semana</h4>
+        </div>
+        <div class="table-wrapper" style="max-height: 500px; overflow-y: auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Total Usos</th>
+                <th>Contas</th>
+                <th>Média Diária</th>
+              </tr>
+            </thead>
+            <tbody id="weeklyHistoryTableBody">
+              <tr>
+                <td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+                  Selecione o ano e hashtag para ver os dados
                 </td>
               </tr>
             </tbody>
@@ -3413,6 +3533,322 @@
         currentAbortedController.abort();
       }
     });
+
+    // ==================== Weekly History View ====================
+    let weeklyUsesChart = null;
+    let weeklyAccountsChart = null;
+
+    // Navigation between views
+    function showView(view) {
+      const dashboardView = document.getElementById('dashboardView');
+      const historyView = document.getElementById('historyView');
+      const navDashboard = document.getElementById('navDashboard');
+      const navHistory = document.getElementById('navHistory');
+
+      if (view === 'history') {
+        dashboardView.style.display = 'none';
+        historyView.style.display = 'block';
+        navDashboard.classList.remove('active');
+        navHistory.classList.add('active');
+        navDashboard.style.background = 'var(--bg-card)';
+        navDashboard.style.border = '1px solid var(--border-color)';
+        navHistory.style.background = 'var(--primary-gradient)';
+        navHistory.style.border = 'none';
+        
+        initializeHistoryView();
+      } else {
+        dashboardView.style.display = 'block';
+        historyView.style.display = 'none';
+        navHistory.classList.remove('active');
+        navDashboard.classList.add('active');
+        navHistory.style.background = 'var(--bg-card)';
+        navHistory.style.border = '1px solid var(--border-color)';
+        navDashboard.style.background = 'var(--primary-gradient)';
+        navDashboard.style.border = 'none';
+      }
+    }
+
+    // Initialize history view
+    function initializeHistoryView() {
+      // Populate year selector (last 5 years + current year)
+      const yearSelect = document.getElementById('yearSelect');
+      const currentYear = new Date().getFullYear();
+      yearSelect.innerHTML = '';
+      for (let year = currentYear; year >= currentYear - 5; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) option.selected = true;
+        yearSelect.appendChild(option);
+      }
+
+      // Load hashtags list
+      loadHistoryHashtags();
+      
+      // Load initial data
+      loadWeeklyHistory();
+    }
+
+    // Load hashtags for selector
+    async function loadHistoryHashtags() {
+      try {
+        const response = await fetch(`${API_BASE}/hashtag/daily`);
+        if (!response.ok) throw new Error('Failed to load hashtags');
+        
+        const data = await response.json();
+        const hashtagSelect = document.getElementById('hashtagSelect');
+        
+        // Clear existing options except "all"
+        hashtagSelect.innerHTML = '<option value="all">Todas as hashtags</option>';
+        
+        // Extract unique hashtags
+        const uniqueHashtags = new Set();
+        data.dailySchedule.forEach(day => {
+          if (day.hashtags && Array.isArray(day.hashtags)) {
+            day.hashtags.forEach(tag => uniqueHashtags.add(tag));
+          } else if (day.hashtag && day.hashtag !== 'unknown') {
+            uniqueHashtags.add(day.hashtag);
+          }
+        });
+        
+        Array.from(uniqueHashtags).sort().forEach(hashtag => {
+          const option = document.createElement('option');
+          option.value = hashtag;
+          option.textContent = `#${hashtag}`;
+          hashtagSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading hashtags:', error);
+      }
+    }
+
+    // Load weekly history data
+    async function loadWeeklyHistory() {
+      const year = document.getElementById('yearSelect').value;
+      const hashtag = document.getElementById('hashtagSelect').value;
+      
+      try {
+        let url;
+        if (hashtag === 'all') {
+          url = `${API_BASE}/hashtag/history/weekly?year=${year}`;
+        } else {
+          url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load weekly history');
+        
+        const data = await response.json();
+        
+        if (hashtag === 'all') {
+          // Handle multiple hashtags
+          renderAllHashtagsHistory(data, year);
+        } else {
+          // Handle single hashtag
+          renderSingleHashtagHistory(data);
+        }
+      } catch (error) {
+        console.error('Error loading weekly history:', error);
+        document.getElementById('weeklyHistoryTableBody').innerHTML = `
+          <tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-danger);">
+            Erro ao carregar dados: ${error.message}
+          </td></tr>
+        `;
+      }
+    }
+
+    // Render single hashtag history
+    function renderSingleHashtagHistory(data) {
+      const { weeklyData, summary } = data;
+      
+      // Update summary cards
+      document.getElementById('summaryTotalUses').textContent = summary.totalUses || 0;
+      document.getElementById('summaryTotalAccounts').textContent = summary.totalAccounts || 0;
+      document.getElementById('summaryWeeks').textContent = summary.totalWeeks || 0;
+      document.getElementById('summaryAverage').textContent = summary.averageWeekly ? summary.averageWeekly.toFixed(1) : 0;
+      
+      // Update charts
+      updateWeeklyCharts(weeklyData);
+      
+      // Update table
+      const tbody = document.getElementById('weeklyHistoryTableBody');
+      if (weeklyData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">Nenhum dado disponível para este período</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = weeklyData.map(week => `
+        <tr>
+          <td>Semana ${week.weekNumber}</td>
+          <td>${formatDate(week.weekStart)}</td>
+          <td>${formatDate(week.weekEnd)}</td>
+          <td>${week.totalUses}</td>
+          <td>${week.totalAccounts}</td>
+          <td>${week.dailyAverage.toFixed(1)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Render all hashtags history
+    function renderAllHashtagsHistory(data, year) {
+      const { data: allData, summary } = data;
+      
+      // Aggregate data across all hashtags
+      const aggregatedWeeks = {};
+      let totalUses = 0;
+      let totalAccounts = 0;
+      let weekCount = 0;
+      
+      Object.values(allData).forEach(hashtagData => {
+        hashtagData.forEach(week => {
+          if (!aggregatedWeeks[week.weekNumber]) {
+            aggregatedWeeks[week.weekNumber] = {
+              weekNumber: week.weekNumber,
+              weekStart: week.weekStart,
+              weekEnd: week.weekEnd,
+              totalUses: 0,
+              totalAccounts: 0,
+              daysCounted: 0
+            };
+          }
+          aggregatedWeeks[week.weekNumber].totalUses += week.totalUses;
+          aggregatedWeeks[week.weekNumber].totalAccounts += week.totalAccounts;
+          totalUses += week.totalUses;
+          totalAccounts += week.totalAccounts;
+        });
+        weekCount = Math.max(weekCount, hashtagData.length);
+      });
+      
+      const weeklyData = Object.values(aggregatedWeeks).sort((a, b) => a.weekNumber - b.weekNumber);
+      weeklyData.forEach(week => {
+        week.dailyAverage = week.totalUses / 7; // Approximate daily average
+      });
+      
+      const avgWeekly = weeklyData.length > 0 ? totalUses / weeklyData.length : 0;
+      
+      // Update summary cards
+      document.getElementById('summaryTotalUses').textContent = totalUses;
+      document.getElementById('summaryTotalAccounts').textContent = totalAccounts;
+      document.getElementById('summaryWeeks').textContent = weekCount;
+      document.getElementById('summaryAverage').textContent = avgWeekly.toFixed(1);
+      
+      // Update charts
+      updateWeeklyCharts(weeklyData);
+      
+      // Update table
+      const tbody = document.getElementById('weeklyHistoryTableBody');
+      if (weeklyData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">Nenhum dado disponível para este período</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = weeklyData.map(week => `
+        <tr>
+          <td>Semana ${week.weekNumber}</td>
+          <td>${formatDate(week.weekStart)}</td>
+          <td>${formatDate(week.weekEnd)}</td>
+          <td>${week.totalUses}</td>
+          <td>${week.totalAccounts}</td>
+          <td>${week.dailyAverage ? week.dailyAverage.toFixed(1) : 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Update charts
+    function updateWeeklyCharts(weeklyData) {
+      const labels = weeklyData.map(w => `Semana ${w.weekNumber}`);
+      const usesData = weeklyData.map(w => w.totalUses);
+      const accountsData = weeklyData.map(w => w.totalAccounts);
+      
+      // Destroy existing charts if they exist
+      if (weeklyUsesChart) weeklyUsesChart.destroy();
+      if (weeklyAccountsChart) weeklyAccountsChart.destroy();
+      
+      // Uses chart
+      const usesCtx = document.getElementById('weeklyUsesChart').getContext('2d');
+      weeklyUsesChart = new Chart(usesCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total de Usos',
+            data: usesData,
+            borderColor: 'rgb(102, 126, 234)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0aec0' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+          }
+        }
+      });
+      
+      // Accounts chart
+      const accountsCtx = document.getElementById('weeklyAccountsChart').getContext('2d');
+      weeklyAccountsChart = new Chart(accountsCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Contas Únicas',
+            data: accountsData,
+            borderColor: 'rgb(67, 233, 123)',
+            backgroundColor: 'rgba(67, 233, 123, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0aec0' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
+    // Format date helper
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('pt-BR');
+    }
+
+    // Make functions global
+    window.showView = showView;
+    window.loadWeeklyHistory = loadWeeklyHistory;
   </script>
 </body>
 </html>
