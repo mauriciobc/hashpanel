@@ -51,13 +51,22 @@ export class DatabaseService {
 
   /**
    * Get database instance
-   * Recreates connection if it was closed
+   * @returns {Database} SQLite database instance
+   * @throws {Error} If database connection is closed
    */
   getDatabase() {
     if (!this.db) {
-      this._initializeConnection();
+      throw new Error('Database connection is closed. Connection must be reinitialized via getDatabase() singleton function.');
     }
     return this.db;
+  }
+
+  /**
+   * Check if database connection is closed
+   * @returns {boolean} True if connection is closed, false if open
+   */
+  isClosed() {
+    return this.db === null;
   }
 
   /**
@@ -69,6 +78,8 @@ export class DatabaseService {
 
   /**
    * Close database connection
+   * Once closed, the connection cannot be automatically reopened.
+   * To reopen, a new DatabaseService instance must be created via getDatabase() singleton.
    */
   close() {
     if (this.db) {
@@ -142,12 +153,15 @@ let dbInstance = null;
 
 /**
  * Get database instance (singleton)
- * Must be called explicitly to initialize the database connection and run migrations
+ * Must be called explicitly to initialize the database connection and run migrations.
+ * If the connection was closed, this will create a new instance and run migrations.
+ * 
+ * @returns {DatabaseService} Database service instance
  */
 export function getDatabase() {
-  if (!dbInstance) {
+  if (!dbInstance || dbInstance.isClosed()) {
     dbInstance = new DatabaseService();
-    // Run migrations on first connection
+    // Run migrations on first connection or after reinitialization
     dbInstance.migrate();
   }
   return dbInstance;

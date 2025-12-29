@@ -38,6 +38,10 @@ export function getISOWeek(dateString) {
     
     return { year, weekNumber, weekStart, weekEnd };
   } catch (error) {
+    // Re-throw validation errors as-is, wrap only unexpected errors
+    if (error.message.includes('Invalid date string')) {
+      throw error;
+    }
     // Handle unexpected errors from moment operations
     logger.error('getISOWeek: Unexpected error processing date', { dateString, timezone, error });
     throw new Error(`Failed to calculate ISO week for date "${dateString}": ${error.message}`);

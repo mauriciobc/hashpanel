@@ -13,13 +13,13 @@ import { logger } from '../utils/logger.js';
 import { getDatabase } from '../database/index.js';
 
 async function main() {
-  // Initialize database connection
-  const database = getDatabase();
-  
+  let database;
   const args = process.argv.slice(2);
   let exitCode = 0;
   
   try {
+    // Initialize database connection
+    database = getDatabase();
     // Parse arguments
     const dateIndex = args.indexOf('--date');
     const rangeIndex = args.indexOf('--range');
@@ -93,7 +93,9 @@ async function main() {
     console.error('\n❌ Collection failed:', error.message);
   } finally {
     // Close database connection
-    database.close();
+    if (database) {
+      database.close();
+    }
   }
   
   process.exit(exitCode);

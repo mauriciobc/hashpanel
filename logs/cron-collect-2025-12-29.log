@@ -1,0 +1,24 @@
+[2025-12-29 18:46:31] Iniciando coleta diária de histórico
+2025-12-29T21:46:31.978Z [[32minfo[39m]: Database connection established {"service":"hashbot2","environment":"development","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+2025-12-29T21:46:31.981Z [[32minfo[39m]: Running database migrations... {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:31.981Z [[32minfo[39m]: Database migrations completed successfully {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:31.981Z [[32minfo[39m]: Database migrations completed {"service":"hashbot2","environment":"development"}
+Collecting today's history data for all hashtags...
+2025-12-29T21:46:32.038Z [[32minfo[39m]: Starting history collection for all hashtags on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:32.038Z [[32minfo[39m]: Found 12 unique hashtags to collect {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:32.038Z [[32minfo[39m]: Collecting history data for videomingo on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:32.039Z [[32minfo[39m]: Collecting history data for silentsunday on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:32.039Z [[32minfo[39m]: Collecting history data for segundaficha on 2025-12-29 {"service":"hashbot2","environment":"development"}
+[2025-12-29 18:46:32] Erro na coleta (código: 1)
+[2025-12-29 18:46:42] Iniciando coleta diária de histórico
+2025-12-29T21:46:42.846Z [[32minfo[39m]: Database connection established {"service":"hashbot2","environment":"development","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+2025-12-29T21:46:42.849Z [[32minfo[39m]: Running database migrations... {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.849Z [[32minfo[39m]: Database migrations completed successfully {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.849Z [[32minfo[39m]: Database migrations completed {"service":"hashbot2","environment":"development"}
+Collecting today's history data for all hashtags...
+2025-12-29T21:46:42.906Z [[32minfo[39m]: Starting history collection for all hashtags on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.907Z [[32minfo[39m]: Found 12 unique hashtags to collect {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.907Z [[32minfo[39m]: Collecting history data for videomingo on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.907Z [[32minfo[39m]: Collecting history data for silentsunday on 2025-12-29 {"service":"hashbot2","environment":"development"}
+2025-12-29T21:46:42.907Z [[32minfo[39m]: Collecting history data for segundaficha on 2025-12-29 {"service":"hashbot2","environment":"development"}
+[2025-12-29 18:46:42] Erro na coleta (código: 1)

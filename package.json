@@ -36,7 +36,13 @@
     "status": "node cli.js status",
     "analyze": "node cli.js analyze",
     "collect:history": "node src/cli/collectHistory.js",
-    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.database.migrate())\""
+    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.database.migrate())\"",
+    "db:clear": "node clear-database.js",
+    "test:weekly": "node test-weekly-history.js",
+    "test:weekly:create-data": "node create-test-data.js",
+    "diagnose:collection": "node diagnose-collection.js",
+    "cron:setup": "bash scripts/setup-cron.sh",
+    "cron:test": "bash scripts/cron-collect-history.sh"
   },
   "author": "",
   "license": "ISC",

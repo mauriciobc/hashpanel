@@ -413,10 +413,11 @@ router.get('/history/weekly', moderateRateLimit, asyncHandler(async (req, res) =
 /**
  * GET /api/hashtag/:hashtag/history/weekly
  * Get weekly historical data for a specific hashtag
+ * Query params: year, week (optional), date (optional)
  */
 router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
-  const { year } = req.query;
+  const { year, week, date } = req.query;
   
   if (!hashtag) {
     throw new ValidationError('Hashtag is required');
@@ -429,10 +430,94 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
     throw new ValidationError('Invalid year parameter');
   }
   
-  logger.info('Weekly history requested', { hashtag, year: targetYear });
+  logger.info('Weekly history requested', { hashtag, year: targetYear, week, date });
   
   try {
+    // If date is specified, return daily data for that date
+    if (date) {
+      const dailyData = databaseService.getDailyData(hashtag, date);
+      if (!dailyData) {
+        return res.json({
+          hashtag,
+          date,
+          uses: 0,
+          accounts: 0,
+          year: targetYear,
+          weekNumber: null,
+          type: 'daily'
+        });
+      }
+      
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Vary', 'Accept-Encoding');
+      
+      return res.json({
+        hashtag,
+        date: dailyData.date,
+        uses: dailyData.uses,
+        accounts: dailyData.accounts,
+        year: dailyData.year,
+        weekNumber: dailyData.weekNumber,
+        type: 'daily'
+      });
+    }
+    
+    // If week is specified, filter by week number
+    if (week) {
+      const weekNumber = parseInt(week);
+      if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 53) {
+        throw new ValidationError('Invalid week parameter (must be 1-53)');
+      }
+      
+      const weeklyData = databaseService.getWeeklyHistoryByWeek(hashtag, targetYear, weekNumber);
+      
+      if (weeklyData.length === 0) {
+        return res.json({
+          hashtag,
+          year: targetYear,
+          weekNumber,
+          weeklyData: [],
+          summary: {
+            totalWeeks: 0,
+            totalUses: 0,
+            totalAccounts: 0,
+            averageWeekly: 0,
+            peakWeek: null
+          },
+          type: 'weekly'
+        });
+      }
+      
+      const weekData = weeklyData[0];
+      const summary = {
+        totalWeeks: 1,
+        totalUses: weekData.totalUses,
+        totalAccounts: weekData.totalAccounts,
+        averageWeekly: weekData.totalUses,
+        peakWeek: {
+          weekNumber: weekData.weekNumber,
+          weekStart: weekData.weekStart,
+          weekEnd: weekData.weekEnd,
+          totalUses: weekData.totalUses,
+          totalAccounts: weekData.totalAccounts
+        }
+      };
+      
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Vary', 'Accept-Encoding');
+      
+      return res.json({
+        hashtag,
+        year: targetYear,
+        weeklyData: weeklyData,
+        summary,
+        type: 'weekly'
+      });
+    }
+    
+    // Default: return all weeks for the year
     const result = await databaseService.aggregateWeeklyData(hashtag, targetYear);
+    result.type = 'weekly';
     
     // Performance: Add cache control headers (5 minutes for historical data)
     res.setHeader('Cache-Control', 'public, max-age=300');

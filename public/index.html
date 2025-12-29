@@ -1871,16 +1871,34 @@
         <div style="padding: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
           <div>
             <label for="yearSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Ano:</label>
-            <select id="yearSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 120px;">
+            <select id="yearSelect" onchange="updateFilters()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 120px;">
               <!-- Populated by JavaScript -->
             </select>
           </div>
           <div>
             <label for="hashtagSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtag:</label>
-            <select id="hashtagSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 200px;">
+            <select id="hashtagSelect" onchange="updateFilters()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 200px;">
               <option value="all">Todas as hashtags</option>
               <!-- Populated by JavaScript -->
             </select>
+          </div>
+          <div>
+            <label for="filterTypeSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Filtro:</label>
+            <select id="filterTypeSelect" onchange="updateFilters()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 150px;">
+              <option value="all">Todas as semanas</option>
+              <option value="week">Por semana</option>
+              <option value="day">Por dia</option>
+            </select>
+          </div>
+          <div id="weekFilterContainer" style="display: none;">
+            <label for="weekSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Semana:</label>
+            <select id="weekSelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 150px;">
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+          <div id="dayFilterContainer" style="display: none;">
+            <label for="daySelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Dia:</label>
+            <input type="date" id="daySelect" onchange="loadWeeklyHistory()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 150px;">
           </div>
         </div>
       </div>
@@ -3583,10 +3601,61 @@
       }
 
       // Load hashtags list
-      loadHistoryHashtags();
+      loadHistoryHashtags().then(() => {
+        // Initialize filters after hashtags are loaded
+        updateFilters();
+      });
+    }
+
+    // Update filter visibility based on filter type
+    function updateFilters() {
+      const filterType = document.getElementById('filterTypeSelect').value;
+      const weekContainer = document.getElementById('weekFilterContainer');
+      const dayContainer = document.getElementById('dayFilterContainer');
       
-      // Load initial data
+      weekContainer.style.display = filterType === 'week' ? 'block' : 'none';
+      dayContainer.style.display = filterType === 'day' ? 'block' : 'none';
+      
+      // Load weeks if week filter is selected
+      if (filterType === 'week') {
+        loadAvailableWeeks();
+      }
+      
+      // Load history with new filters
       loadWeeklyHistory();
+    }
+
+    // Load available weeks for the selected year and hashtag
+    async function loadAvailableWeeks() {
+      const year = document.getElementById('yearSelect').value;
+      const hashtag = document.getElementById('hashtagSelect').value;
+      const weekSelect = document.getElementById('weekSelect');
+      
+      if (hashtag === 'all') {
+        weekSelect.innerHTML = '<option value="">Selecione um hashtag</option>';
+        return;
+      }
+      
+      try {
+        const url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load weeks');
+        
+        const data = await response.json();
+        weekSelect.innerHTML = '<option value="">Todas as semanas</option>';
+        
+        if (data.weeklyData && data.weeklyData.length > 0) {
+          data.weeklyData.forEach(week => {
+            const option = document.createElement('option');
+            option.value = week.weekNumber;
+            option.textContent = `Semana ${week.weekNumber} (${formatDate(week.weekStart)} - ${formatDate(week.weekEnd)})`;
+            weekSelect.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading weeks:', error);
+        weekSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+      }
     }
 
     // Load hashtags for selector
@@ -3626,13 +3695,28 @@
     async function loadWeeklyHistory() {
       const year = document.getElementById('yearSelect').value;
       const hashtag = document.getElementById('hashtagSelect').value;
+      const filterType = document.getElementById('filterTypeSelect').value;
+      const week = document.getElementById('weekSelect')?.value || '';
+      const day = document.getElementById('daySelect')?.value || '';
       
       try {
         let url;
         if (hashtag === 'all') {
+          // For "all hashtags", only support year filter
           url = `${API_BASE}/hashtag/history/weekly?year=${year}`;
-        } else {
-          url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Failed to load weekly history');
+          const data = await response.json();
+          renderAllHashtagsHistory(data, year);
+          return;
+        }
+        
+        // Build URL with filters
+        url = `${API_BASE}/hashtag/${hashtag}/history/weekly?year=${year}`;
+        if (filterType === 'week' && week) {
+          url += `&week=${week}`;
+        } else if (filterType === 'day' && day) {
+          url += `&date=${day}`;
         }
         
         const response = await fetch(url);
@@ -3640,11 +3724,10 @@
         
         const data = await response.json();
         
-        if (hashtag === 'all') {
-          // Handle multiple hashtags
-          renderAllHashtagsHistory(data, year);
+        // Handle different response types
+        if (data.type === 'daily') {
+          renderDailyData(data);
         } else {
-          // Handle single hashtag
           renderSingleHashtagHistory(data);
         }
       } catch (error) {
@@ -3655,6 +3738,34 @@
           </td></tr>
         `;
       }
+    }
+
+    // Render daily data
+    function renderDailyData(data) {
+      // Update summary cards
+      document.getElementById('summaryTotalUses').textContent = data.uses || 0;
+      document.getElementById('summaryTotalAccounts').textContent = data.accounts || 0;
+      document.getElementById('summaryWeeks').textContent = '1';
+      document.getElementById('summaryAverage').textContent = (data.uses || 0).toFixed(1);
+      
+      // Clear charts (daily data doesn't need charts)
+      if (weeklyUsesChart) weeklyUsesChart.destroy();
+      if (weeklyAccountsChart) weeklyAccountsChart.destroy();
+      weeklyUsesChart = null;
+      weeklyAccountsChart = null;
+      
+      // Update table
+      const tbody = document.getElementById('weeklyHistoryTableBody');
+      tbody.innerHTML = `
+        <tr>
+          <td>${data.weekNumber ? `Semana ${data.weekNumber}` : '-'}</td>
+          <td>${formatDate(data.date)}</td>
+          <td>${formatDate(data.date)}</td>
+          <td>${data.uses}</td>
+          <td>${data.accounts}</td>
+          <td>${data.uses}</td>
+        </tr>
+      `;
     }
 
     // Render single hashtag history
@@ -3707,13 +3818,11 @@
               weekStart: week.weekStart,
               weekEnd: week.weekEnd,
               totalUses: 0,
-              totalAccounts: 0,
-              daysCounted: 0
+              totalAccounts: 0
             };
           }
           aggregatedWeeks[week.weekNumber].totalUses += week.totalUses;
           aggregatedWeeks[week.weekNumber].totalAccounts += week.totalAccounts;
-          aggregatedWeeks[week.weekNumber].daysCounted += week.daysCounted || 0;
           totalUses += week.totalUses;
           totalAccounts += week.totalAccounts;
         });
@@ -3722,7 +3831,7 @@
       
       const weeklyData = Object.values(aggregatedWeeks).sort((a, b) => a.weekNumber - b.weekNumber);
       weeklyData.forEach(week => {
-        week.dailyAverage = week.daysCounted > 0 ? week.totalUses / week.daysCounted : week.totalUses / 7;
+        week.dailyAverage = week.totalUses / 7;
       });
       
       const avgWeekly = weeklyData.length > 0 ? totalUses / weeklyData.length : 0;
@@ -3850,6 +3959,7 @@
     // Make functions global
     window.showView = showView;
     window.loadWeeklyHistory = loadWeeklyHistory;
+    window.updateFilters = updateFilters;
   </script>
 </body>
 </html>

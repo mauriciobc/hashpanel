@@ -91,18 +91,42 @@ export class HistoryCollector {
         return false;
       }
 
-      // Find data for the target date
-      const dayData = history.find(day => day.day === targetDate);
+      // Convert timestamps to YYYY-MM-DD format and find data for the target date
+      // Mastodon API returns 'day' as Unix timestamp (seconds) representing midnight UTC
+      // IMPORTANT: API aggregates data by UTC day, so we must use UTC for timestamp conversion
+      // The local timezone is only used to determine which date to collect (today/yesterday)
+      
+      // Try to find by converting timestamp to date string (using UTC)
+      let dayData = history.find(day => {
+        const dayTimestamp = parseInt(day.day);
+        if (isNaN(dayTimestamp)) {
+          // If day is already a date string, compare directly
+          return day.day === targetDate;
+        }
+        // Convert timestamp to date string using UTC (API uses UTC for aggregation)
+        const dayDate = moment.unix(dayTimestamp).utc().format('YYYY-MM-DD');
+        return dayDate === targetDate;
+      });
 
       if (!dayData) {
-        logger.warn(`No data found for ${hashtag} on ${targetDate}`);
+        logger.warn(`No data found for ${hashtag} on ${targetDate}`, {
+          availableDates: history.slice(0, 3).map(d => {
+            const ts = parseInt(d.day);
+            // Use UTC for conversion (API aggregates by UTC day)
+            return isNaN(ts) ? d.day : moment.unix(ts).utc().format('YYYY-MM-DD');
+          })
+        });
         return false;
       }
 
+      // Parse uses and accounts (API may return them as strings)
+      const uses = parseInt(dayData.uses) || 0;
+      const accounts = parseInt(dayData.accounts) || 0;
+
       // Save to database
       databaseService.saveDailyHashtagData(hashtag, targetDate, {
-        uses: dayData.uses || 0,
-        accounts: dayData.accounts || 0
+        uses,
+        accounts
       });
 
       this._updateStats(operationContext, 'collected');
