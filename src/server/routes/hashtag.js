@@ -5,9 +5,34 @@ import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { HASHTAGS, getHashtagsForDay, getFirstHashtagForDay } from '../../constants/index.js';
+import { appConfig as config } from '../../config/index.js';
 
 const router = Router();
 // Using singleton instance from service
+
+/**
+ * Calculate maxPages based on timeframe to ensure representative statistics
+ * while protecting response time with an upper bound
+ * 
+ * @param {string} timeframe - Normalized timeframe ('today', 'week', 'month', 'all')
+ * @returns {number} Maximum pages to fetch, capped by config.performance.maxApiPages
+ */
+function calculateMaxPagesForTimeframe(timeframe) {
+  // Base pages per timeframe for representative sampling
+  // Each page contains ~40 toots (config.performance.tootsPerPage)
+  const maxPagesByTimeframe = {
+    'today': 1,    // ~40 toots - sufficient for single day statistics
+    'week': 5,     // ~200 toots - representative sample for 7 days
+    'month': 20,   // ~800 toots - representative sample for 30 days
+    'all': 50      // ~2000 toots - upper bound for historical analysis
+  };
+
+  const baseMaxPages = maxPagesByTimeframe[timeframe] || 1;
+  const upperBound = config.performance.maxApiPages;
+
+  // Enforce upper bound to protect response time and API rate limits
+  return Math.min(baseMaxPages, upperBound);
+}
 
 /**
  * GET /api/hashtag/current
@@ -50,10 +75,14 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
   logger.info('Hashtag stats requested', { original: hashtag, normalized: normalizedHashtag, timeframe: normalizedTimeframe });
   
   try {
-    // Limit to 1 page for stats endpoint to improve response time (~40 toots)
-    // This is enough for accurate statistics while keeping response time under 1 second
+    // Calculate maxPages dynamically based on timeframe for representative statistics
+    // Larger timeframes require more data to avoid biased results
+    const maxPages = calculateMaxPagesForTimeframe(normalizedTimeframe);
+    
+    logger.debug('Calculated maxPages for timeframe', { timeframe: normalizedTimeframe, maxPages });
+    
     const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { 
-      maxPages: 1,
+      maxPages,
       timeframe: normalizedTimeframe 
     });
     

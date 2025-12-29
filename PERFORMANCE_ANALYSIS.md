@@ -45,7 +45,7 @@ Após a implementação do plano de otimização, os novos resultados são:
 ### 1. API Extremamente Lenta: `/api/hashtag/:hashtag/stats`
 
 **Problema:**
-- **Duração:** 3.667 segundos (3.667ms) ❌
+- **Duração:** 3.667 segundos (3667ms) ❌
 - **Wait Time (Tempo de Processamento no Servidor):** 3.665ms ❌
 - **Download Time:** 0.9ms ✅
 

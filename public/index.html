@@ -1892,17 +1892,95 @@
     // Client-side cache configuration
     const CACHE_KEY = 'hashpanel_stats_cache';
     const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+    const CACHE_MAX_ENTRIES = 100; // Maximum number of cached entries
+
+    /**
+     * Remove expired entries from cache based on timestamp and TTL
+     */
+    function purgeExpiredEntries(cache) {
+      const now = Date.now();
+      const entries = Object.keys(cache);
+      let purged = 0;
+      
+      for (const key of entries) {
+        const entry = cache[key];
+        if (entry && entry.timestamp && now - entry.timestamp >= CACHE_TTL) {
+          delete cache[key];
+          purged++;
+        }
+      }
+      
+      if (purged > 0) {
+        console.log(`Purged ${purged} expired cache entries`);
+      }
+      
+      return cache;
+    }
+
+    /**
+     * Evict least-recently-used entries when cache exceeds limit
+     */
+    function evictLRUEntries(cache, maxEntries) {
+      const entries = Object.entries(cache);
+      
+      if (entries.length <= maxEntries) {
+        return cache;
+      }
+      
+      // Sort by lastAccess (oldest first), then by timestamp as fallback
+      entries.sort((a, b) => {
+        const aAccess = a[1].lastAccess || a[1].timestamp || 0;
+        const bAccess = b[1].lastAccess || b[1].timestamp || 0;
+        return aAccess - bAccess;
+      });
+      
+      // Remove oldest entries until under limit
+      const toRemove = entries.length - maxEntries;
+      for (let i = 0; i < toRemove; i++) {
+        delete cache[entries[i][0]];
+      }
+      
+      console.log(`Evicted ${toRemove} least-recently-used cache entries`);
+      return cache;
+    }
 
     /**
      * Get cached data for a hashtag
+     * Updates lastAccess timestamp when entry is accessed
      */
     function getCachedStats(hashtag) {
       try {
         const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
         const entry = cache[hashtag];
-        if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
-          console.log(`Using client cache for hashtag: ${hashtag}`);
-          return entry.data;
+        
+        if (entry && entry.timestamp) {
+          const now = Date.now();
+          const age = now - entry.timestamp;
+          
+          if (age < CACHE_TTL) {
+            // Update lastAccess timestamp
+            entry.lastAccess = now;
+            cache[hashtag] = entry;
+            
+            // Save updated access time (may fail silently if quota exceeded)
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            } catch (e) {
+              // Ignore quota errors on access update - entry is still valid
+              console.warn('Failed to update cache access time:', e);
+            }
+            
+            console.log(`Using client cache for hashtag: ${hashtag}`);
+            return entry.data;
+          } else {
+            // Entry expired, remove it
+            delete cache[hashtag];
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            } catch (e) {
+              // Ignore errors on cleanup
+            }
+          }
         }
       } catch (e) {
         console.warn('Failed to read from client cache:', e);
@@ -1912,19 +1990,105 @@
 
     /**
      * Set cached data for a hashtag
+     * Implements bounded cache with LRU eviction and quota error handling
      */
     function setCachedStats(hashtag, data) {
       try {
-        const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+        // Load current cache
+        let cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+        
+        // Purge expired entries first
+        cache = purgeExpiredEntries(cache);
+        
+        // Add/update entry with metadata
         cache[hashtag] = {
           data,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          lastAccess: Date.now()
         };
-        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+        
+        // Evict LRU entries if over limit
+        cache = evictLRUEntries(cache, CACHE_MAX_ENTRIES);
+        
+        // Attempt to save
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+        } catch (e) {
+          // Handle quota exceeded error
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.warn('Storage quota exceeded, evicting oldest entries and retrying...');
+            
+            // Evict more aggressively (remove oldest 25% of entries)
+            const entries = Object.entries(cache);
+            entries.sort((a, b) => {
+              const aAccess = a[1].lastAccess || a[1].timestamp || 0;
+              const bAccess = b[1].lastAccess || b[1].timestamp || 0;
+              return aAccess - bAccess;
+            });
+            
+            const toRemove = Math.max(1, Math.floor(entries.length * 0.25));
+            for (let i = 0; i < toRemove; i++) {
+              delete cache[entries[i][0]];
+            }
+            
+            // Retry once
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+              console.log(`Successfully saved cache after evicting ${toRemove} entries`);
+            } catch (retryError) {
+              console.error('Failed to save cache even after eviction:', retryError);
+              // Last resort: clear cache and save only current entry
+              try {
+                const minimalCache = { [hashtag]: cache[hashtag] };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(minimalCache));
+                console.warn('Cleared cache and saved only current entry due to quota');
+              } catch (finalError) {
+                console.error('Failed to save cache completely:', finalError);
+              }
+            }
+          } else {
+            throw e; // Re-throw non-quota errors
+          }
+        }
       } catch (e) {
         console.warn('Failed to write to client cache:', e);
       }
     }
+
+    /**
+     * Periodic cleanup of expired cache entries
+     * Runs every CACHE_TTL interval
+     */
+    function startCacheCleanupTimer() {
+      // Run cleanup immediately on first call
+      try {
+        const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+        purgeExpiredEntries(cache);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+      } catch (e) {
+        console.warn('Cache cleanup failed:', e);
+      }
+      
+      // Schedule periodic cleanup
+      setInterval(() => {
+        try {
+          const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+          const beforeCount = Object.keys(cache).length;
+          purgeExpiredEntries(cache);
+          const afterCount = Object.keys(cache).length;
+          
+          if (beforeCount > afterCount) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            console.log(`Periodic cleanup: removed ${beforeCount - afterCount} expired entries`);
+          }
+        } catch (e) {
+          console.warn('Periodic cache cleanup failed:', e);
+        }
+      }, CACHE_TTL);
+    }
+
+    // Initialize cache cleanup timer on page load
+    startCacheCleanupTimer();
 
     // Rate Limit State Management
     const rateLimitState = {

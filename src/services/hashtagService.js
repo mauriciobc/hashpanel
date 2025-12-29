@@ -44,12 +44,27 @@ export class HashtagService {
 
     const maxPages = options.maxPages || config.performance.maxApiPages;
     const timeframe = options.timeframe || 'today';
-    const cacheKey = `analysis_${hashtag}_${maxPages}_${timeframe}`;
+
+    // Validate and normalize timeframe parameter first
+    const allowedTimeframes = ['today', 'week', 'month', 'all'];
+    let normalizedTimeframe = timeframe;
+    
+    if (!allowedTimeframes.includes(normalizedTimeframe)) {
+      logger.warn(`Invalid timeframe '${normalizedTimeframe}' provided, normalizing to 'all'`, {
+        hashtag,
+        invalidTimeframe: normalizedTimeframe,
+        allowedTimeframes
+      });
+      normalizedTimeframe = 'all';
+    }
+
+    // Build cache key using normalized timeframe to prevent cache fragmentation
+    const cacheKey = `analysis_${hashtag}_${maxPages}_${normalizedTimeframe}`;
 
     // Check analysis cache
     const cachedAnalysis = this.cache.get(cacheKey);
     if (cachedAnalysis) {
-      logger.debug(`Using cached analysis for hashtag: ${hashtag}`, { timeframe, maxPages });
+      logger.debug(`Using cached analysis for hashtag: ${hashtag}`, { timeframe: normalizedTimeframe, maxPages });
       return cachedAnalysis;
     }
 
@@ -58,19 +73,6 @@ export class HashtagService {
     try {
       // Get today's date in the configured timezone
       const today = moment().tz(config.server.timezone).format('YYYY-MM-DD');
-      
-      // Validate and normalize timeframe parameter
-      const allowedTimeframes = ['today', 'week', 'month', 'all'];
-      let normalizedTimeframe = timeframe;
-      
-      if (!allowedTimeframes.includes(normalizedTimeframe)) {
-        logger.warn(`Invalid timeframe '${normalizedTimeframe}' provided, normalizing to 'all'`, {
-          hashtag,
-          invalidTimeframe: normalizedTimeframe,
-          allowedTimeframes
-        });
-        normalizedTimeframe = 'all';
-      }
       
       // Determine filtering strategy based on timeframe
       const shouldFilterByDate = normalizedTimeframe === 'today';
