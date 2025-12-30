@@ -485,6 +485,9 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
         throw new ValidationError('Invalid week parameter (must be 1-53)');
       }
       
+      // Check if daily view is requested
+      const dailyView = req.query.daily === 'true';
+      
       const weeklyData = await databaseService.getWeeklyHistoryByWeek(hashtag, targetYear, weekNumber);
       
       if (weeklyData.length === 0) {
@@ -493,6 +496,7 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
           year: targetYear,
           weekNumber,
           weeklyData: [],
+          dailyData: [],
           summary: {
             totalWeeks: 0,
             totalUses: 0,
@@ -500,11 +504,35 @@ router.get('/:hashtag/history/weekly', moderateRateLimit, asyncHandler(async (re
             averageWeekly: 0,
             peakWeek: null
           },
-          type: 'weekly'
+          type: dailyView ? 'daily' : 'weekly'
         });
       }
       
       const weekData = weeklyData[0];
+      
+      // If daily view is requested, get daily data for the week
+      if (dailyView && weekData.weekStart && weekData.weekEnd) {
+        const dailyData = await databaseService.getDailyHistory(hashtag, weekData.weekStart, weekData.weekEnd);
+        
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        res.setHeader('Vary', 'Accept-Encoding');
+        
+        return res.json({
+          hashtag,
+          year: targetYear,
+          weekNumber: weekData.weekNumber,
+          weekStart: weekData.weekStart,
+          weekEnd: weekData.weekEnd,
+          dailyData: dailyData,
+          summary: {
+            totalUses: weekData.totalUses,
+            totalAccounts: weekData.totalAccounts,
+            averageDaily: weekData.dailyAverage
+          },
+          type: 'daily'
+        });
+      }
+      
       const summary = {
         totalWeeks: 1,
         totalUses: weekData.totalUses,

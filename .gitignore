@@ -7,3 +7,4 @@ data/
 *.md
 !README.md
 logs/combined.log
+logs/combined.log
