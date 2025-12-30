@@ -27,6 +27,9 @@ services:
       if [ ! -f package.json ]; then
         git clone https://github.com/mauriciobc/hashpanel.git . || exit 1;
       else
+        # Stash or reset log files before pulling to avoid merge conflicts
+        git checkout -- logs/ 2>/dev/null || true;
+        git reset HEAD logs/ 2>/dev/null || true;
         git pull origin main || true;
       fi &&
       mkdir -p logs data &&

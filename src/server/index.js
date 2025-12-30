@@ -25,6 +25,10 @@ export class WebServer {
    * Setup Express middleware
    */
   setupMiddleware() {
+    // Trust proxy - required when behind reverse proxy (Caddy, nginx, etc.)
+    // This allows Express to correctly identify client IPs from X-Forwarded-For headers
+    this.app.set('trust proxy', true);
+    
     // Request logging
     this.app.use(requestLogger);
     
@@ -408,7 +412,28 @@ process.on('uncaughtException', (error) => {
   // #region agent log
   fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:377',message:'Uncaught exception handler',data:{error:error.message,code:error.code,stack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
-  logger.error('Uncaught exception', error);
+  
+  // Log error with full context
+  logger.error('Uncaught exception', {
+    error: {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack
+    }
+  });
+  
+  // Don't shutdown for network timeout errors - these are often transient
+  // ETIMEDOUT errors from network operations should not crash the server
+  if (error.code === 'ETIMEDOUT' || error.name === 'AggregateError') {
+    logger.warn('Network timeout error caught - server will continue running', {
+      code: error.code,
+      message: error.message
+    });
+    return; // Continue running instead of shutting down
+  }
+  
+  // For other uncaught exceptions, log and shutdown gracefully
   logger.error('Shutting down due to uncaught exception');
   process.exit(1);
 });
@@ -418,7 +443,31 @@ process.on('unhandledRejection', (reason, promise) => {
   // #region agent log
   fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:384',message:'Unhandled promise rejection',data:{reason:reason?.message||String(reason),code:reason?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
-  logger.error('Unhandled promise rejection', { reason, promise });
+  
+  // Extract error information safely
+  const errorInfo = {
+    message: reason?.message || String(reason),
+    code: reason?.code,
+    name: reason?.name,
+    stack: reason?.stack
+  };
+  
+  logger.error('Unhandled promise rejection', { 
+    reason: errorInfo,
+    promise: promise?.toString?.() || 'Unknown promise'
+  });
+  
+  // Don't shutdown for network timeout errors - these are often transient
+  // ETIMEDOUT errors from network operations should not crash the server
+  if (errorInfo.code === 'ETIMEDOUT' || errorInfo.name === 'AggregateError') {
+    logger.warn('Network timeout rejection caught - server will continue running', {
+      code: errorInfo.code,
+      message: errorInfo.message
+    });
+    return; // Continue running instead of shutting down
+  }
+  
+  // For other unhandled rejections, log and shutdown gracefully
   logger.error('Shutting down due to unhandled promise rejection');
   process.exit(1);
 });

@@ -36,7 +36,7 @@
     "status": "node cli.js status",
     "analyze": "node cli.js analyze",
     "collect:history": "node src/cli/collectHistory.js",
-    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.database.migrate())\"",
+    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.getDatabase().migrate())\"",
     "db:clear": "node clear-database.js",
     "test:weekly": "node test-weekly-history.js",
     "test:weekly:create-data": "node create-test-data.js",
