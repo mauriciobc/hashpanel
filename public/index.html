@@ -4500,6 +4500,33 @@
       });
     }
 
+    // Fetch daily data for multiple hashtags with rate limit tracking and concurrency control
+    async function fetchDailyDataForHashtags(hashtags, year, weekNumber, concurrency = 5) {
+      const allDailyData = [];
+      
+      // Process hashtags in batches to control concurrency
+      for (let i = 0; i < hashtags.length; i += concurrency) {
+        const batch = hashtags.slice(i, i + concurrency);
+        const batchPromises = batch.map(async (hashtag) => {
+          const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}&week=${weekNumber}&daily=true`;
+          try {
+            const response = await fetchWithRateLimitTracking(url);
+            if (!response.ok) return { hashtag, dailyData: [] };
+            const result = await response.json();
+            return { hashtag, dailyData: result.dailyData || [] };
+          } catch (error) {
+            console.error(`Error fetching daily data for ${hashtag}:`, error);
+            return { hashtag, dailyData: [] };
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        allDailyData.push(...batchResults);
+      }
+      
+      return allDailyData;
+    }
+
     // Render daily view for all hashtags (async - fetches daily data for each)
     async function renderAllHashtagsDailyView(data, year, weekNumber) {
       const { data: allData } = data;
@@ -4529,21 +4556,8 @@
         return;
       }
       
-      // Fetch daily data for each hashtag
-      const dailyDataPromises = hashtagsWithWeek.map(async (hashtag) => {
-        const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}&week=${weekNumber}&daily=true`;
-        try {
-          const response = await fetch(url);
-          if (!response.ok) return { hashtag, dailyData: [] };
-          const result = await response.json();
-          return { hashtag, dailyData: result.dailyData || [] };
-        } catch (error) {
-          console.error(`Error fetching daily data for ${hashtag}:`, error);
-          return { hashtag, dailyData: [] };
-        }
-      });
-      
-      const allDailyData = await Promise.all(dailyDataPromises);
+      // Fetch daily data for each hashtag with concurrency control
+      const allDailyData = await fetchDailyDataForHashtags(hashtagsWithWeek, year, weekNumber);
       renderMultipleHashtagsDailyChart(allDailyData, weekStart, weekEnd);
     }
 
@@ -4574,21 +4588,8 @@
         return;
       }
       
-      // Fetch daily data for each hashtag
-      const dailyDataPromises = hashtagsWithWeek.map(async (hashtag) => {
-        const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}&week=${weekNumber}&daily=true`;
-        try {
-          const response = await fetch(url);
-          if (!response.ok) return { hashtag, dailyData: [] };
-          const result = await response.json();
-          return { hashtag, dailyData: result.dailyData || [] };
-        } catch (error) {
-          console.error(`Error fetching daily data for ${hashtag}:`, error);
-          return { hashtag, dailyData: [] };
-        }
-      });
-      
-      const allDailyData = await Promise.all(dailyDataPromises);
+      // Fetch daily data for each hashtag with concurrency control
+      const allDailyData = await fetchDailyDataForHashtags(hashtagsWithWeek, year, weekNumber);
       renderMultipleHashtagsDailyChart(allDailyData, weekStart, weekEnd);
     }
 

@@ -2,12 +2,22 @@ import { logger } from '../utils/logger.js';
 import { DataProcessingError } from '../errors/index.js';
 
 export class RelevanceCalculator {
+  // Maximum expected raw score for normalization
+  // Typical range: 0-5 (log10 scale)
+  // - Low engagement: ~0.5-1.5
+  // - Normal engagement: ~1.5-2.5
+  // - High engagement: ~2.5-3.5
+  // - Viral content: ~3.5-5.0
+  // Setting to 2.5 so viral content (4.5+) reaches 85-95 range
+  static MAX_EXPECTED_SCORE = 2.5;
+  
   constructor(weights = null) {
     // Default weights that sum to 1.0
     this.weights = weights || {
-      favorites: 0.4,    // 40% weight for favorites/likes
-      boosts: 0.3,       // 30% weight for boosts/reblogs
-      followers: 0.3    // 30% weight for author's followers
+      favorites: 0.35,   // 35% weight for favorites/likes
+      boosts: 0.25,      // 25% weight for boosts/reblogs
+      followers: 0.25,   // 25% weight for author's followers
+      replies: 0.15      // 15% weight for replies (conversation engagement)
     };
     
     this.validateWeights();
@@ -22,12 +32,12 @@ export class RelevanceCalculator {
 
   /**
    * Validate and normalize weights to ensure required keys exist
-   * Normalizes weights to always contain favorites, boosts, and followers
+   * Normalizes weights to always contain favorites, boosts, followers, and replies
    * Missing keys are coerced to 0, then weights are renormalized to sum to 1.0
    */
   validateWeights() {
     // Required weight keys
-    const requiredKeys = ['favorites', 'boosts', 'followers'];
+    const requiredKeys = ['favorites', 'boosts', 'followers', 'replies'];
     
     // Normalize weights: ensure all required keys exist with numeric values
     const normalizedWeights = { ...this.weights };
@@ -100,6 +110,7 @@ export class RelevanceCalculator {
 
   /**
    * Calculate relevance score for a single toot
+   * Returns both raw score and normalized 0-100 score for better UX
    */
   calculateRelevance(toot) {
     try {
@@ -116,19 +127,23 @@ export class RelevanceCalculator {
       // Extract metrics with fallbacks
       const metrics = this.extractMetrics(toot);
       
-      // Calculate weighted score
-      const score = this.calculateWeightedScore(metrics);
+      // Calculate weighted score (raw logarithmic score)
+      const rawScore = this.calculateWeightedScore(metrics);
       
-      // Round to 1 decimal place
-      const relevanceScore = Math.round(score * 10) / 10;
+      // Round raw score to 1 decimal place
+      const relevanceScoreRaw = Math.round(rawScore * 10) / 10;
       
-      // Update statistics
+      // Normalize to 0-100 scale for better UX
+      const relevanceScore = this.normalizeScore(rawScore);
+      
+      // Update statistics with normalized score
       this.updateStats(relevanceScore);
       
       // Return enhanced toot object
       return {
         ...toot,
-        relevanceScore,
+        relevanceScore,        // Normalized 0-100 score (primary)
+        relevanceScoreRaw,     // Raw logarithmic score (for debugging/analysis)
         metrics,
         calculatedAt: new Date().toISOString()
       };
@@ -216,23 +231,31 @@ export class RelevanceCalculator {
   /**
    * Calculate weighted relevance score
    * Uses safe defaults to prevent NaN if weights are somehow undefined
+   * Returns raw score (use normalizeScore for 0-100 scale)
    */
   calculateWeightedScore(metrics) {
-    const { favorites, boosts, followers } = metrics;
+    const { favorites, boosts, followers, replies } = metrics;
     
     // Apply logarithmic scaling to prevent very large numbers from dominating
     const scaledFollowers = Math.log10(Math.max(1, followers));
     const scaledFavorites = Math.log10(Math.max(1, favorites));
     const scaledBoosts = Math.log10(Math.max(1, boosts));
+    const scaledReplies = Math.log10(Math.max(1, replies));
     
     // Use safe defaults to prevent NaN (weights should be normalized by validateWeights, but this is a safety net)
-    const { favorites: wFavorites = 0, boosts: wBoosts = 0, followers: wFollowers = 0 } = this.weights;
+    const { 
+      favorites: wFavorites = 0, 
+      boosts: wBoosts = 0, 
+      followers: wFollowers = 0,
+      replies: wReplies = 0 
+    } = this.weights;
     
     // Calculate weighted score
     const score = 
       (wFavorites * scaledFavorites) +
       (wBoosts * scaledBoosts) +
-      (wFollowers * scaledFollowers);
+      (wFollowers * scaledFollowers) +
+      (wReplies * scaledReplies);
     
     // Final safety check: ensure result is a valid number
     if (isNaN(score) || !isFinite(score)) {
@@ -240,12 +263,29 @@ export class RelevanceCalculator {
         metrics, 
         weights: this.weights, 
         score,
-        scaledValues: { scaledFavorites, scaledBoosts, scaledFollowers }
+        scaledValues: { scaledFavorites, scaledBoosts, scaledFollowers, scaledReplies }
       });
       return 0;
     }
     
     return score;
+  }
+
+  /**
+   * Normalize raw score to 0-100 scale for better UX
+   * Uses a soft cap that asymptotically approaches 100
+   * @param {number} rawScore - The raw weighted score
+   * @returns {number} Normalized score between 0 and 100
+   */
+  normalizeScore(rawScore) {
+    if (rawScore <= 0) return 0;
+    
+    // Use sigmoid-like function for smooth normalization
+    // Score of MAX_EXPECTED_SCORE maps to ~86, exceptional content can reach ~95-100
+    const normalized = 100 * (1 - Math.exp(-rawScore / RelevanceCalculator.MAX_EXPECTED_SCORE));
+    
+    // Clamp to 0-100 and round to 1 decimal place
+    return Math.round(Math.min(100, Math.max(0, normalized)) * 10) / 10;
   }
 
   /**
@@ -394,7 +434,8 @@ export class RelevanceCalculator {
   exportConfig() {
     return {
       weights: this.weights,
-      version: '1.0',
+      version: '2.0',  // v2.0: Added replies weight + normalized 0-100 scores
+      maxExpectedScore: RelevanceCalculator.MAX_EXPECTED_SCORE,
       exportedAt: new Date().toISOString(),
       stats: this.getStats()
     };
