@@ -19,10 +19,17 @@ export class HashtagService {
   /**
    * Get the daily hashtag based on current date
    * Returns the first hashtag if multiple are configured for the day
+   * @param {Object} options - Options object
+   * @param {string} options.timezone - Client timezone (IANA timezone identifier)
    */
-  getDailyHashtag(date = null) {
-    const targetDate = date ? new Date(date) : new Date();
-    const dayOfWeek = targetDate.getDay();
+  getDailyHashtag(options = {}) {
+    // Se timezone do cliente foi fornecido, usar para calcular o dia
+    const timezone = options.timezone && moment.tz.zone(options.timezone) 
+      ? options.timezone 
+      : config.server.timezone;
+    
+    const now = moment().tz(timezone);
+    const dayOfWeek = now.day();
     
     const hashtagEntry = HASHTAGS[dayOfWeek];
     
@@ -58,8 +65,12 @@ export class HashtagService {
       normalizedTimeframe = 'all';
     }
 
-    // Build cache key using normalized timeframe to prevent cache fragmentation
-    const cacheKey = `analysis_${hashtag}_${maxPages}_${normalizedTimeframe}`;
+    // Build cache key using normalized timeframe and timezone to prevent cache fragmentation
+    // Include timezone to ensure users in different timezones get correct data
+    const usedTimezone = options.timezone && moment.tz.zone(options.timezone) 
+      ? options.timezone 
+      : config.server.timezone;
+    const cacheKey = `analysis_${hashtag}_${maxPages}_${normalizedTimeframe}_${usedTimezone}`;
 
     // Check analysis cache
     const cachedAnalysis = this.cache.get(cacheKey);
@@ -71,8 +82,8 @@ export class HashtagService {
     logger.info(`Starting hashtag analysis for: ${hashtag}`, { options });
 
     try {
-      // Get today's date in the configured timezone
-      const today = moment().tz(config.server.timezone).format('YYYY-MM-DD');
+      // Get today's date in the selected timezone (client timezone if valid, otherwise server timezone)
+      const today = moment().tz(usedTimezone).format('YYYY-MM-DD');
       
       // Determine filtering strategy based on timeframe
       const shouldFilterByDate = normalizedTimeframe === 'today';
@@ -85,7 +96,8 @@ export class HashtagService {
 
       // Process toots with appropriate filtering
       const processOptions = {
-        limit: options.limit
+        limit: options.limit,
+        timezone: options.timezone // Pass client timezone if provided
       };
       
       if (shouldFilterByDate) {

@@ -54,12 +54,12 @@ export class DataProcessor {
       
       // Step 5: Apply optional filters
       if (options.filterByDate) {
-        processedToots = this.filterByDate(processedToots, options.filterByDate);
+        processedToots = this.filterByDate(processedToots, options.filterByDate, options.timezone);
         logger.debug(`After filtering by date: ${processedToots.length}`, { localStats });
       }
       
       if (options.timeframe) {
-        processedToots = this.filterByTimeframe(processedToots, options.timeframe);
+        processedToots = this.filterByTimeframe(processedToots, options.timeframe, options.timezone);
         logger.debug(`After filtering by timeframe: ${processedToots.length}`, { localStats });
       }
       
@@ -235,13 +235,13 @@ export class DataProcessor {
   /**
    * Filter toots by date
    */
-  filterByDate(toots, targetDate) {
+  filterByDate(toots, targetDate, clientTimezone = null) {
     if (!targetDate) {
       throw new DataProcessingError('Target date is required for date filtering', 'filter_date');
     }
 
-    // Validate and normalize timezone
-    let timezone = config.server.timezone;
+    // Validate and normalize timezone - prefer client timezone if provided and valid
+    let timezone = clientTimezone && moment.tz.zone(clientTimezone) ? clientTimezone : config.server.timezone;
     if (!timezone || !moment.tz.zone(timezone)) {
       logger.warn(`Invalid timezone '${timezone}', defaulting to UTC`, { 
         providedTimezone: timezone 
@@ -273,13 +273,13 @@ export class DataProcessor {
   /**
    * Filter toots by timeframe (today, week, month, all)
    */
-  filterByTimeframe(toots, timeframe) {
+  filterByTimeframe(toots, timeframe, clientTimezone = null) {
     if (!timeframe || timeframe === 'all') {
       return toots;
     }
 
-    // Validate and normalize timezone
-    let timezone = config.server.timezone;
+    // Validate and normalize timezone - prefer client timezone if provided and valid
+    let timezone = clientTimezone && moment.tz.zone(clientTimezone) ? clientTimezone : config.server.timezone;
     if (!timezone || !moment.tz.zone(timezone)) {
       logger.warn(`Invalid timezone '${timezone}', defaulting to UTC`, { 
         providedTimezone: timezone 

@@ -42,6 +42,9 @@ export class MastodonService {
    * @returns {Promise} Response data
    */
   async makeAPIRequest(endpoint, params = {}, method = 'get') {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/mastodon.js:44',message:'makeAPIRequest entry',data:{endpoint,method},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     await this.applyRateLimit();
     
     try {
@@ -52,9 +55,15 @@ export class MastodonService {
         throw new APIError(`Unsupported HTTP method: ${method}`, null, { endpoint, method });
       }
       
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/mastodon.js:56',message:'Before client method call',data:{endpoint,method},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const startTime = Date.now();
       const response = await clientMethod.call(this.client, endpoint, params);
       const duration = Date.now() - startTime;
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/mastodon.js:58',message:'After client method call',data:{endpoint,method,duration},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       
       if (!response || !response.data) {
         throw new APIError(`Invalid response from ${endpoint}`, null, { endpoint, params, method });
@@ -65,6 +74,9 @@ export class MastodonService {
       
       return response.data;
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/mastodon.js:67',message:'API request error caught',data:{endpoint,method,error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       loggers.error(`API request failed for ${endpoint}`, error, { params, method });
       
       // Handle specific Mastodon API errors

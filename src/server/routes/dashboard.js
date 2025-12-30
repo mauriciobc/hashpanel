@@ -13,7 +13,7 @@ const router = Router();
  * Get comprehensive dashboard statistics
  */
 router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
-  const { timeframe = 'today' } = req.query;
+  const { timeframe = 'today', timezone: clientTimezone } = req.query;
   
   // Validate timeframe parameter type
   if (Array.isArray(timeframe)) {
@@ -34,13 +34,14 @@ router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
   logger.info('Dashboard stats requested', { timeframe: normalizedTimeframe });
   
   try {
-    // Get daily hashtag
-    const dailyHashtag = hashtagService.getDailyHashtag();
+    // Get daily hashtag using client timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
     
     // Get comprehensive analysis - limit to 3 pages for faster response time
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
       maxPages: 3,
-      timeframe: normalizedTimeframe 
+      timeframe: normalizedTimeframe,
+      timezone: clientTimezone
     });
     
     const stats = {
@@ -85,13 +86,19 @@ router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
  * Get quick summary of current day's hashtag
  */
 router.get('/summary', asyncHandler(async (req, res) => {
-  const dailyHashtag = hashtagService.getDailyHashtag();
+  const { timezone: clientTimezone } = req.query;
+  
+  // Get daily hashtag using client timezone
+  const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
   
   logger.info('Dashboard summary requested', { hashtag: dailyHashtag });
   
   try {
     // Limit to 3 pages for faster response time
-    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { maxPages: 3 });
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
+      maxPages: 3,
+      timezone: clientTimezone 
+    });
     
     const topToots = analysis.getTopToots(1);
     const summary = {
@@ -175,12 +182,14 @@ function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max = 365) 
  * Get timeline data for the past week
  */
 router.get('/timeline', moderateRateLimit, asyncHandler(async (req, res) => {
+  const { timezone: clientTimezone } = req.query;
   const days = validateDaysParameter(req.query.days, 7, 1, 365);
   
   logger.info('Dashboard timeline requested', { days });
   
   try {
-    const dailyHashtag = hashtagService.getDailyHashtag();
+    // Get daily hashtag using client timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
     const history = await hashtagService.getHashtagHistory(dailyHashtag);
     
     // Get the last N days of data
@@ -265,9 +274,13 @@ router.get('/alerts', moderateRateLimit, asyncHandler(async (req, res) => {
       });
     }
     
-    // Check daily hashtag activity
-    const dailyHashtag = hashtagService.getDailyHashtag();
-    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { maxPages: 3 });
+    // Check daily hashtag activity using client timezone
+    const { timezone: clientTimezone } = req.query;
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
+      maxPages: 3,
+      timezone: clientTimezone 
+    });
     
     if (!analysis.hasTodayToots()) {
       alerts.push({

@@ -272,16 +272,18 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
  * Post the daily summary
  */
 router.post('/daily', postingRateLimit, asyncHandler(async (req, res) => {
-  const { dryRun = false } = req.body;
+  const { dryRun = false, timezone: clientTimezone } = req.body;
   
   logger.info('Daily toot posting requested', { dryRun });
   
   try {
-    // Get current day's hashtag
-    const dailyHashtag = hashtagService.getDailyHashtag();
+    // Get current day's hashtag using client timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
     
     // Analyze hashtag
-    const analysis = await hashtagService.analyzeHashtag(dailyHashtag);
+    const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
+      timezone: clientTimezone 
+    });
     
     if (!analysis.hasTodayToots()) {
       return res.json({

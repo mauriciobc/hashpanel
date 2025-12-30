@@ -90,6 +90,9 @@ export class WebServer {
    * Health check endpoint
    */
   healthCheck = async (req, res) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:92',message:'Healthcheck started',data:{uptime:process.uptime()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     try {
       const health = {
         status: 'healthy',
@@ -108,23 +111,41 @@ export class WebServer {
       };
 
       // Test Mastodon connectivity
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:111',message:'Before Mastodon API test',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       try {
         // Quick API call to test connectivity
         await mastodonService.getTrendingTags(1);
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:114',message:'Mastodon API test succeeded',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         health.services.mastodon = 'healthy';
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:117',message:'Mastodon API test failed',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         health.services.mastodon = 'unhealthy';
         health.status = 'degraded';
       }
 
       // Test database connectivity
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:121',message:'Before database health check',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       try {
         const dbHealth = getDatabase().healthCheck();
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:123',message:'Database health check succeeded',data:{status:dbHealth.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         health.services.database = dbHealth.status;
         if (dbHealth.status !== 'healthy') {
           health.status = 'degraded';
         }
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:128',message:'Database health check failed',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         health.services.database = 'unhealthy';
         health.status = 'degraded';
       }
@@ -181,8 +202,14 @@ export class WebServer {
     validateCorsConfig();
 
     return new Promise((resolve, reject) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:183',message:'Before server.listen',data:{host:config.server.host,port:config.server.port},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       try {
         this.server = this.app.listen(config.server.port, config.server.host, () => {
+          // #region agent log
+          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:186',message:'Server listen callback executed',data:{host:config.server.host,port:config.server.port},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           this.isStarted = true;
           
           logger.info(`Web server started successfully`, {
@@ -203,6 +230,9 @@ export class WebServer {
         });
 
         this.server.on('error', (error) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:205',message:'Server error event',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           logger.error('Server startup failed', error);
           reject(error);
         });
@@ -375,6 +405,9 @@ process.on('SIGINT', async () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:377',message:'Uncaught exception handler',data:{error:error.message,code:error.code,stack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   logger.error('Uncaught exception', error);
   logger.error('Shutting down due to uncaught exception');
   process.exit(1);
@@ -382,6 +415,9 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:384',message:'Unhandled promise rejection',data:{reason:reason?.message||String(reason),code:reason?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   logger.error('Unhandled promise rejection', { reason, promise });
   logger.error('Shutting down due to unhandled promise rejection');
   process.exit(1);

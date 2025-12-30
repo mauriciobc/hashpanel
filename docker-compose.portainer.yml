@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  hashpanel:
+    image: node:20-alpine
+    container_name: hashpanel
+    restart: always
+    working_dir: /app
+    volumes:
+      - hashpanel_data:/app
+      - hashpanel_logs:/app/logs
+    environment:
+      # Required Mastodon configuration
+      - MASTODON_URL=${MASTODON_URL}
+      - CLIENT_KEY=${CLIENT_KEY}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      
+      # Server configuration
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      
+      # Performance settings (optional, with defaults)
+      - API_TIMEOUT_MS=${API_TIMEOUT_MS:-30000}
+      - RATE_LIMIT_DELAY_MS=${RATE_LIMIT_DELAY_MS:-1000}
+      - MAX_API_PAGES=${MAX_API_PAGES:-20}
+      - TOOTS_PER_PAGE=${TOOTS_PER_PAGE:-40}
+      
+      # Cache settings (optional, with defaults)
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-300}
+      - ENABLE_CACHE=${ENABLE_CACHE:-true}
+      
+      # CORS configuration
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      
+      # Build tools configuration (for native modules)
+      - PYTHON=/usr/bin/python3
+      
+      # Cron schedule (default: 02:00 daily, format: minute hour day month weekday)
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 * * *}
+    networks:
+      - hashpanel_net
+    # Improved command: ensures proper setup and database initialization
+    command: >
+      sh -c "set -e &&
+      echo '=== Installing build dependencies and cron ===' &&
+      apk add --no-cache curl git wget python3 python3-dev py3-pip make g++ build-base dcron &&
+      ln -sf /usr/bin/python3 /usr/bin/python &&
+      export PYTHON=/usr/bin/python3 &&
+      echo '=== Node.js version ===' &&
+      node --version &&
+      echo '=== Python version ===' &&
+      python --version &&
+      if [ ! -f package.json ]; then
+        echo '=== Empty volume detected. Cloning HashPanel ===' &&
+        git clone https://github.com/mauriciobc/hashpanel.git . ;
+      else
+        echo '=== Updating code from GitHub ===' &&
+        git pull origin main || echo 'Git pull failed, continuing with existing code...' ;
+      fi &&
+      echo '=== Installing dependencies (this may take a few minutes on ARM) ===' &&
+      npm install --omit=dev --no-audit --no-fund || (echo 'npm install failed!' && exit 1) &&
+      echo '=== Creating logs directory ===' &&
+      mkdir -p logs &&
+      echo '=== Initializing database ===' &&
+      npm run db:migrate || echo 'Database migration skipped or already done' &&
+      echo '=== Setting up cron job ===' &&
+      SCHEDULE=\"$${CRON_SCHEDULE:-0 2 * * *}\" &&
+      printf '%s cd /app && /usr/local/bin/node src/cli/collectHistory.js >> /app/logs/cron-collect-$(date +%%Y-%%m-%%d).log 2>&1\n' \"\$${SCHEDULE}\" > /tmp/crontab.txt &&
+      crontab /tmp/crontab.txt &&
+      rm /tmp/crontab.txt &&
+      echo '=== Cron job configured ===' &&
+      crontab -l &&
+      echo '=== Starting cron daemon ===' &&
+      crond -l 2 &&
+      echo '=== Starting web server ===' &&
+      exec npm run server"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      # Improved healthcheck using the /health endpoint
+      # Using curl as fallback if wget fails, with increased timeouts for ARM builds
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --timeout=5 http://localhost:3000/health 2>/dev/null || curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 300s
+      
+  caddy:
+    image: caddy:alpine
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - MY_DOMAIN=${MY_DOMAIN}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - hashpanel_net
+    command: >
+      sh -c "echo ':80 {
+        reverse_proxy hashpanel:3000
+      }' > /etc/caddy/Caddyfile && caddy run --config /etc/caddy/Caddyfile"
+    depends_on:
+      hashpanel:
+        condition: service_healthy
+
+networks:
+  hashpanel_net:
+    driver: bridge
+
+volumes:
+  hashpanel_data:
+    # Persists application code and database
+  hashpanel_logs:
+    # Persists log files
+  caddy_data:
+  caddy_config:

@@ -38,6 +38,9 @@ export class DatabaseService {
    * @private
    */
   _initializeConnection() {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/database/index.js:40',message:'Before database initialization',data:{dbPath:this.dbPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     this.db = new Database(this.dbPath);
     
     // Enable WAL mode for better concurrency
@@ -46,6 +49,9 @@ export class DatabaseService {
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
     
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/database/index.js:49',message:'Database initialization completed',data:{dbPath:this.dbPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     logger.info('Database connection established', { path: this.dbPath });
   }
 

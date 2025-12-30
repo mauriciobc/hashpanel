@@ -7,6 +7,7 @@ import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { HASHTAGS, getHashtagsForDay, getFirstHashtagForDay } from '../../constants/index.js';
 import { appConfig as config } from '../../config/index.js';
+import moment from 'moment-timezone';
 
 const router = Router();
 // Using singleton instance from service
@@ -40,14 +41,24 @@ function calculateMaxPagesForTimeframe(timeframe) {
  * Get current day's hashtag
  */
 router.get('/current', asyncHandler(async (req, res) => {
-  const currentHashtag = hashtagService.getDailyHashtag();
+  const { timezone: clientTimezone } = req.query;
   
-  logger.info('Current hashtag requested', { hashtag: currentHashtag });
+  // Validar e usar timezone do cliente
+  const timezone = clientTimezone && moment.tz.zone(clientTimezone) 
+    ? clientTimezone 
+    : config.server.timezone;
+  
+  const now = moment().tz(timezone);
+  const currentHashtag = hashtagService.getDailyHashtag({ timezone });
+  
+  logger.info('Current hashtag requested', { hashtag: currentHashtag, timezone });
   
   res.json({
     hashtag: currentHashtag,
-    date: new Date().toISOString(),
-    dayOfWeek: new Date().getDay()
+    date: now.format('YYYY-MM-DD'),
+    dayOfWeek: now.day(),
+    timezone: timezone,
+    serverTimezone: config.server.timezone
   });
 }));
 
@@ -57,7 +68,7 @@ router.get('/current', asyncHandler(async (req, res) => {
  */
 router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) => {
   const { hashtag } = req.params;
-  const { timeframe = 'today' } = req.query;
+  const { timeframe = 'today', timezone: clientTimezone } = req.query;
   
   if (!hashtag) {
     throw new ValidationError('Hashtag is required');
@@ -84,7 +95,8 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
     
     const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { 
       maxPages,
-      timeframe: normalizedTimeframe 
+      timeframe: normalizedTimeframe,
+      timezone: clientTimezone
     });
     
     const stats = {
@@ -113,7 +125,9 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
       mostActiveUsers: analysis.getMostActiveUsers(10),
       metadata: {
         generatedAt: analysis.createdAt,
-        timezone: process.env.PREFERRED_TIMEZONE || 'America/Sao_Paulo'
+        timezone: clientTimezone && moment.tz.zone(clientTimezone) ? clientTimezone : config.server.timezone,
+        serverTimezone: config.server.timezone,
+        clientTimezone: clientTimezone || null
       }
     };
     

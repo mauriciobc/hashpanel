@@ -2022,6 +2022,9 @@
     // API Base URL
     const API_BASE = '/api';
 
+    // Detect browser timezone
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     // State management for cleanup
     let refreshInterval = null;
     let currentAbortedController = null;
@@ -2354,6 +2357,12 @@
 
     // Enhanced fetch wrapper that tracks rate limits
     async function fetchWithRateLimitTracking(url, options = {}) {
+      // Add timezone to query params if not already present
+      const urlObj = new URL(url, window.location.origin);
+      if (!urlObj.searchParams.has('timezone')) {
+        urlObj.searchParams.set('timezone', browserTimezone);
+        url = urlObj.pathname + urlObj.search;
+      }
       try {
         const response = await fetch(url, options);
         
@@ -3957,8 +3966,9 @@
     // Format date helper
     function formatDate(dateString) {
       if (!dateString) return '-';
+      // Parse date and format using browser's timezone automatically
       const date = new Date(dateString + 'T00:00:00');
-      return date.toLocaleDateString('pt-BR');
+      return date.toLocaleDateString('pt-BR', { timeZone: browserTimezone });
     }
 
     // Make functions global
