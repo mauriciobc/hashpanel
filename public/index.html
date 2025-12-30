@@ -3666,16 +3666,30 @@
       loadWeeklyHistory();
     }
 
+    // Get selected hashtags
+    function getSelectedHashtags() {
+      const allCheckbox = document.getElementById('hashtagAll');
+      if (allCheckbox.checked) {
+        return ['all'];
+      }
+      
+      const checkboxes = document.querySelectorAll('#hashtagCheckboxList input[type="checkbox"]:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
     // Load available weeks for the selected year and hashtag
     async function loadAvailableWeeks() {
       const year = document.getElementById('yearSelect').value;
-      const hashtag = document.getElementById('hashtagSelect').value;
+      const selectedHashtags = getSelectedHashtags();
       const weekSelect = document.getElementById('weekSelect');
       
-      if (hashtag === 'all') {
-        weekSelect.innerHTML = '<option value="">Selecione um hashtag</option>';
+      // Week filter only works with single hashtag
+      if (selectedHashtags.length === 0 || selectedHashtags.includes('all') || selectedHashtags.length > 1) {
+        weekSelect.innerHTML = '<option value="">Selecione uma hashtag</option>';
         return;
       }
+      
+      const hashtag = selectedHashtags[0];
       
       try {
         const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
@@ -3699,17 +3713,17 @@
       }
     }
 
-    // Load hashtags for selector
+    // Load hashtags for checkbox list
     async function loadHistoryHashtags() {
       try {
         const response = await fetch(`${API_BASE}/hashtag/daily`);
         if (!response.ok) throw new Error('Failed to load hashtags');
         
         const data = await response.json();
-        const hashtagSelect = document.getElementById('hashtagSelect');
+        const hashtagCheckboxList = document.getElementById('hashtagCheckboxList');
         
-        // Clear existing options except "all"
-        hashtagSelect.innerHTML = '<option value="all">Todas as hashtags</option>';
+        // Clear existing checkboxes
+        hashtagCheckboxList.innerHTML = '';
         
         // Extract unique hashtags
         const uniqueHashtags = new Set();
@@ -3721,30 +3735,95 @@
           }
         });
         
+        // Create checkboxes for each hashtag
         Array.from(uniqueHashtags).sort().forEach(hashtag => {
-          const option = document.createElement('option');
-          option.value = hashtag;
-          option.textContent = `#${hashtag}`;
-          hashtagSelect.appendChild(option);
+          const label = document.createElement('label');
+          label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: var(--radius-sm); transition: background var(--transition-fast);';
+          label.onmouseover = () => label.style.background = 'var(--bg-card-hover)';
+          label.onmouseout = () => label.style.background = 'transparent';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = hashtag;
+          checkbox.id = `hashtag-${hashtag}`;
+          checkbox.style.cursor = 'pointer';
+          checkbox.onchange = handleIndividualHashtagChange;
+          
+          const span = document.createElement('span');
+          span.style.cssText = 'color: var(--text-primary); font-size: 0.9rem;';
+          span.textContent = `#${hashtag}`;
+          
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          hashtagCheckboxList.appendChild(label);
         });
       } catch (error) {
         console.error('Error loading hashtags:', error);
       }
     }
 
+    // Toggle all hashtags checkbox
+    function toggleAllHashtags() {
+      const allCheckbox = document.getElementById('hashtagAll');
+      const individualCheckboxes = document.querySelectorAll('#hashtagCheckboxList input[type="checkbox"]');
+      
+      if (allCheckbox.checked) {
+        // Uncheck all individual hashtags when "all" is selected
+        individualCheckboxes.forEach(cb => cb.checked = false);
+      }
+      
+      updateFilters();
+    }
+
+    // Handle individual hashtag checkbox change
+    function handleIndividualHashtagChange() {
+      const allCheckbox = document.getElementById('hashtagAll');
+      const individualCheckboxes = document.querySelectorAll('#hashtagCheckboxList input[type="checkbox"]');
+      const checkedCount = Array.from(individualCheckboxes).filter(cb => cb.checked).length;
+      
+      // If any individual checkbox is checked, uncheck "all"
+      if (checkedCount > 0 && allCheckbox.checked) {
+        allCheckbox.checked = false;
+      }
+      
+      updateFilters();
+    }
+
     // Load weekly history data
     async function loadWeeklyHistory() {
       const year = document.getElementById('yearSelect').value;
-      const hashtag = document.getElementById('hashtagSelect').value;
+      const selectedHashtags = getSelectedHashtags();
       const filterType = document.getElementById('filterTypeSelect').value;
       const week = document.getElementById('weekSelect')?.value || '';
       const day = document.getElementById('daySelect')?.value || '';
       
+      if (selectedHashtags.length === 0) {
+        // Clear charts and table if no hashtags selected
+        if (weeklyUsesChart) weeklyUsesChart.destroy();
+        if (weeklyAccountsChart) weeklyAccountsChart.destroy();
+        weeklyUsesChart = null;
+        weeklyAccountsChart = null;
+        document.getElementById('weeklyHistoryTableBody').innerHTML = `
+          <tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+            Selecione pelo menos uma hashtag para ver os dados
+          </td></tr>
+        `;
+        return;
+      }
+      
       try {
-        let url;
-        if (hashtag === 'all') {
-          // For "all hashtags", only support year filter
-          url = `${API_BASE}/hashtag/history/weekly?year=${year}`;
+        // Handle "all hashtags" aggregation
+        if (selectedHashtags.includes('all')) {
+          if (filterType !== 'all') {
+            // Week and day filters don't work with "all"
+            document.getElementById('weeklyHistoryTableBody').innerHTML = `
+              <tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+                Filtros de semana/dia não estão disponíveis para "Todas as hashtags"
+              </td></tr>
+            `;
+            return;
+          }
+          const url = `${API_BASE}/hashtag/history/weekly?year=${year}`;
           const response = await fetch(url);
           if (!response.ok) throw new Error('Failed to load weekly history');
           const data = await response.json();
@@ -3752,8 +3831,35 @@
           return;
         }
         
-        // Build URL with filters
-        url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
+        // Handle multiple hashtags - fetch data for each
+        if (selectedHashtags.length > 1) {
+          // Multiple hashtags - show each as separate line in chart
+          if (filterType !== 'all') {
+            // Week and day filters only work with single hashtag
+            document.getElementById('weeklyHistoryTableBody').innerHTML = `
+              <tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">
+                Filtros de semana/dia só funcionam com uma hashtag selecionada
+              </td></tr>
+            `;
+            return;
+          }
+          
+          const hashtagDataPromises = selectedHashtags.map(async (hashtag) => {
+            const url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load data for ${hashtag}`);
+            const data = await response.json();
+            return { hashtag, data };
+          });
+          
+          const hashtagDataResults = await Promise.all(hashtagDataPromises);
+          renderMultipleHashtagsHistory(hashtagDataResults, year);
+          return;
+        }
+        
+        // Single hashtag selected
+        const hashtag = selectedHashtags[0];
+        let url = `${API_BASE}/hashtag/${encodeURIComponent(hashtag)}/history/weekly?year=${year}`;
         if (filterType === 'week' && week) {
           url += `&week=${week}`;
         } else if (filterType === 'day' && day) {
@@ -3841,6 +3947,82 @@
       `).join('');
     }
 
+    // Render multiple hashtags history (each as separate line)
+    function renderMultipleHashtagsHistory(hashtagDataResults, year) {
+      // Extract weekly data for each hashtag
+      const datasetsArray = hashtagDataResults.map(({ hashtag, data }) => ({
+        hashtag,
+        weeklyData: data.weeklyData || []
+      }));
+      
+      // Calculate aggregated summary
+      let totalUses = 0;
+      let totalAccounts = 0;
+      let maxWeeks = 0;
+      const allWeekNumbers = new Set();
+      
+      datasetsArray.forEach(({ weeklyData }) => {
+        weeklyData.forEach(week => {
+          totalUses += week.totalUses;
+          totalAccounts += week.totalAccounts;
+          allWeekNumbers.add(week.weekNumber);
+        });
+        maxWeeks = Math.max(maxWeeks, weeklyData.length);
+      });
+      
+      const avgWeekly = allWeekNumbers.size > 0 ? totalUses / allWeekNumbers.size : 0;
+      
+      // Update summary cards
+      document.getElementById('summaryTotalUses').textContent = totalUses;
+      document.getElementById('summaryTotalAccounts').textContent = totalAccounts;
+      document.getElementById('summaryWeeks').textContent = maxWeeks;
+      document.getElementById('summaryAverage').textContent = avgWeekly.toFixed(1);
+      
+      // Update charts with multiple datasets
+      updateWeeklyChartsMultiple(datasetsArray);
+      
+      // Update table - show aggregated data
+      const tbody = document.getElementById('weeklyHistoryTableBody');
+      if (allWeekNumbers.size === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-secondary);">Nenhum dado disponível para este período</td></tr>';
+        return;
+      }
+      
+      // Aggregate weeks across all hashtags
+      const aggregatedWeeks = {};
+      datasetsArray.forEach(({ weeklyData }) => {
+        weeklyData.forEach(week => {
+          if (!aggregatedWeeks[week.weekNumber]) {
+            aggregatedWeeks[week.weekNumber] = {
+              weekNumber: week.weekNumber,
+              weekStart: week.weekStart,
+              weekEnd: week.weekEnd,
+              totalUses: 0,
+              totalAccounts: 0
+            };
+          }
+          aggregatedWeeks[week.weekNumber].totalUses += week.totalUses;
+          aggregatedWeeks[week.weekNumber].totalAccounts += week.totalAccounts;
+        });
+      });
+      
+      const sortedWeeks = Object.values(aggregatedWeeks).sort((a, b) => a.weekNumber - b.weekNumber);
+      sortedWeeks.forEach(week => {
+        week.dailyAverage = week.totalUses / 7;
+      });
+      
+      tbody.innerHTML = sortedWeeks.map(week => `
+        <tr>
+          <td>Semana ${week.weekNumber}</td>
+          <td>${formatDate(week.weekStart)}</td>
+          <td>${formatDate(week.weekEnd)}</td>
+          <td>${week.totalUses}</td>
+          <td>${week.totalAccounts}</td>
+          <td>${week.dailyAverage ? week.dailyAverage.toFixed(1) : 0}</td>
+        </tr>
+      `).join('');
+    }
+
     // Render all hashtags history
     function renderAllHashtagsHistory(data, year) {
       const { data: allData, summary } = data;
@@ -3905,8 +4087,21 @@
       `).join('');
     }
 
-    // Update charts
-    function updateWeeklyCharts(weeklyData) {
+    // Color palette for multiple hashtags
+    const hashtagColors = [
+      { border: 'rgb(102, 126, 234)', background: 'rgba(102, 126, 234, 0.1)' }, // Primary blue
+      { border: 'rgb(67, 233, 123)', background: 'rgba(67, 233, 123, 0.1)' },   // Green
+      { border: 'rgb(250, 112, 154)', background: 'rgba(250, 112, 154, 0.1)' }, // Pink
+      { border: 'rgb(79, 172, 254)', background: 'rgba(79, 172, 254, 0.1)' },   // Light blue
+      { border: 'rgb(255, 107, 107)', background: 'rgba(255, 107, 107, 0.1)' }, // Red
+      { border: 'rgb(243, 202, 64)', background: 'rgba(243, 202, 64, 0.1)' },   // Yellow
+      { border: 'rgb(118, 75, 162)', background: 'rgba(118, 75, 162, 0.1)' },   // Purple
+      { border: 'rgb(240, 147, 251)', background: 'rgba(240, 147, 251, 0.1)' }, // Light pink
+    ];
+
+    // Update charts - single dataset
+    function updateWeeklyCharts(weeklyData, hashtagLabel = null) {
+      // Single dataset (original behavior)
       const labels = weeklyData.map(w => `Semana ${w.weekNumber}`);
       const usesData = weeklyData.map(w => w.totalUses);
       const accountsData = weeklyData.map(w => w.totalAccounts);
@@ -3915,6 +4110,8 @@
       if (weeklyUsesChart) weeklyUsesChart.destroy();
       if (weeklyAccountsChart) weeklyAccountsChart.destroy();
       
+      const label = hashtagLabel || 'Total de Usos';
+      
       // Uses chart
       const usesCtx = document.getElementById('weeklyUsesChart').getContext('2d');
       weeklyUsesChart = new Chart(usesCtx, {
@@ -3922,7 +4119,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Total de Usos',
+            label: label,
             data: usesData,
             borderColor: 'rgb(102, 126, 234)',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -3959,7 +4156,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Contas Únicas',
+            label: label,
             data: accountsData,
             borderColor: 'rgb(67, 233, 123)',
             backgroundColor: 'rgba(67, 233, 123, 0.1)',
@@ -3990,6 +4187,121 @@
       });
     }
 
+    // Update charts with multiple datasets (one per hashtag)
+    function updateWeeklyChartsMultiple(datasetsArray) {
+      // datasetsArray is array of { label, weeklyData }
+      // Get all unique week numbers across all datasets
+      const allWeekNumbers = new Set();
+      datasetsArray.forEach(ds => {
+        ds.weeklyData.forEach(week => allWeekNumbers.add(week.weekNumber));
+      });
+      
+      const sortedWeeks = Array.from(allWeekNumbers).sort((a, b) => a - b);
+      const labels = sortedWeeks.map(w => `Semana ${w}`);
+      
+      // Create datasets for uses chart
+      const usesDatasets = datasetsArray.map((ds, index) => {
+        const color = hashtagColors[index % hashtagColors.length];
+        const data = sortedWeeks.map(weekNum => {
+          const week = ds.weeklyData.find(w => w.weekNumber === weekNum);
+          return week ? week.totalUses : null;
+        });
+        
+        return {
+          label: `#${ds.hashtag}`,
+          data: data,
+          borderColor: color.border,
+          backgroundColor: color.background,
+          tension: 0.4,
+          fill: false // Don't fill when multiple lines
+        };
+      });
+      
+      // Create datasets for accounts chart
+      const accountsDatasets = datasetsArray.map((ds, index) => {
+        const color = hashtagColors[index % hashtagColors.length];
+        const data = sortedWeeks.map(weekNum => {
+          const week = ds.weeklyData.find(w => w.weekNumber === weekNum);
+          return week ? week.totalAccounts : null;
+        });
+        
+        return {
+          label: `#${ds.hashtag}`,
+          data: data,
+          borderColor: color.border,
+          backgroundColor: color.background,
+          tension: 0.4,
+          fill: false
+        };
+      });
+      
+      // Destroy existing charts if they exist
+      if (weeklyUsesChart) weeklyUsesChart.destroy();
+      if (weeklyAccountsChart) weeklyAccountsChart.destroy();
+      
+      // Uses chart
+      const usesCtx = document.getElementById('weeklyUsesChart').getContext('2d');
+      weeklyUsesChart = new Chart(usesCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: usesDatasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0aec0' },
+              position: 'top'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+          }
+        }
+      });
+      
+      // Accounts chart
+      const accountsCtx = document.getElementById('weeklyAccountsChart').getContext('2d');
+      weeklyAccountsChart = new Chart(accountsCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: accountsDatasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0aec0' },
+              position: 'top'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a0aec0' },
+              grid: { color: 'rgba(255, 255, 255, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
     // Format date helper
     function formatDate(dateString) {
       if (!dateString) return '-';
@@ -4002,6 +4314,9 @@
     window.showView = showView;
     window.loadWeeklyHistory = loadWeeklyHistory;
     window.updateFilters = updateFilters;
+    window.toggleAllHashtags = toggleAllHashtags;
+    window.getSelectedHashtags = getSelectedHashtags;
+    window.handleIndividualHashtagChange = handleIndividualHashtagChange;
   </script>
 </body>
 </html>
