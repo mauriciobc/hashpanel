@@ -1875,12 +1875,19 @@
               <!-- Populated by JavaScript -->
             </select>
           </div>
-          <div>
-            <label for="hashtagSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtag:</label>
-            <select id="hashtagSelect" onchange="updateFilters()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 200px;">
-              <option value="all">Todas as hashtags</option>
-              <!-- Populated by JavaScript -->
-            </select>
+          <div style="flex: 1; min-width: 250px;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtags:</label>
+            <div id="hashtagCheckboxContainer" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; max-height: 150px; overflow-y: auto;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: var(--radius-sm); transition: background var(--transition-fast);" 
+                     onmouseover="this.style.background='var(--bg-card-hover)'" 
+                     onmouseout="this.style.background='transparent'">
+                <input type="checkbox" id="hashtagAll" value="all" onchange="toggleAllHashtags()" style="cursor: pointer;">
+                <span style="color: var(--text-primary); font-size: 0.9rem;">Todas as hashtags (agregado)</span>
+              </label>
+              <div id="hashtagCheckboxList" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
           </div>
           <div>
             <label for="filterTypeSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Filtro:</label>
@@ -2022,8 +2029,28 @@
     // API Base URL
     const API_BASE = '/api';
 
-    // Detect browser timezone
-    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // Detect browser timezone with validation and fallback
+    let browserTimezone;
+    try {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Validate: must be non-empty string matching IANA timezone pattern
+      // IANA timezones typically follow patterns like "America/Sao_Paulo", "Europe/London", "UTC", etc.
+      if (typeof detected === 'string' && detected.trim() !== '') {
+        // Basic IANA pattern validation: at least one letter, may contain slashes, underscores, hyphens
+        // This covers patterns like "UTC", "America/Sao_Paulo", "Europe/London", etc.
+        const ianaPattern = /^[A-Za-z][A-Za-z0-9_\/\-]+$|^UTC$/i;
+        if (ianaPattern.test(detected.trim())) {
+          browserTimezone = detected.trim();
+        } else {
+          throw new Error(`Invalid IANA timezone format: ${detected}`);
+        }
+      } else {
+        throw new Error(`Timezone detection returned invalid value: ${detected}`);
+      }
+    } catch (error) {
+      console.warn('Failed to detect or validate browser timezone, falling back to UTC:', error);
+      browserTimezone = 'UTC';
+    }
 
     // State management for cleanup
     let refreshInterval = null;

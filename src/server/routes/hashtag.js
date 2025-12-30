@@ -7,6 +7,7 @@ import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { HASHTAGS, getHashtagsForDay, getFirstHashtagForDay } from '../../constants/index.js';
 import { appConfig as config } from '../../config/index.js';
+import { validateTimezoneParameter } from '../../utils/validators.js';
 import moment from 'moment-timezone';
 
 const router = Router();
@@ -43,21 +44,19 @@ function calculateMaxPagesForTimeframe(timeframe) {
 router.get('/current', asyncHandler(async (req, res) => {
   const { timezone: clientTimezone } = req.query;
   
-  // Validar e usar timezone do cliente
-  const timezone = clientTimezone && moment.tz.zone(clientTimezone) 
-    ? clientTimezone 
-    : config.server.timezone;
+  // Validate timezone parameter
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
   
-  const now = moment().tz(timezone);
-  const currentHashtag = hashtagService.getDailyHashtag({ timezone });
+  const now = moment().tz(validatedTimezone);
+  const currentHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
   
-  logger.info('Current hashtag requested', { hashtag: currentHashtag, timezone });
+  logger.info('Current hashtag requested', { hashtag: currentHashtag, timezone: validatedTimezone });
   
   res.json({
     hashtag: currentHashtag,
     date: now.format('YYYY-MM-DD'),
     dayOfWeek: now.day(),
-    timezone: timezone,
+    timezone: validatedTimezone,
     serverTimezone: config.server.timezone
   });
 }));
@@ -80,6 +79,9 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
     throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`);
   }
   
+  // Validate timezone parameter
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
+  
   // Normalize hashtag - remove # sign if present
   const normalizedHashtag = hashtag.replace(/^#/, '');
   const normalizedTimeframe = timeframe.toLowerCase();
@@ -96,7 +98,7 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
     const analysis = await hashtagService.analyzeHashtag(normalizedHashtag, { 
       maxPages,
       timeframe: normalizedTimeframe,
-      timezone: clientTimezone
+      timezone: validatedTimezone
     });
     
     const stats = {
@@ -125,7 +127,7 @@ router.get('/:hashtag/stats', moderateRateLimit, asyncHandler(async (req, res) =
       mostActiveUsers: analysis.getMostActiveUsers(10),
       metadata: {
         generatedAt: analysis.createdAt,
-        timezone: clientTimezone && moment.tz.zone(clientTimezone) ? clientTimezone : config.server.timezone,
+        timezone: validatedTimezone,
         serverTimezone: config.server.timezone,
         clientTimezone: clientTimezone || null
       }

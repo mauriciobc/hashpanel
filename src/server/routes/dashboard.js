@@ -4,6 +4,8 @@ import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
+import { appConfig as config } from '../../config/index.js';
+import { validateDaysParameter, validateTimezoneParameter } from '../../utils/validators.js';
 
 const router = Router();
 // Using singleton instance from service
@@ -31,17 +33,20 @@ router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
     throw new ValidationError(`Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}`, 'timeframe', timeframe);
   }
   
+  // Validate timezone parameter
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
+  
   logger.info('Dashboard stats requested', { timeframe: normalizedTimeframe });
   
   try {
-    // Get daily hashtag using client timezone
-    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+    // Get daily hashtag using validated timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
     
     // Get comprehensive analysis - limit to 3 pages for faster response time
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
       maxPages: 3,
       timeframe: normalizedTimeframe,
-      timezone: clientTimezone
+      timezone: validatedTimezone
     });
     
     const stats = {
@@ -88,8 +93,11 @@ router.get('/stats', moderateRateLimit, asyncHandler(async (req, res) => {
 router.get('/summary', asyncHandler(async (req, res) => {
   const { timezone: clientTimezone } = req.query;
   
-  // Get daily hashtag using client timezone
-  const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+  // Validate timezone parameter
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
+  
+  // Get daily hashtag using validated timezone
+  const dailyHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
   
   logger.info('Dashboard summary requested', { hashtag: dailyHashtag });
   
@@ -97,7 +105,7 @@ router.get('/summary', asyncHandler(async (req, res) => {
     // Limit to 3 pages for faster response time
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
       maxPages: 3,
-      timezone: clientTimezone 
+      timezone: validatedTimezone 
     });
     
     const topToots = analysis.getTopToots(1);
@@ -125,57 +133,6 @@ router.get('/summary', asyncHandler(async (req, res) => {
   }
 }));
 
-/**
- * Validates and normalizes the days query parameter
- * @param {string|number|undefined} daysValue - Raw value from query string
- * @param {number} defaultValue - Default value to use if validation fails
- * @param {number} min - Minimum allowed value (default: 1)
- * @param {number} max - Maximum allowed value (default: 365)
- * @returns {number} Validated and clamped days value
- * @throws {ValidationError} If value is provided but clearly invalid
- */
-function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max = 365) {
-  // If undefined or null, use default
-  if (daysValue === undefined || daysValue === null || daysValue === '') {
-    return defaultValue;
-  }
-  
-  // Parse the value
-  const parsed = Number(daysValue);
-  
-  // Check if parsing resulted in NaN (clearly invalid input)
-  if (isNaN(parsed)) {
-    throw new ValidationError(
-      `Invalid days parameter: "${daysValue}". Must be a valid number.`,
-      'days',
-      daysValue
-    );
-  }
-  
-  // Check if it's a finite integer
-  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-    throw new ValidationError(
-      `Invalid days parameter: "${daysValue}". Must be a finite integer.`,
-      'days',
-      daysValue
-    );
-  }
-  
-  // Clamp to acceptable range
-  const clamped = Math.max(min, Math.min(max, parsed));
-  
-  // If value was provided but needed clamping, log a warning
-  if (clamped !== parsed) {
-    logger.warn('Days parameter clamped to valid range', {
-      original: parsed,
-      clamped,
-      min,
-      max
-    });
-  }
-  
-  return clamped;
-}
 
 /**
  * GET /api/dashboard/timeline
@@ -184,12 +141,13 @@ function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max = 365) 
 router.get('/timeline', moderateRateLimit, asyncHandler(async (req, res) => {
   const { timezone: clientTimezone } = req.query;
   const days = validateDaysParameter(req.query.days, 7, 1, 365);
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
   
   logger.info('Dashboard timeline requested', { days });
   
   try {
-    // Get daily hashtag using client timezone
-    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+    // Get daily hashtag using validated timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
     const history = await hashtagService.getHashtagHistory(dailyHashtag);
     
     // Get the last N days of data
@@ -274,12 +232,13 @@ router.get('/alerts', moderateRateLimit, asyncHandler(async (req, res) => {
       });
     }
     
-    // Check daily hashtag activity using client timezone
+    // Check daily hashtag activity using validated timezone
     const { timezone: clientTimezone } = req.query;
-    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+    const validatedTimezone = validateTimezoneParameter(clientTimezone);
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
       maxPages: 3,
-      timezone: clientTimezone 
+      timezone: validatedTimezone 
     });
     
     if (!analysis.hasTodayToots()) {

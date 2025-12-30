@@ -6,6 +6,7 @@ import { hashtagService } from '../../services/hashtagService.js';
 import { ValidationError, BusinessError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { VALIDATION_CONFIG } from '../../constants/index.js';
+import { validateTimezoneParameter } from '../../utils/validators.js';
 
 const router = Router();
 // Using singleton instances from services
@@ -274,15 +275,21 @@ router.post('/post', postingRateLimit, asyncHandler(async (req, res) => {
 router.post('/daily', postingRateLimit, asyncHandler(async (req, res) => {
   const { dryRun = false, timezone: clientTimezone } = req.body;
   
-  logger.info('Daily toot posting requested', { dryRun });
+  // Validate timezone parameter
+  const validatedTimezone = validateTimezoneParameter(clientTimezone);
+  
+  logger.info('Daily toot posting requested', { 
+    dryRun,
+    timezone: sanitizeForLog(validatedTimezone, 'generic')
+  });
   
   try {
-    // Get current day's hashtag using client timezone
-    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: clientTimezone });
+    // Get current day's hashtag using validated timezone
+    const dailyHashtag = hashtagService.getDailyHashtag({ timezone: validatedTimezone });
     
     // Analyze hashtag
     const analysis = await hashtagService.analyzeHashtag(dailyHashtag, { 
-      timezone: clientTimezone 
+      timezone: validatedTimezone 
     });
     
     if (!analysis.hasTodayToots()) {
