@@ -63,7 +63,7 @@ printf "\n${BLUE}5. Verificando crontab configurado...${NC}\n"
 if crontab -l >/dev/null 2>&1; then
   printf "   ${GREEN}✅ Crontab configurado:${NC}\n"
   crontab -l | while read line; do
-    printf "   ${YELLOW}→${NC} $line\n"
+    printf "   ${YELLOW}→${NC} %s\n" "$line"
   done
   
   # Verificar se PATH está configurado
@@ -154,6 +154,10 @@ CHECKS_TOTAL=0
 CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
 [ -f /etc/alpine-release ] && CHECKS_OK=$((CHECKS_OK + 1))
 
+# Shell (BusyBox)
+CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+readlink /bin/sh 2>/dev/null | grep -q "busybox" && CHECKS_OK=$((CHECKS_OK + 1))
+
 # Node.js
 CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
 command -v node >/dev/null 2>&1 && CHECKS_OK=$((CHECKS_OK + 1))
@@ -170,9 +174,25 @@ crontab -l >/dev/null 2>&1 && CHECKS_OK=$((CHECKS_OK + 1))
 CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
 crontab -l 2>/dev/null | grep -q "^PATH=" && CHECKS_OK=$((CHECKS_OK + 1))
 
-# Scripts existem
+# COLLECT_SCRIPT existe
 CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
 [ -f "$COLLECT_SCRIPT" ] && CHECKS_OK=$((CHECKS_OK + 1))
+
+# SETUP_SCRIPT existe
+CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+[ -f "$SETUP_SCRIPT" ] && CHECKS_OK=$((CHECKS_OK + 1))
+
+# Sintaxe COLLECT_SCRIPT
+CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+[ -f "$COLLECT_SCRIPT" ] && sh -n "$COLLECT_SCRIPT" 2>/dev/null && CHECKS_OK=$((CHECKS_OK + 1))
+
+# Sintaxe SETUP_SCRIPT
+CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+[ -f "$SETUP_SCRIPT" ] && sh -n "$SETUP_SCRIPT" 2>/dev/null && CHECKS_OK=$((CHECKS_OK + 1))
+
+# Diretório de logs
+CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+[ -d "$LOG_DIR" ] && CHECKS_OK=$((CHECKS_OK + 1))
 
 printf "Status: ${CHECKS_OK}/${CHECKS_TOTAL} verificações OK\n\n"
 

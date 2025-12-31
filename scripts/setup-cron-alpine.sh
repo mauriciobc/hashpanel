@@ -111,10 +111,22 @@ printf "${BLUE}🔧 Configurando PATH no crontab...${NC}\n"
 CURRENT_PATH=$PATH
 TEMP_CRON="/tmp/crontab_temp_$$"
 
-# Criar novo crontab: remover script antigo, adicionar PATH, adicionar novo job
+# Extrair PATH existente do crontab (se houver)
+EXISTING_CRON_PATH=$(crontab -l 2>/dev/null | grep "^PATH=" | head -n1 | cut -d= -f2- || echo "")
+
+# Merge inteligente de PATHs (sem duplicatas, compatível com ash/POSIX)
+if [ -n "$EXISTING_CRON_PATH" ]; then
+  printf "${YELLOW}⚠️  PATH existente encontrado no crontab - será preservado e mesclado${NC}\n"
+  # Combinar paths e remover duplicatas mantendo a ordem
+  FINAL_PATH=$(printf '%s\n' "$CURRENT_PATH" "$EXISTING_CRON_PATH" | tr ':' '\n' | awk '!seen[$0]++' | paste -sd ':' -)
+else
+  FINAL_PATH="$CURRENT_PATH"
+fi
+
+# Criar novo crontab: remover script antigo, remover PATH antigo, adicionar PATH mesclado, adicionar novo job
 {
   crontab -l 2>/dev/null | grep -vF "$CRON_SCRIPT" | grep -v "^PATH=" || true
-  echo "PATH=$CURRENT_PATH"
+  echo "PATH=$FINAL_PATH"
   echo "$CRON_ENTRY"
 } > "$TEMP_CRON"
 
@@ -122,7 +134,7 @@ crontab "$TEMP_CRON"
 rm -f "$TEMP_CRON"
 
 printf "${GREEN}✅ Cron job adicionado com sucesso!${NC}\n"
-printf "${GREEN}✅ PATH configurado: ${CYAN}$CURRENT_PATH${NC}\n"
+printf "${GREEN}✅ PATH configurado: ${CYAN}$FINAL_PATH${NC}\n"
 
 # Tentar iniciar o crond se não estiver rodando
 if ! pgrep crond >/dev/null 2>&1; then
