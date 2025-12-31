@@ -417,13 +417,55 @@ process.on('SIGINT', async () => {
   }
 });
 
+// Helper function to check if an error is a network timeout error
+// Handles both direct ETIMEDOUT errors and AggregateErrors containing ETIMEDOUT
+function isNetworkTimeoutError(error) {
+  // Check direct ETIMEDOUT error
+  if (error?.code === 'ETIMEDOUT') {
+    return true;
+  }
+  
+  // Check if it's an AggregateError and if any of its errors are ETIMEDOUT
+  if (error?.name === 'AggregateError' && Array.isArray(error.errors)) {
+    return error.errors.some(err => err?.code === 'ETIMEDOUT');
+  }
+  
+  // Also check the code property on AggregateError itself (some implementations set it)
+  if (error?.name === 'AggregateError' && error?.code === 'ETIMEDOUT') {
+    return true;
+  }
+  
+  return false;
+}
+
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:377',message:'Uncaught exception handler',data:{error:error.message,code:error.code,stack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:442',message:'Uncaught exception handler',data:{error:error.message,code:error.code,name:error.name,isAggregate:error.name==='AggregateError',errorsCount:error.errors?.length,stack:error.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
   // #endregion
   
-  // Log error with full context
+  // Don't shutdown for network timeout errors - these are often transient
+  // ETIMEDOUT errors from network operations should not crash the server
+  // These errors typically occur from connection retries or keep-alive connections
+  // that fail after the main request has already completed successfully
+  if (isNetworkTimeoutError(error)) {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:451',message:'Network timeout detected in uncaughtException',data:{code:error.code,name:error.name,isAggregate:error.name==='AggregateError',errorsCount:error.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    // Log at debug level to reduce noise - these are expected in container environments
+    // This error occurs when Node.js tries multiple connection attempts (e.g., multiple IPs from DNS)
+    // and all timeout. The main request likely completed successfully before this error.
+    logger.debug('Network timeout error from connection retry (non-fatal) - server continues running', {
+      code: error.code,
+      name: error.name,
+      message: error.message || 'Connection timeout during retry',
+      isAggregateError: error.name === 'AggregateError',
+      errorsCount: error.errors?.length || 0
+    });
+    return; // Continue running instead of shutting down
+  }
+  
+  // For other uncaught exceptions, log with full context and shutdown gracefully
   logger.error('Uncaught exception', {
     error: {
       message: error.message,
@@ -433,17 +475,6 @@ process.on('uncaughtException', (error) => {
     }
   });
   
-  // Don't shutdown for network timeout errors - these are often transient
-  // ETIMEDOUT errors from network operations should not crash the server
-  if (error.code === 'ETIMEDOUT' || error.name === 'AggregateError') {
-    logger.warn('Network timeout error caught - server will continue running', {
-      code: error.code,
-      message: error.message
-    });
-    return; // Continue running instead of shutting down
-  }
-  
-  // For other uncaught exceptions, log and shutdown gracefully
   logger.error('Shutting down due to uncaught exception');
   process.exit(1);
 });
@@ -451,15 +482,18 @@ process.on('uncaughtException', (error) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:384',message:'Unhandled promise rejection',data:{reason:reason?.message||String(reason),code:reason?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:476',message:'Unhandled promise rejection',data:{reason:reason?.message||String(reason),code:reason?.code,name:reason?.name,isAggregate:reason?.name==='AggregateError',errorsCount:reason?.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
   
   // Extract error information safely
+  // If reason is an Error object, use it directly; otherwise create errorInfo from it
+  const error = reason instanceof Error ? reason : { message: String(reason) };
   const errorInfo = {
-    message: reason?.message || String(reason),
-    code: reason?.code,
-    name: reason?.name,
-    stack: reason?.stack
+    message: error.message || String(reason),
+    code: error.code,
+    name: error.name,
+    stack: error.stack,
+    errors: error.errors // For AggregateError
   };
   
   logger.error('Unhandled promise rejection', { 
@@ -469,10 +503,21 @@ process.on('unhandledRejection', (reason, promise) => {
   
   // Don't shutdown for network timeout errors - these are often transient
   // ETIMEDOUT errors from network operations should not crash the server
-  if (errorInfo.code === 'ETIMEDOUT' || errorInfo.name === 'AggregateError') {
-    logger.warn('Network timeout rejection caught - server will continue running', {
+  // These errors typically occur from connection retries or keep-alive connections
+  // that fail after the main request has already completed successfully
+  if (isNetworkTimeoutError(error)) {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:502',message:'Network timeout detected in unhandledRejection',data:{code:errorInfo.code,name:errorInfo.name,isAggregate:errorInfo.name==='AggregateError',errorsCount:errorInfo.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    // Use debug level instead of warn to reduce log noise
+    // These errors are expected in container environments with network retries
+    logger.debug('Network timeout rejection caught (likely from connection retry) - server will continue running', {
       code: errorInfo.code,
-      message: errorInfo.message
+      name: errorInfo.name,
+      message: errorInfo.message || 'Connection timeout during retry',
+      isAggregateError: errorInfo.name === 'AggregateError',
+      errorsCount: errorInfo.errors?.length || 0,
+      note: 'This error typically occurs when Node.js tries multiple connection attempts and all timeout. The main request likely completed successfully.'
     });
     return; // Continue running instead of shutting down
   }

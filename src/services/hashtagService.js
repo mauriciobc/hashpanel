@@ -180,6 +180,9 @@ export class HashtagService {
    * Returns { tags, totalCount } where totalCount is the real total from the API
    */
   async getTrendingTags(limit = 10, offset = 0) {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:182',message:'getTrendingTags entry',data:{limit,offset},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const cacheKey = `trending_tags_all`;
     const totalCountCacheKey = `trending_tags_total`;
     
@@ -190,8 +193,24 @@ export class HashtagService {
     // If we don't have cached data, fetch all tags (up to API max of 100) to get total
     if (totalCount === undefined || allTags === undefined) {
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:194',message:'Before getTrendingTags call',data:{limit:100},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         // Fetch maximum allowed (100) to determine total count
-        allTags = await mastodonService.getTrendingTags(100, 0);
+        const promise = mastodonService.getTrendingTags(100, 0);
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:198',message:'Promise created for getTrendingTags',data:{hasPromise:!!promise},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        // Add catch to prevent unhandled rejection
+        promise.catch((err) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:201',message:'getTrendingTags promise catch',data:{error:err?.message,code:err?.code,name:err?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+        });
+        allTags = await promise;
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:206',message:'getTrendingTags succeeded',data:{tagsCount:allTags?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         totalCount = allTags.length;
         
         // Cache both the tags and total count
@@ -200,6 +219,9 @@ export class HashtagService {
         
         logger.debug('Fetched and cached trending tags for total count', { totalCount });
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:216',message:'getTrendingTags error caught',data:{error:error.message,code:error.code,name:error.name,isAggregate:error.name==='AggregateError'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         loggers.error('Failed to fetch trending tags for total count', error);
         // If we can't get total, return empty and let caller handle fallback
         return { tags: [], totalCount: null };
