@@ -24,14 +24,14 @@ if [ -f "$CRON_SCRIPT" ]; then
   chmod +x "$CRON_SCRIPT"
   {
     echo "PATH=$CRON_PATH"
-    printf '%s %s >> /app/logs/cron-collect-$(date +%%Y-%%m-%%d).log 2>&1\n' "${SCHEDULE}" "${CRON_SCRIPT}"
+    printf '%s %s >> /app/logs/cron-collect-$(date +%%%%Y-%%%%m-%%%%d).log 2>&1\n' "${SCHEDULE}" "${CRON_SCRIPT}"
   } > /tmp/crontab.txt
   echo "Using Alpine-compatible cron script: $CRON_SCRIPT"
 else
   # Fallback to direct Node.js execution if Alpine script doesn't exist
   {
     echo "PATH=$CRON_PATH"
-    printf '%s cd /app && /usr/local/bin/node src/cli/collectHistory.js >> /app/logs/cron-collect-$(date +%%Y-%%m-%%d).log 2>&1\n' "${SCHEDULE}"
+    printf '%s cd /app && /usr/local/bin/node src/cli/collectHistory.js >> /app/logs/cron-collect-$(date +%%%%Y-%%%%m-%%%%d).log 2>&1\n' "${SCHEDULE}"
   } > /tmp/crontab.txt
   echo "Using direct Node.js execution (Alpine script not found)"
 fi

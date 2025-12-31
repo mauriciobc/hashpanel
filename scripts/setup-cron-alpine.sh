@@ -62,12 +62,12 @@ HOUR=$(echo "$CRON_TIME" | cut -d: -f1)
 MINUTE=$(echo "$CRON_TIME" | cut -d: -f2)
 
 # Criar entrada do cron
-CRON_ENTRY="$MINUTE $HOUR * * * $CRON_SCRIPT"
+CRON_ENTRY="$MINUTE $HOUR * * * \"$CRON_SCRIPT\""
 
 printf "\n"
 printf "${BLUE}📋 Configuração do cron job:${NC}\n"
 printf "   Horário: ${CYAN}$CRON_TIME${NC} (diariamente)\n"
-printf "   Script: ${CYAN}$CRON_SCRIPT${NC}\n"
+printf "   Script: ${CYAN}\"$CRON_SCRIPT\"${NC}\n"
 printf "\n"
 
 # Verificar se crontab está disponível
@@ -161,5 +161,5 @@ printf "  Ver logs da coleta:\n"
 printf "    ${CYAN}tail -f logs/cron-collect-\$(date +%%Y-%%m-%%d).log${NC}\n"
 printf "\n"
 printf "  Testar o script manualmente:\n"
-printf "    ${CYAN}$CRON_SCRIPT${NC}\n"
+printf "    ${CYAN}\"$CRON_SCRIPT\"${NC}\n"
 printf "\n"

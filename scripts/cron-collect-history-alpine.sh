@@ -16,13 +16,45 @@ PROJECT_DIR=$(dirname "$SCRIPT_DIR")
 cd "$PROJECT_DIR" || exit 1
 
 # Carregar variáveis de ambiente se .env existir
-# Método seguro que preserva valores com espaços
 if [ -f .env ]; then
   while read -r line || [ -n "$line" ]; do
+    # Pular comentários de linha inteira e linhas vazias
     case "$line" in
-      "#"*) continue ;;  # Pula comentários
-      "")   continue ;;  # Pula linhas vazias
-      *)    export "$line" ;;
+      "#"* | "") continue ;;
+    esac
+
+    # 1. Remover prefixo "export " se existir
+    line="${line#export }"
+
+    # 2. Dividir na primeira '=' para obter chave e valor bruto
+    case "$line" in
+      *"="*)
+        key="${line%%=*}"
+        value="${line#*=}"
+
+        # Remover espaços extras da chave (limpeza básica)
+        key=$(echo "$key" | tr -d '[:space:]')
+
+        # 3. Limpar o valor conforme regras de .env
+        case "$value" in
+          \"*)
+            # Com aspas duplas: extrair conteúdo entre aspas e ignorar resto (incluindo comentários inline)
+            value=$(echo "$value" | sed 's/^"\([^"]*\)".*/\1/')
+            ;;
+          \'*)
+            # Com aspas simples: extrair conteúdo entre aspas
+            value=$(echo "$value" | sed "s/^'\([^']*\)'.*/\1/")
+            ;;
+          *)
+            # Sem aspas: remover comentários inline (#) e espaços nas extremidades
+            value="${value%%#*}"
+            value=$(echo "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            ;;
+        esac
+
+        # 4. Exportar preservando espaços com segurança
+        export "$key"="$value"
+        ;;
     esac
   done < .env
 fi
