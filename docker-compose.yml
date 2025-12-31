@@ -21,6 +21,10 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
+      # Trust proxy configuration (optional, defaults to 1 for secure reverse proxy setup)
+      # Set to number of proxies between client and app (typically 1 for Caddy/nginx)
+      # Set to 'false' if running directly without reverse proxy
+      - TRUST_PROXY=${TRUST_PROXY:-1}
       # Performance settings (optional)
       - API_TIMEOUT_MS=${API_TIMEOUT_MS:-30000}
       - RATE_LIMIT_DELAY_MS=${RATE_LIMIT_DELAY_MS:-1000}
@@ -29,6 +33,11 @@ services:
       # Cache settings (optional)
       - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-300}
       - ENABLE_CACHE=${ENABLE_CACHE:-true}
+      # CORS configuration (required in production)
+      # Set CORS_ORIGIN to your domain(s), e.g.:
+      # Single domain: CORS_ORIGIN=https://seu-dominio.com
+      # Multiple domains: CORS_ORIGIN=https://seu-dominio.com,https://www.seu-dominio.com
+      - CORS_ORIGIN=${CORS_ORIGIN}
     volumes:
       - ./logs:/app/logs
     networks:

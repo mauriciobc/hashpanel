@@ -1,5 +1,36 @@
 {
+  "name": "hashbot2",
+  "version": "1.0.0",
+  "description": "Sistema para monitorar hashtags diárias no Mastodon, coletar dados históricos e fornecer dashboard web",
   "type": "module",
+  "main": "server-new.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "start": "node cli.js",
+    "server": "node server-new.js",
+    "dev": "npm run dev:watch",
+    "dev:server": "nodemon server-new.js",
+    "dev:cli": "nodemon cli.js",
+    "dev:watch": "nodemon --watch src --exec \"node server-new.js\"",
+    "test": "echo \"Test framework not yet implemented\"",
+    "lint": "echo \"ESLint not yet configured\"",
+    "clean": "rm -rf logs node_modules/.cache",
+    "logs": "tail -f logs/combined.log",
+    "status": "node cli.js status",
+    "analyze": "node cli.js analyze",
+    "collect:history": "node src/cli/collectHistory.js",
+    "collect:history:7days": "node src/cli/collectHistory.js --range $(node -e \"const m=require('moment-timezone');console.log(m().subtract(7,'days').format('YYYY-MM-DD'),m().format('YYYY-MM-DD'))\")",
+    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.getDatabase().migrate())\"",
+    "db:clear": "node clear-database.js",
+    "test:weekly": "node test-weekly-history.js",
+    "test:weekly:create-data": "node create-test-data.js",
+    "diagnose:collection": "node diagnose-collection.js",
+    "cron:setup": "bash scripts/setup-cron.sh",
+    "cron:test": "bash scripts/cron-collect-history.sh"
+  },
   "dependencies": {
     "better-sqlite3": "^12.5.0",
     "compression": "^1.8.1",
@@ -10,44 +41,22 @@
     "mastodon-api": "^1.3.0",
     "moment-timezone": "^0.5.47",
     "node-cache": "^5.1.2",
-    "readline": "^1.3.0",
     "winston": "^3.19.0",
     "zod": "^4.2.1"
   },
-  "name": "hashbot2",
-  "version": "1.0.0",
-  "description": "Search hashtags in mastodon and post a toot with information",
-  "main": "main.js",
-  "scripts": {
-    "start": "node cli.js",
-    "server": "node server-new.js",
-    "server:old": "node server.js",
-    "cli:old": "node main.js",
-    "dev": "npm run dev:watch",
-    "dev:server": "nodemon server-new.js",
-    "dev:cli": "nodemon cli.js",
-    "dev:watch": "nodemon --watch src --exec \"node server-new.js\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:watch": "echo \"Test framework not yet implemented\"",
-    "lint": "echo \"ESLint not yet configured\"",
-    "lint:fix": "echo \"ESLint not yet configured\"",
-    "clean": "rm -rf logs node_modules/.cache",
-    "logs": "tail -f logs/combined.log",
-    "status": "node cli.js status",
-    "analyze": "node cli.js analyze",
-    "collect:history": "node src/cli/collectHistory.js",
-    "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.getDatabase().migrate())\"",
-    "db:clear": "node clear-database.js",
-    "test:weekly": "node test-weekly-history.js",
-    "test:weekly:create-data": "node create-test-data.js",
-    "diagnose:collection": "node diagnose-collection.js",
-    "cron:setup": "bash scripts/setup-cron.sh",
-    "cron:test": "bash scripts/cron-collect-history.sh"
-  },
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.11"
-  }
+  },
+  "keywords": [
+    "mastodon",
+    "hashtags",
+    "dashboard",
+    "analytics",
+    "social-media",
+    "nodejs",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC"
 }

@@ -27,7 +27,17 @@ export class WebServer {
   setupMiddleware() {
     // Trust proxy - required when behind reverse proxy (Caddy, nginx, etc.)
     // This allows Express to correctly identify client IPs from X-Forwarded-For headers
-    this.app.set('trust proxy', true);
+    // Configure trust proxy securely: only trust first proxy (the reverse proxy itself)
+    // This prevents clients from spoofing X-Forwarded-For headers to bypass rate limiting
+    // For Docker: typically 1 proxy (Caddy/nginx) between client and app
+    // For direct deployment: set to false or specific IP ranges
+    const trustProxyValue = process.env.TRUST_PROXY === 'false' 
+      ? false 
+      : process.env.TRUST_PROXY 
+        ? parseInt(process.env.TRUST_PROXY, 10) || 1
+        : 1; // Default to 1 proxy (secure: only trust the immediate reverse proxy)
+    
+    this.app.set('trust proxy', trustProxyValue);
     
     // Request logging
     this.app.use(requestLogger);

@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 
 services:
   hashpanel:
@@ -18,23 +18,27 @@ services:
       - PORT=3000
       - HOST=0.0.0.0
       - PREFERRED_TIMEZONE=America/Sao_Paulo
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-59 23 * * *}
       - LOG_LEVEL=info
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      # Trust proxy configuration (optional, defaults to 1 for secure reverse proxy setup)
+      # Set to number of proxies between client and app (typically 1 for Caddy/nginx)
+      # Set to 'false' if running directly without reverse proxy
+      - TRUST_PROXY=${TRUST_PROXY:-1}
     networks:
       - hashpanel_net
     command: >
       sh -c "
-      apk add --no-cache curl git wget python3 make g++ &&
+      apk add --no-cache curl git wget python3 make g++ dcron &&
       if [ ! -f package.json ]; then
         git clone https://github.com/mauriciobc/hashpanel.git . || exit 1;
       else
-        # Stash or reset log files before pulling to avoid merge conflicts
-        git checkout -- logs/ 2>/dev/null || true;
-        git reset HEAD logs/ 2>/dev/null || true;
         git pull origin main || true;
       fi &&
       mkdir -p logs data &&
       npm install --omit=dev --no-audit --no-fund &&
-      npm run server
+      chmod +x docker-entrypoint.sh &&
+      /bin/sh docker-entrypoint.sh npm run server
       "
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3000/health"]
@@ -47,18 +51,22 @@ services:
     image: caddy:alpine
     container_name: caddy
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
     networks:
       - hashpanel_net
-    command: >
-      sh -c "
-      echo ':80 { reverse_proxy hashpanel:3000 }' > /etc/caddy/Caddyfile &&
-      caddy run --config /etc/caddy/Caddyfile
-      "
+    command: caddy reverse-proxy --from :80 --to hashpanel:3000
     depends_on:
-      - hashpanel
+      hashpanel:
+        condition: service_healthy
+
+  cloudflared:
+    image: ghcr.io/jauderho/cloudflared:latest
+    container_name: cloudflared2
+    restart: unless-stopped
+    networks:
+      - hashpanel_net
+    command: tunnel --no-autoupdate run --protocol http2 --token ${CLOUDFLARED_TOKEN}
+    depends_on:
+      - caddy
 
 networks:
   hashpanel_net:
