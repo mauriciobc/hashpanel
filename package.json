@@ -22,7 +22,7 @@
     "status": "node cli.js status",
     "analyze": "node cli.js analyze",
     "collect:history": "node src/cli/collectHistory.js",
-    "collect:history:7days": "node src/cli/collectHistory.js --range $(node -e \"const m=require('moment-timezone');console.log(m().subtract(7,'days').format('YYYY-MM-DD'),m().format('YYYY-MM-DD'))\")",
+    "collect:history:7days": "node src/cli/collectHistory.js --last-7-days",
     "db:migrate": "node -e \"import('./src/database/index.js').then(m => m.getDatabase().migrate())\"",
     "db:clear": "node clear-database.js",
     "test:weekly": "node test-weekly-history.js",

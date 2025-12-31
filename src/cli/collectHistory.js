@@ -6,11 +6,13 @@
  *   node src/cli/collectHistory.js                    # Collect today's data
  *   node src/cli/collectHistory.js --date 2024-01-15  # Collect specific date
  *   node src/cli/collectHistory.js --range 2024-01-01 2024-01-31  # Collect date range
+ *   node src/cli/collectHistory.js --last-7-days      # Collect last 7 days
  */
 
 import { historyCollector } from '../services/historyCollector.js';
 import { logger } from '../utils/logger.js';
 import { getDatabase } from '../database/index.js';
+import moment from 'moment-timezone';
 
 async function main() {
   let database;
@@ -23,15 +25,32 @@ async function main() {
     // Parse arguments
     const dateIndex = args.indexOf('--date');
     const rangeIndex = args.indexOf('--range');
+    const last7DaysIndex = args.indexOf('--last-7-days');
     
     // Validate mutual exclusivity
-    if (dateIndex !== -1 && rangeIndex !== -1) {
-      console.error('Error: Flags --date and --range are mutually exclusive');
+    const flagCount = [dateIndex, rangeIndex, last7DaysIndex].filter(idx => idx !== -1).length;
+    if (flagCount > 1) {
+      console.error('Error: Flags --date, --range, and --last-7-days are mutually exclusive');
       exitCode = 1;
       return;
     }
     
-    if (rangeIndex !== -1) {
+    if (last7DaysIndex !== -1) {
+      // Collect last 7 days
+      const endDate = moment().format('YYYY-MM-DD');
+      const startDate = moment().subtract(7, 'days').format('YYYY-MM-DD');
+      
+      console.log(`Collecting history data from ${startDate} to ${endDate} (last 7 days)...`);
+      const summary = await historyCollector.collectDateRange(startDate, endDate);
+      
+      console.log('\nCollection Summary:');
+      console.log(`  Date Range: ${startDate} to ${endDate}`);
+      console.log(`  Total Days: ${summary.totalDays}`);
+      console.log(`  Collected: ${summary.totalCollected}`);
+      console.log(`  Skipped: ${summary.totalSkipped}`);
+      console.log(`  Errors: ${summary.totalErrors}`);
+      
+    } else if (rangeIndex !== -1) {
       // Collect date range
       const startDate = args[rangeIndex + 1];
       const endDate = args[rangeIndex + 2];
