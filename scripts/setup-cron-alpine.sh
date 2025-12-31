@@ -62,7 +62,7 @@ HOUR=$(echo "$CRON_TIME" | cut -d: -f1)
 MINUTE=$(echo "$CRON_TIME" | cut -d: -f2)
 
 # Criar entrada do cron
-CRON_ENTRY="$MINUTE $HOUR * * * \"$CRON_SCRIPT\""
+CRON_ENTRY="$MINUTE $HOUR * * * /bin/sh -c 'exec \"$CRON_SCRIPT\"'"
 
 printf "\n"
 printf "${BLUE}📋 Configuração do cron job:${NC}\n"
