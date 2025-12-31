@@ -21,7 +21,7 @@ if [ -f .env ]; then
 fi
 
 # Caminho do Node.js (ajuste se necessário)
-NODE_PATH=$(which node)
+NODE_PATH=$(command -v node 2>/dev/null)
 if [ -z "$NODE_PATH" ]; then
   echo "Erro: Node.js não encontrado no PATH"
   exit 1

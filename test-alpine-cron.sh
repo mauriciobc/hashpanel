@@ -40,7 +40,7 @@ fi
 printf "\n${BLUE}3. Verificando Node.js...${NC}\n"
 if command -v node >/dev/null 2>&1; then
   NODE_VERSION=$(node --version)
-  NODE_PATH=$(which node)
+  NODE_PATH=$(command -v node 2>/dev/null)
   printf "   ${GREEN}✅ Node.js ${NODE_VERSION}${NC}\n"
   printf "   Localização: ${NODE_PATH}\n"
 else

@@ -33,22 +33,22 @@ if [ -f .env ]; then
         value="${line#*=}"
 
         # Remover espaços extras da chave (limpeza básica)
-        key=$(echo "$key" | tr -d '[:space:]')
+        key=$(printf '%s' "$key" | tr -d '[:space:]')
 
         # 3. Limpar o valor conforme regras de .env
         case "$value" in
           \"*)
             # Com aspas duplas: extrair conteúdo entre aspas e ignorar resto (incluindo comentários inline)
-            value=$(echo "$value" | sed 's/^"\([^"]*\)".*/\1/')
+            value=$(printf '%s' "$value" | sed 's/^"\([^"]*\)".*/\1/')
             ;;
           \'*)
             # Com aspas simples: extrair conteúdo entre aspas
-            value=$(echo "$value" | sed "s/^'\([^']*\)'.*/\1/")
+            value=$(printf '%s' "$value" | sed "s/^'\([^']*\)'.*/\1/")
             ;;
           *)
             # Sem aspas: remover comentários inline (#) e espaços nas extremidades
             value="${value%%#*}"
-            value=$(echo "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            value=$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             ;;
         esac
 
@@ -60,7 +60,7 @@ if [ -f .env ]; then
 fi
 
 # Caminho do Node.js (ajuste se necessário)
-NODE_PATH=$(which node)
+NODE_PATH=$(command -v node 2>/dev/null)
 if [ -z "$NODE_PATH" ]; then
   echo "Erro: Node.js não encontrado no PATH"
   exit 1
