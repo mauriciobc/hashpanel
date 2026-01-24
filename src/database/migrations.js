@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger.js';
 import moment from 'moment-timezone';
 import { appConfig as config } from '../config/index.js';
+import { parseAndValidateTimezone } from '../utils/timezone.js';
 
 /**
  * Calculate ISO week number for a given date
@@ -11,23 +12,26 @@ import { appConfig as config } from '../config/index.js';
 export function getISOWeek(dateString) {
   // Validate dateString is a non-empty string
   if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
-    logger.error('getISOWeek: dateString is required and must be a non-empty string', { dateString });
+    logger.error('getISOWeek: dateString is required and must be a non-empty string', {
+      dateString,
+    });
     throw new Error(`Invalid dateString: must be a non-empty string, got: ${dateString}`);
   }
 
   // Validate and normalize timezone (fallback to UTC if not set or invalid)
-  let timezone = config.server?.timezone;
-  if (!timezone || !moment.tz.zone(timezone)) {
-    logger.warn(`getISOWeek: Invalid timezone '${timezone}', defaulting to UTC`, { providedTimezone: timezone });
-    timezone = 'UTC';
-  }
+  const timezone = parseAndValidateTimezone(config.server?.timezone, {
+    fallback: 'UTC',
+    logger: logger,
+  });
 
   try {
     // Create moment object and validate it's valid
     const date = moment.tz(dateString, timezone);
     if (!date.isValid()) {
       logger.error('getISOWeek: Invalid date string', { dateString, timezone });
-      throw new Error(`Invalid date string: "${dateString}" could not be parsed with timezone "${timezone}"`);
+      throw new Error(
+        `Invalid date string: "${dateString}" could not be parsed with timezone "${timezone}"`
+      );
     }
 
     // Calculate ISO week values
@@ -35,7 +39,7 @@ export function getISOWeek(dateString) {
     const weekNumber = date.isoWeek();
     const weekStart = date.clone().startOf('isoWeek').format('YYYY-MM-DD');
     const weekEnd = date.clone().endOf('isoWeek').format('YYYY-MM-DD');
-    
+
     return { year, weekNumber, weekStart, weekEnd };
   } catch (error) {
     // Re-throw validation errors as-is, wrap only unexpected errors
@@ -100,7 +104,7 @@ export function runMigrations(db) {
         logger.error('Failed to rollback migration transaction', {
           originalError: error.message,
           rollbackError: rollbackError.message,
-          stack: rollbackError.stack
+          stack: rollbackError.stack,
         });
       }
     }
@@ -109,7 +113,7 @@ export function runMigrations(db) {
     logger.error('Database migration failed', {
       error: error.message,
       stack: error.stack,
-      name: error.name
+      name: error.name,
     });
 
     // Rethrow to allow caller to handle

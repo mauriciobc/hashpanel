@@ -21,24 +21,23 @@ export class DatabaseService {
    */
   saveDailyHashtagData(hashtag, date, data) {
     try {
-      // Check if data already exists
-      if (this.hasDataForDate(hashtag, date)) {
-        logger.debug(`Data already exists for ${hashtag} on ${date}, skipping insert`);
-        return false;
-      }
-
       const { year, weekNumber } = getISOWeek(date);
       const uses = parseInt(data.uses) || 0;
       const accounts = parseInt(data.accounts) || 0;
 
       const stmt = this.db.prepare(`
-        INSERT INTO hashtag_history 
+        INSERT OR IGNORE INTO hashtag_history 
         (hashtag, date, year, week_number, uses, accounts, collected_at)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `);
 
-      stmt.run(hashtag, date, year, weekNumber, uses, accounts);
-      
+      const info = stmt.run(hashtag, date, year, weekNumber, uses, accounts);
+
+      if (info.changes === 0) {
+        logger.debug(`Data already exists for ${hashtag} on ${date}, skipping insert`);
+        return false;
+      }
+
       logger.debug(`Saved daily data for ${hashtag} on ${date}`, { uses, accounts });
       return true;
     } catch (error) {
@@ -71,15 +70,15 @@ export class DatabaseService {
       `);
 
       const results = stmt.all(hashtag, year);
-      
-      return results.map(row => ({
+
+      return results.map((row) => ({
         weekNumber: row.week_number,
         weekStart: row.week_start,
         weekEnd: row.week_end,
         totalUses: row.total_uses || 0,
         totalAccounts: row.total_accounts || 0,
         dailyAverage: Math.round((row.daily_average || 0) * 10) / 10,
-        daysCounted: row.days_counted
+        daysCounted: row.days_counted,
       }));
     } catch (error) {
       logger.error(`Failed to get weekly history for ${hashtag}`, error);
@@ -111,10 +110,10 @@ export class DatabaseService {
       `);
 
       const results = stmt.all(year);
-      
+
       // Group by hashtag
       const grouped = {};
-      results.forEach(row => {
+      results.forEach((row) => {
         if (!grouped[row.hashtag]) {
           grouped[row.hashtag] = [];
         }
@@ -125,7 +124,7 @@ export class DatabaseService {
           totalUses: row.total_uses || 0,
           totalAccounts: row.total_accounts || 0,
           dailyAverage: Math.round((row.daily_average || 0) * 10) / 10,
-          daysCounted: row.days_counted
+          daysCounted: row.days_counted,
         });
       });
 
@@ -156,23 +155,23 @@ export class DatabaseService {
         WHERE hashtag = ? AND date >= ?
       `;
       const params = [hashtag, startDate];
-      
+
       if (endDate) {
-        query += ` AND date <= ?`;
+        query += ' AND date <= ?';
         params.push(endDate);
       }
-      
-      query += ` ORDER BY date ASC`;
-      
+
+      query += ' ORDER BY date ASC';
+
       const stmt = this.db.prepare(query);
       const results = stmt.all(...params);
-      
-      return results.map(row => ({
+
+      return results.map((row) => ({
         date: row.date,
         uses: row.uses || 0,
         accounts: row.accounts || 0,
         year: row.year,
-        weekNumber: row.week_number
+        weekNumber: row.week_number,
       }));
     } catch (error) {
       logger.error(`Failed to get daily history for ${hashtag}`, error);
@@ -202,25 +201,25 @@ export class DatabaseService {
         WHERE hashtag = ? AND year = ?
       `;
       const params = [hashtag, year];
-      
+
       if (weekNumber !== null) {
-        query += ` AND week_number = ?`;
+        query += ' AND week_number = ?';
         params.push(weekNumber);
       }
-      
-      query += ` GROUP BY week_number ORDER BY week_number ASC`;
-      
+
+      query += ' GROUP BY week_number ORDER BY week_number ASC';
+
       const stmt = this.db.prepare(query);
       const results = stmt.all(...params);
-      
-      return results.map(row => ({
+
+      return results.map((row) => ({
         weekNumber: row.week_number,
         weekStart: row.week_start,
         weekEnd: row.week_end,
         totalUses: row.total_uses || 0,
         totalAccounts: row.total_accounts || 0,
         dailyAverage: Math.round((row.daily_average || 0) * 10) / 10,
-        daysCounted: row.days_counted
+        daysCounted: row.days_counted,
       }));
     } catch (error) {
       logger.error(`Failed to get weekly history by week for ${hashtag}`, error);
@@ -248,17 +247,17 @@ export class DatabaseService {
       `);
 
       const result = stmt.get(hashtag, date);
-      
+
       if (!result) {
         return null;
       }
-      
+
       return {
         date: result.date,
         uses: result.uses || 0,
         accounts: result.accounts || 0,
         year: result.year,
-        weekNumber: result.week_number
+        weekNumber: result.week_number,
       };
     } catch (error) {
       logger.error(`Failed to get daily data for ${hashtag} on ${date}`, error);
@@ -324,13 +323,13 @@ export class DatabaseService {
       `;
       const whereClause = hashtag ? ' WHERE hashtag = ?' : '';
       const query = baseQuery + whereClause;
-      
+
       const stmt = this.db.prepare(query);
       const result = hashtag ? stmt.get(hashtag) : stmt.get();
-      
+
       return {
         minDate: result?.min_date || null,
-        maxDate: result?.max_date || null
+        maxDate: result?.max_date || null,
       };
     } catch (error) {
       logger.error('Failed to get date range', error);
@@ -347,7 +346,7 @@ export class DatabaseService {
    */
   aggregateWeeklyData(hashtag, year) {
     const weeklyData = this.getWeeklyHistory(hashtag, year);
-    
+
     if (weeklyData.length === 0) {
       return {
         hashtag,
@@ -358,16 +357,16 @@ export class DatabaseService {
           totalUses: 0,
           totalAccounts: 0,
           averageWeekly: 0,
-          peakWeek: null
-        }
+          peakWeek: null,
+        },
       };
     }
 
     const totalUses = weeklyData.reduce((sum, week) => sum + week.totalUses, 0);
     const totalAccounts = weeklyData.reduce((sum, week) => sum + week.totalAccounts, 0);
     const averageWeekly = Math.round((totalUses / weeklyData.length) * 10) / 10;
-    const peakWeek = weeklyData.reduce((max, week) => 
-      week.totalUses > max.totalUses ? week : max, 
+    const peakWeek = weeklyData.reduce(
+      (max, week) => (week.totalUses > max.totalUses ? week : max),
       weeklyData[0]
     );
 
@@ -385,9 +384,9 @@ export class DatabaseService {
           weekStart: peakWeek.weekStart,
           weekEnd: peakWeek.weekEnd,
           totalUses: peakWeek.totalUses,
-          totalAccounts: peakWeek.totalAccounts
-        }
-      }
+          totalAccounts: peakWeek.totalAccounts,
+        },
+      },
     };
   }
 
@@ -398,7 +397,8 @@ export class DatabaseService {
    */
   deleteOldData(daysToKeep = 365) {
     try {
-      const cutoffDate = moment().tz(config.server.timezone)
+      const cutoffDate = moment()
+        .tz(config.server.timezone)
         .subtract(daysToKeep, 'days')
         .format('YYYY-MM-DD');
 

@@ -18,9 +18,9 @@ router.get('/', (req, res) => {
       hashtag: '/api/hashtag',
       trending: '/api/trending',
       toot: '/api/toot',
-      media: '/api/media'
+      media: '/api/media',
     },
-    documentation: '/api/docs'
+    documentation: '/api/docs',
   });
 });
 

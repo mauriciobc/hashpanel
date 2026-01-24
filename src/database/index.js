@@ -6,6 +6,7 @@ import fs from 'fs';
 import { appConfig as config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { runMigrations } from './migrations.js';
+import { sendTelemetry } from '../utils/telemetry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,7 +19,7 @@ export class DatabaseService {
   constructor() {
     // Get database path from environment or use default
     const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'hashpanel.db');
-    
+
     // Ensure data directory exists (synchronous for constructor)
     const dbDir = path.dirname(dbPath);
     try {
@@ -26,7 +27,8 @@ export class DatabaseService {
         fs.mkdirSync(dbDir, { recursive: true });
       }
     } catch (error) {
-      logger.warn(`Could not create database directory: ${dbDir}`, error);
+      logger.error(`Failed to create database directory: ${dbDir}`, error);
+      throw error;
     }
 
     this.dbPath = dbPath;
@@ -38,20 +40,26 @@ export class DatabaseService {
    * @private
    */
   _initializeConnection() {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/database/index.js:40',message:'Before database initialization',data:{dbPath:this.dbPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
+    sendTelemetry({
+      location: 'src/database/index.js:40',
+      message: 'Before database initialization',
+      data: { dbPath: this.dbPath },
+      hypothesisId: 'C',
+    });
     this.db = new Database(this.dbPath);
-    
+
     // Enable WAL mode for better concurrency
     this.db.pragma('journal_mode = WAL');
-    
+
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/database/index.js:49',message:'Database initialization completed',data:{dbPath:this.dbPath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
+
+    sendTelemetry({
+      location: 'src/database/index.js:49',
+      message: 'Database initialization completed',
+      data: { dbPath: this.dbPath },
+      hypothesisId: 'C',
+    });
     logger.info('Database connection established', { path: this.dbPath });
   }
 
@@ -62,7 +70,9 @@ export class DatabaseService {
    */
   getDatabase() {
     if (!this.db) {
-      throw new Error('Database connection is closed. Connection must be reinitialized via getDatabase() singleton function.');
+      throw new Error(
+        'Database connection is closed. Connection must be reinitialized via getDatabase() singleton function.'
+      );
     }
     return this.db;
   }
@@ -115,26 +125,30 @@ export class DatabaseService {
   getStats() {
     try {
       const db = this.getDatabase();
-      const stats = db.prepare(`
+      const stats = db
+        .prepare(
+          `
         SELECT 
           COUNT(*) as total_records,
           COUNT(DISTINCT hashtag) as unique_hashtags,
           MIN(date) as oldest_date,
           MAX(date) as newest_date
         FROM hashtag_history
-      `).get();
+      `
+        )
+        .get();
 
       return {
         connected: true,
         path: this.dbPath,
-        ...stats
+        ...stats,
       };
     } catch (error) {
       logger.error('Failed to get database stats', error);
       return {
         connected: true,
         path: this.dbPath,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -161,7 +175,7 @@ let dbInstance = null;
  * Get database instance (singleton)
  * Must be called explicitly to initialize the database connection and run migrations.
  * If the connection was closed, this will create a new instance and run migrations.
- * 
+ *
  * @returns {DatabaseService} Database service instance
  */
 export function getDatabase() {

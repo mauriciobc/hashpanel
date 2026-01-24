@@ -33,7 +33,7 @@ services:
       if [ ! -f package.json ]; then
         git clone https://github.com/mauriciobc/hashpanel.git . || exit 1;
       else
-        git pull origin main || true;
+        git fetch origin main && git reset --hard origin/main || true;
       fi &&
       mkdir -p logs data &&
       npm install --omit=dev --no-audit --no-fund &&

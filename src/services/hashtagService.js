@@ -2,8 +2,10 @@ import { mastodonService } from './mastodon.js';
 import { dataProcessor } from './dataProcessor.js';
 import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
+import { sendTelemetry } from '../utils/telemetry.js';
 import { BusinessError, NotFoundError } from '../errors/index.js';
 import { HASHTAGS, getFirstHashtagForDay } from '../constants/index.js';
+import { parseAndValidateTimezone } from '../utils/timezone.js';
 import moment from 'moment-timezone';
 import NodeCache from 'node-cache';
 
@@ -12,7 +14,7 @@ export class HashtagService {
     this.cache = new NodeCache({
       stdTTL: config.cache.ttlSeconds || 300,
       checkperiod: 60,
-      useClones: false
+      useClones: false,
     });
   }
 
@@ -24,19 +26,19 @@ export class HashtagService {
    */
   getDailyHashtag(options = {}) {
     // Se timezone do cliente foi fornecido, usar para calcular o dia
-    const timezone = options.timezone && moment.tz.zone(options.timezone) 
-      ? options.timezone 
-      : config.server.timezone;
-    
+    const timezone = parseAndValidateTimezone(options.timezone, {
+      fallback: config.server.timezone,
+    });
+
     const now = moment().tz(timezone);
     const dayOfWeek = now.day();
-    
+
     const hashtagEntry = HASHTAGS[dayOfWeek];
-    
+
     if (!hashtagEntry) {
       throw new BusinessError(`No hashtag configured for day ${dayOfWeek}`);
     }
-    
+
     // Return first hashtag if multiple are configured
     return getFirstHashtagForDay(hashtagEntry);
   }
@@ -55,27 +57,30 @@ export class HashtagService {
     // Validate and normalize timeframe parameter first
     const allowedTimeframes = ['today', 'week', 'month', 'all'];
     let normalizedTimeframe = timeframe;
-    
+
     if (!allowedTimeframes.includes(normalizedTimeframe)) {
       logger.warn(`Invalid timeframe '${normalizedTimeframe}' provided, normalizing to 'all'`, {
         hashtag,
         invalidTimeframe: normalizedTimeframe,
-        allowedTimeframes
+        allowedTimeframes,
       });
       normalizedTimeframe = 'all';
     }
 
     // Build cache key using normalized timeframe and timezone to prevent cache fragmentation
     // Include timezone to ensure users in different timezones get correct data
-    const usedTimezone = options.timezone && moment.tz.zone(options.timezone) 
-      ? options.timezone 
-      : config.server.timezone;
+    const usedTimezone = parseAndValidateTimezone(options.timezone, {
+      fallback: config.server.timezone,
+    });
     const cacheKey = `analysis_${hashtag}_${maxPages}_${normalizedTimeframe}_${usedTimezone}`;
 
     // Check analysis cache
     const cachedAnalysis = this.cache.get(cacheKey);
     if (cachedAnalysis) {
-      logger.debug(`Using cached analysis for hashtag: ${hashtag}`, { timeframe: normalizedTimeframe, maxPages });
+      logger.debug(`Using cached analysis for hashtag: ${hashtag}`, {
+        timeframe: normalizedTimeframe,
+        maxPages,
+      });
       return cachedAnalysis;
     }
 
@@ -84,22 +89,22 @@ export class HashtagService {
     try {
       // Get today's date in the selected timezone (client timezone if valid, otherwise server timezone)
       const today = moment().tz(usedTimezone).format('YYYY-MM-DD');
-      
+
       // Determine filtering strategy based on timeframe
       const shouldFilterByDate = normalizedTimeframe === 'today';
-      
+
       // Fetch data in parallel
       const [allToots, hashtagHistory] = await Promise.all([
         this.fetchAllToots(hashtag, options),
-        this.getHashtagHistory(hashtag)
+        this.getHashtagHistory(hashtag),
       ]);
 
       // Process toots with appropriate filtering
       const processOptions = {
         limit: options.limit,
-        timezone: options.timezone // Pass client timezone if provided
+        timezone: options.timezone, // Pass client timezone if provided
       };
-      
+
       if (shouldFilterByDate) {
         // For 'today', use date filter for precision
         processOptions.filterByDate = today;
@@ -112,8 +117,14 @@ export class HashtagService {
       const processedToots = dataProcessor.processToots(allToots, processOptions);
 
       // Create analysis result
-      const analysis = new HashtagAnalysis(hashtag, today, processedToots, hashtagHistory, normalizedTimeframe);
-      
+      const analysis = new HashtagAnalysis(
+        hashtag,
+        today,
+        processedToots,
+        hashtagHistory,
+        normalizedTimeframe
+      );
+
       // Cache the result
       this.cache.set(cacheKey, analysis);
 
@@ -121,11 +132,10 @@ export class HashtagService {
         totalToots: allToots.length,
         filteredToots: processedToots.length,
         timeframe: normalizedTimeframe,
-        weeklyTotal: analysis.getWeeklyTotal()
+        weeklyTotal: analysis.getWeeklyTotal(),
       });
 
       return analysis;
-      
     } catch (error) {
       loggers.error(`Failed to analyze hashtag: ${hashtag}`, error);
       throw error;
@@ -137,7 +147,7 @@ export class HashtagService {
    */
   async fetchAllToots(hashtag, options = {}) {
     const cacheKey = `toots_${hashtag}_${moment().format('YYYY-MM-DD')}`;
-    
+
     // Check cache first - Node-Cache handles TTL automatically
     const cached = this.cache.get(cacheKey);
     if (cached) {
@@ -147,7 +157,7 @@ export class HashtagService {
 
     try {
       const toots = await mastodonService.fetchAllToots(
-        hashtag, 
+        hashtag,
         options.maxPages || config.performance.maxApiPages
       );
 
@@ -155,7 +165,6 @@ export class HashtagService {
       this.cache.set(cacheKey, toots);
 
       return toots;
-      
     } catch (error) {
       loggers.error(`Failed to fetch toots for hashtag: ${hashtag}`, error);
       throw error;
@@ -180,48 +189,71 @@ export class HashtagService {
    * Returns { tags, totalCount } where totalCount is the real total from the API
    */
   async getTrendingTags(limit = 10, offset = 0) {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:182',message:'getTrendingTags entry',data:{limit,offset},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    const cacheKey = `trending_tags_all`;
-    const totalCountCacheKey = `trending_tags_total`;
-    
+    sendTelemetry({
+      location: 'src/services/hashtagService.js:182',
+      message: 'getTrendingTags entry',
+      data: { limit, offset },
+      hypothesisId: 'A',
+    });
+    const cacheKey = 'trending_tags_all';
+    const totalCountCacheKey = 'trending_tags_total';
+
     // Check cache for total count first
     let totalCount = this.cache.get(totalCountCacheKey);
     let allTags = this.cache.get(cacheKey);
-    
+
     // If we don't have cached data, fetch all tags (up to API max of 100) to get total
     if (totalCount === undefined || allTags === undefined) {
       try {
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:194',message:'Before getTrendingTags call',data:{limit:100},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/services/hashtagService.js:194',
+          message: 'Before getTrendingTags call',
+          data: { limit: 100 },
+          hypothesisId: 'A',
+        });
         // Fetch maximum allowed (100) to determine total count
         const promise = mastodonService.getTrendingTags(100, 0);
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:198',message:'Promise created for getTrendingTags',data:{hasPromise:!!promise},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/services/hashtagService.js:198',
+          message: 'Promise created for getTrendingTags',
+          data: { hasPromise: !!promise },
+          hypothesisId: 'B',
+        });
         // Add catch to prevent unhandled rejection
         promise.catch((err) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:201',message:'getTrendingTags promise catch',data:{error:err?.message,code:err?.code,name:err?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
+          sendTelemetry({
+            location: 'src/services/hashtagService.js:201',
+            message: 'getTrendingTags promise catch',
+            data: { error: err?.message, code: err?.code, name: err?.name },
+            hypothesisId: 'B',
+          });
         });
         allTags = await promise;
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:206',message:'getTrendingTags succeeded',data:{tagsCount:allTags?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/services/hashtagService.js:206',
+          message: 'getTrendingTags succeeded',
+          data: { tagsCount: allTags?.length },
+          hypothesisId: 'A',
+        });
         totalCount = allTags.length;
-        
+
         // Cache both the tags and total count
         this.cache.set(cacheKey, allTags);
         this.cache.set(totalCountCacheKey, totalCount);
-        
+
         logger.debug('Fetched and cached trending tags for total count', { totalCount });
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/services/hashtagService.js:216',message:'getTrendingTags error caught',data:{error:error.message,code:error.code,name:error.name,isAggregate:error.name==='AggregateError'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/services/hashtagService.js:216',
+          message: 'getTrendingTags error caught',
+          data: {
+            error: error.message,
+            code: error.code,
+            name: error.name,
+            isAggregate: error.name === 'AggregateError',
+          },
+          hypothesisId: 'A',
+        });
         loggers.error('Failed to fetch trending tags for total count', error);
         // If we can't get total, return empty and let caller handle fallback
         return { tags: [], totalCount: null };
@@ -235,7 +267,7 @@ export class HashtagService {
 
     return {
       tags: paginatedTags,
-      totalCount: totalCount
+      totalCount: totalCount,
     };
   }
 
@@ -244,14 +276,14 @@ export class HashtagService {
    */
   async getTodayStats(hashtag) {
     const analysis = await this.analyzeHashtag(hashtag);
-    
+
     return {
       hashtag,
       date: analysis.today,
       tootCount: analysis.getTodayCount(),
       uniqueUsers: analysis.getUniqueUserCount(),
       topToots: analysis.getTopToots(5),
-      averageRelevance: analysis.getAverageRelevance()
+      averageRelevance: analysis.getAverageRelevance(),
     };
   }
 
@@ -260,7 +292,7 @@ export class HashtagService {
    */
   async getWeeklyStats(hashtag) {
     const history = await this.getHashtagHistory(hashtag);
-    
+
     if (!history || history.length === 0) {
       throw new NotFoundError(`No history found for hashtag: ${hashtag}`);
     }
@@ -268,13 +300,13 @@ export class HashtagService {
     // Get last 7 days of history
     const weeklyHistory = history.slice(-7);
     const totalUses = weeklyHistory.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0);
-    
+
     return {
       hashtag,
       period: '7 days',
       totalUses,
       dailyAverage: Math.round(totalUses / weeklyHistory.length),
-      history: weeklyHistory
+      history: weeklyHistory,
     };
   }
 
@@ -297,7 +329,7 @@ export class HashtagService {
       hits: stats.hits,
       misses: stats.misses,
       ksize: stats.ksize,
-      vsize: stats.vsize
+      vsize: stats.vsize,
     };
   }
 }
@@ -328,12 +360,12 @@ export class HashtagAnalysis {
       engagement: {
         totalFavorites: 0,
         totalBoosts: 0,
-        totalReplies: 0
-      }
+        totalReplies: 0,
+      },
     };
 
     // Single pass through all toots
-    this.toots.forEach(toot => {
+    this.toots.forEach((toot) => {
       // Calculate relevance total
       stats.totalRelevance += toot.relevanceScore || 0;
 
@@ -350,9 +382,12 @@ export class HashtagAnalysis {
     // Calculate derived stats
     const count = this.toots.length;
     stats.averageRelevance = count > 0 ? Math.round((stats.totalRelevance / count) * 10) / 10 : 0;
-    stats.averageFavorites = count > 0 ? Math.round(stats.engagement.totalFavorites / count * 10) / 10 : 0;
-    stats.averageBoosts = count > 0 ? Math.round(stats.engagement.totalBoosts / count * 10) / 10 : 0;
-    stats.averageReplies = count > 0 ? Math.round(stats.engagement.totalReplies / count * 10) / 10 : 0;
+    stats.averageFavorites =
+      count > 0 ? Math.round((stats.engagement.totalFavorites / count) * 10) / 10 : 0;
+    stats.averageBoosts =
+      count > 0 ? Math.round((stats.engagement.totalBoosts / count) * 10) / 10 : 0;
+    stats.averageReplies =
+      count > 0 ? Math.round((stats.engagement.totalReplies / count) * 10) / 10 : 0;
 
     // Sort users by post count
     stats.mostActiveUsers = Object.entries(stats.userCounts)
@@ -389,7 +424,7 @@ export class HashtagAnalysis {
     if (this.history && this.history.length > 0 && this.history[0].accounts) {
       return parseInt(this.history[0].accounts) || 0;
     }
-    const uniqueUsers = new Set(this.toots.map(toot => toot.account.username));
+    const uniqueUsers = new Set(this.toots.map((toot) => toot.account.username));
     return uniqueUsers.size;
   }
 
@@ -400,7 +435,7 @@ export class HashtagAnalysis {
     if (!this.history || this.history.length === 0) {
       return 0;
     }
-    
+
     return this.history.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0);
   }
 
@@ -442,7 +477,7 @@ export class HashtagAnalysis {
         totalReplies: 0,
         averageFavorites: 0,
         averageBoosts: 0,
-        averageReplies: 0
+        averageReplies: 0,
       };
     }
 
@@ -455,7 +490,7 @@ export class HashtagAnalysis {
       totalReplies: engagement.totalReplies,
       averageFavorites: stats.averageFavorites,
       averageBoosts: stats.averageBoosts,
-      averageReplies: stats.averageReplies
+      averageReplies: stats.averageReplies,
     };
   }
 
@@ -470,18 +505,18 @@ export class HashtagAnalysis {
         tootCount: this.getTodayCount(),
         uniqueUsers: this.getUniqueUserCount(),
         weeklyTotal: this.getWeeklyTotal(),
-        averageRelevance: this.getAverageRelevance()
+        averageRelevance: this.getAverageRelevance(),
       },
-      topToots: this.getTopToots(5).map(toot => ({
+      topToots: this.getTopToots(5).map((toot) => ({
         id: toot.id,
         username: toot.account.username,
         relevanceScore: toot.relevanceScore,
         favorites: toot.favourites_count,
-        boosts: toot.reblogs_count
+        boosts: toot.reblogs_count,
       })),
       mostActiveUsers: this.getMostActiveUsers(5),
       engagement: this.getEngagementStats(),
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
     };
   }
 }

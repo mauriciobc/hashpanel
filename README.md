@@ -101,6 +101,56 @@ As hashtags são definidas em `src/constants/index.js` e variam por dia da seman
 - **Sexta**: `sextaserie`
 - **Sábado**: `sabafoto`
 
+## ⏰ Fusos Horários (Timezone)
+
+O HashPanel possui suporte completo e automático para fusos horários, garantindo que usuários em qualquer parte do mundo vejam informações corretas.
+
+### Como Funciona
+
+- 📍 **Detecção Automática**: O dashboard detecta automaticamente o fuso horário do navegador do usuário
+- 🌍 **Suporte Global**: Suporta todos os fusos horários IANA (mais de 400 fusos horários)
+- 📅 **Hashtag Diária**: Calculada com base no dia atual do USUÁRIO, não do servidor
+- 🕐 **Datas e Horários**: Todos os timestamps são ajustados automaticamente para o fuso horário do usuário
+- 📊 **Telemetria**: Coleta estatísticas anônimas sobre uso de fusos horários
+
+### Configuração do Servidor
+
+O fuso horário padrão do servidor pode ser configurado via variável de ambiente:
+
+```bash
+# Fuso horário padrão (usado para coleta de dados do servidor)
+PREFERRED_TIMEZONE=America/Sao_Paulo
+```
+
+Fusos horários válidos seguem o padrão IANA. Exemplos:
+- `America/Sao_Paulo` (Brasil - UTC-3)
+- `America/New_York` (Nova York - UTC-5/UTC-4)
+- `Europe/London` (Londres - UTC/UTC+1)
+- `Asia/Tokyo` (Tóquio - UTC+9)
+- `UTC` (Horário Universal Coordenado)
+
+[Lista completa de fusos horários](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+
+### Para Usuários
+
+- Todas as datas e horários são exibidos no **seu** fuso horário local
+- A hashtag diária muda à meia-noite do **seu** horário, não do servidor
+- Passe o mouse sobre datas para ver informações do fuso horário em uso
+- O console do navegador mostra qual fuso horário foi detectado
+
+**Exemplo**: Se são 23:00 de segunda-feira no Brasil e 11:00 de terça-feira no Japão:
+- Usuário no Brasil vê: `#segundaficha` (hashtag de segunda-feira)
+- Usuário no Japão vê: `#tercinema` (hashtag de terça-feira)
+
+### Telemetria
+
+Visualize estatísticas de uso de fusos horários:
+```bash
+GET /api/dashboard/telemetry
+```
+
+Para mais detalhes, consulte o [Guia de Fusos Horários](docs/TIMEZONE_GUIDE.md).
+
 ## 📖 Como Usar
 
 ### CLI - Interface de Linha de Comando

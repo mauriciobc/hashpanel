@@ -10,23 +10,23 @@ export class RelevanceCalculator {
   // - Viral content: ~3.5-5.0
   // Setting to 2.5 so viral content (4.5+) reaches 85-95 range
   static MAX_EXPECTED_SCORE = 2.5;
-  
+
   constructor(weights = null) {
     // Default weights that sum to 1.0
     this.weights = weights || {
-      favorites: 0.35,   // 35% weight for favorites/likes
-      boosts: 0.25,      // 25% weight for boosts/reblogs
-      followers: 0.25,   // 25% weight for author's followers
-      replies: 0.15      // 15% weight for replies (conversation engagement)
+      favorites: 0.35, // 35% weight for favorites/likes
+      boosts: 0.25, // 25% weight for boosts/reblogs
+      followers: 0.25, // 25% weight for author's followers
+      replies: 0.15, // 15% weight for replies (conversation engagement)
     };
-    
+
     this.validateWeights();
     this.calculationStats = {
       totalCalculations: 0,
       errors: 0,
       averageScore: 0,
       maxScore: 0,
-      minScore: Infinity
+      minScore: Infinity,
     };
   }
 
@@ -38,17 +38,21 @@ export class RelevanceCalculator {
   validateWeights() {
     // Required weight keys
     const requiredKeys = ['favorites', 'boosts', 'followers', 'replies'];
-    
+
     // Normalize weights: ensure all required keys exist with numeric values
     const normalizedWeights = { ...this.weights };
     let hasMissingKeys = false;
-    
+
     for (const key of requiredKeys) {
-      if (!(key in normalizedWeights) || normalizedWeights[key] === undefined || normalizedWeights[key] === null) {
+      if (
+        !(key in normalizedWeights) ||
+        normalizedWeights[key] === undefined ||
+        normalizedWeights[key] === null
+      ) {
         normalizedWeights[key] = 0;
         hasMissingKeys = true;
       }
-      
+
       // Coerce to number if not already
       const weightValue = normalizedWeights[key];
       if (typeof weightValue !== 'number' || isNaN(weightValue)) {
@@ -58,7 +62,7 @@ export class RelevanceCalculator {
           { key, weight: weightValue, weights: this.weights }
         );
       }
-      
+
       // Validate range
       if (weightValue < 0 || weightValue > 1) {
         throw new DataProcessingError(
@@ -68,18 +72,18 @@ export class RelevanceCalculator {
         );
       }
     }
-    
+
     // If missing keys were added, log a warning
     if (hasMissingKeys) {
-      logger.warn('Missing weight keys were normalized to 0', { 
-        originalWeights: this.weights, 
-        normalizedWeights 
+      logger.warn('Missing weight keys were normalized to 0', {
+        originalWeights: this.weights,
+        normalizedWeights,
       });
     }
-    
+
     // Calculate sum of normalized weights
     const sum = requiredKeys.reduce((total, key) => total + normalizedWeights[key], 0);
-    
+
     // Validate sum
     if (Math.abs(sum - 1.0) > 0.01) {
       throw new DataProcessingError(
@@ -88,7 +92,7 @@ export class RelevanceCalculator {
         { weights: normalizedWeights, sum }
       );
     }
-    
+
     // Validate any additional (non-required) weights
     for (const [key, weight] of Object.entries(normalizedWeights)) {
       if (!requiredKeys.includes(key)) {
@@ -101,10 +105,10 @@ export class RelevanceCalculator {
         }
       }
     }
-    
+
     // Mutate this.weights with normalized values
     this.weights = normalizedWeights;
-    
+
     logger.debug('Relevance weights validated and normalized', { weights: this.weights });
   }
 
@@ -126,28 +130,27 @@ export class RelevanceCalculator {
 
       // Extract metrics with fallbacks
       const metrics = this.extractMetrics(toot);
-      
+
       // Calculate weighted score (raw logarithmic score)
       const rawScore = this.calculateWeightedScore(metrics);
-      
+
       // Round raw score to 1 decimal place
       const relevanceScoreRaw = Math.round(rawScore * 10) / 10;
-      
+
       // Normalize to 0-100 scale for better UX
       const relevanceScore = this.normalizeScore(rawScore);
-      
+
       // Update statistics with normalized score
       this.updateStats(relevanceScore);
-      
+
       // Return enhanced toot object
       return {
         ...toot,
-        relevanceScore,        // Normalized 0-100 score (primary)
-        relevanceScoreRaw,     // Raw logarithmic score (for debugging/analysis)
+        relevanceScore, // Normalized 0-100 score (primary)
+        relevanceScoreRaw, // Raw logarithmic score (for debugging/analysis)
         metrics,
-        calculatedAt: new Date().toISOString()
+        calculatedAt: new Date().toISOString(),
       };
-      
     } catch (error) {
       this.calculationStats.errors++;
       logger.error(`Failed to calculate relevance for toot ${toot?.id}`, error);
@@ -160,7 +163,7 @@ export class RelevanceCalculator {
    */
   validateToot(toot) {
     const errors = [];
-    
+
     if (!toot || typeof toot !== 'object') {
       errors.push('Toot must be an object');
       return errors;
@@ -169,7 +172,7 @@ export class RelevanceCalculator {
     // Check required fields
     if (!toot.id) errors.push('Missing toot.id');
     if (!toot.account) errors.push('Missing toot.account');
-    
+
     if (toot.account) {
       if (!toot.account.id) errors.push('Missing toot.account.id');
       if (!toot.account.username) errors.push('Missing toot.account.username');
@@ -200,7 +203,7 @@ export class RelevanceCalculator {
       followers: toot.account.followers_count || 0,
       following: toot.account.following_count || 0,
       statuses: toot.account.statuses_count || 0,
-      accountAge: this.calculateAccountAge(toot.account.created_at)
+      accountAge: this.calculateAccountAge(toot.account.created_at),
     };
   }
 
@@ -209,16 +212,16 @@ export class RelevanceCalculator {
    */
   calculateAccountAge(createdAt) {
     if (!createdAt) return 0;
-    
+
     try {
       const created = new Date(createdAt);
-      
+
       // Validate the parsed date explicitly
       if (isNaN(created.getTime())) {
         logger.warn('Invalid date for account age calculation', { createdAt });
         return 0;
       }
-      
+
       const now = new Date();
       const diffTime = Math.abs(now - created);
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -235,39 +238,39 @@ export class RelevanceCalculator {
    */
   calculateWeightedScore(metrics) {
     const { favorites, boosts, followers, replies } = metrics;
-    
+
     // Apply logarithmic scaling to prevent very large numbers from dominating
     const scaledFollowers = Math.log10(Math.max(1, followers));
     const scaledFavorites = Math.log10(Math.max(1, favorites));
     const scaledBoosts = Math.log10(Math.max(1, boosts));
     const scaledReplies = Math.log10(Math.max(1, replies));
-    
+
     // Use safe defaults to prevent NaN (weights should be normalized by validateWeights, but this is a safety net)
-    const { 
-      favorites: wFavorites = 0, 
-      boosts: wBoosts = 0, 
+    const {
+      favorites: wFavorites = 0,
+      boosts: wBoosts = 0,
       followers: wFollowers = 0,
-      replies: wReplies = 0 
+      replies: wReplies = 0,
     } = this.weights;
-    
+
     // Calculate weighted score
-    const score = 
-      (wFavorites * scaledFavorites) +
-      (wBoosts * scaledBoosts) +
-      (wFollowers * scaledFollowers) +
-      (wReplies * scaledReplies);
-    
+    const score =
+      wFavorites * scaledFavorites +
+      wBoosts * scaledBoosts +
+      wFollowers * scaledFollowers +
+      wReplies * scaledReplies;
+
     // Final safety check: ensure result is a valid number
     if (isNaN(score) || !isFinite(score)) {
-      logger.error('Invalid score calculated', { 
-        metrics, 
-        weights: this.weights, 
+      logger.error('Invalid score calculated', {
+        metrics,
+        weights: this.weights,
         score,
-        scaledValues: { scaledFavorites, scaledBoosts, scaledFollowers, scaledReplies }
+        scaledValues: { scaledFavorites, scaledBoosts, scaledFollowers, scaledReplies },
       });
       return 0;
     }
-    
+
     return score;
   }
 
@@ -279,11 +282,11 @@ export class RelevanceCalculator {
    */
   normalizeScore(rawScore) {
     if (rawScore <= 0) return 0;
-    
+
     // Use sigmoid-like function for smooth normalization
     // Score of MAX_EXPECTED_SCORE maps to ~86, exceptional content can reach ~95-100
     const normalized = 100 * (1 - Math.exp(-rawScore / RelevanceCalculator.MAX_EXPECTED_SCORE));
-    
+
     // Clamp to 0-100 and round to 1 decimal place
     return Math.round(Math.min(100, Math.max(0, normalized)) * 10) / 10;
   }
@@ -294,7 +297,7 @@ export class RelevanceCalculator {
   updateStats(score) {
     // Increment totalCalculations only for successful calculations
     this.calculationStats.totalCalculations++;
-    
+
     // Update min/max
     if (score > this.calculationStats.maxScore) {
       this.calculationStats.maxScore = score;
@@ -302,11 +305,11 @@ export class RelevanceCalculator {
     if (score < this.calculationStats.minScore) {
       this.calculationStats.minScore = score;
     }
-    
+
     // Update average (running average)
     const total = this.calculationStats.totalCalculations;
     const currentAvg = this.calculationStats.averageScore;
-    this.calculationStats.averageScore = ((currentAvg * (total - 1)) + score) / total;
+    this.calculationStats.averageScore = (currentAvg * (total - 1) + score) / total;
   }
 
   /**
@@ -318,18 +321,20 @@ export class RelevanceCalculator {
     }
 
     logger.info(`Calculating relevance for ${toots.length} toots`);
-    
-    const results = toots.map((toot, index) => {
-      try {
-        return this.calculateRelevance(toot);
-      } catch (error) {
-        logger.error(`Failed to calculate relevance for toot at index ${index}`, error);
-        return null;
-      }
-    }).filter(Boolean); // Remove null results
+
+    const results = toots
+      .map((toot, index) => {
+        try {
+          return this.calculateRelevance(toot);
+        } catch (error) {
+          logger.error(`Failed to calculate relevance for toot at index ${index}`, error);
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove null results
 
     logger.info(`Successfully calculated relevance for ${results.length} toots`);
-    
+
     return results;
   }
 
@@ -342,7 +347,7 @@ export class RelevanceCalculator {
     }
 
     // Ensure all toots have relevance scores
-    const tootsWithScores = toots.map(toot => {
+    const tootsWithScores = toots.map((toot) => {
       if (toot.relevanceScore === undefined) {
         try {
           return this.calculateRelevance(toot);
@@ -374,9 +379,7 @@ export class RelevanceCalculator {
     return {
       ...this.calculationStats,
       weights: this.weights,
-      errorRate: totalAttempts > 0 
-        ? (this.calculationStats.errors / totalAttempts) * 100 
-        : 0
+      errorRate: totalAttempts > 0 ? (this.calculationStats.errors / totalAttempts) * 100 : 0,
     };
   }
 
@@ -386,7 +389,7 @@ export class RelevanceCalculator {
   getConfig() {
     return {
       weights: this.weights,
-      stats: this.getStats()
+      stats: this.getStats(),
     };
   }
 
@@ -395,19 +398,18 @@ export class RelevanceCalculator {
    */
   updateWeights(newWeights) {
     const oldWeights = { ...this.weights };
-    
+
     try {
       this.weights = { ...newWeights };
       this.validateWeights();
-      
-      logger.info('Updated relevance weights', { 
-        oldWeights, 
-        newWeights: this.weights 
+
+      logger.info('Updated relevance weights', {
+        oldWeights,
+        newWeights: this.weights,
       });
-      
+
       // Reset stats since weights changed
       this.resetStats();
-      
     } catch (error) {
       // Revert to old weights on validation error
       this.weights = oldWeights;
@@ -424,7 +426,7 @@ export class RelevanceCalculator {
       errors: 0,
       averageScore: 0,
       maxScore: 0,
-      minScore: Infinity
+      minScore: Infinity,
     };
   }
 
@@ -434,10 +436,10 @@ export class RelevanceCalculator {
   exportConfig() {
     return {
       weights: this.weights,
-      version: '2.0',  // v2.0: Added replies weight + normalized 0-100 scores
+      version: '2.0', // v2.0: Added replies weight + normalized 0-100 scores
       maxExpectedScore: RelevanceCalculator.MAX_EXPECTED_SCORE,
       exportedAt: new Date().toISOString(),
-      stats: this.getStats()
+      stats: this.getStats(),
     };
   }
 
@@ -454,10 +456,10 @@ export class RelevanceCalculator {
     }
 
     this.updateWeights(config.weights);
-    
-    logger.info('Imported relevance configuration', { 
+
+    logger.info('Imported relevance configuration', {
       version: config.version,
-      exportedAt: config.exportedAt 
+      exportedAt: config.exportedAt,
     });
   }
 }

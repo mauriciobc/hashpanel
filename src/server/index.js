@@ -6,7 +6,9 @@ import { SERVER_CONFIG, validateCorsConfig } from '../constants/index.js';
 import { logger, loggers } from '../utils/logger.js';
 import { errorHandler, notFoundHandler, requestLogger } from '../middleware/errorHandler.js';
 import { apiRateLimit } from '../middleware/rateLimiter.js';
+import timezonetelemetryMiddleware from '../middleware/timezonetelemetry.js';
 import { apiRoutes } from './routes/index.js';
+import { sendTelemetry } from '../utils/telemetry.js';
 import { mastodonService } from '../services/mastodon.js';
 import { getDatabase } from '../database/index.js';
 
@@ -15,7 +17,7 @@ export class WebServer {
     this.app = express();
     this.server = null;
     this.isStarted = false;
-    
+
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -31,43 +33,51 @@ export class WebServer {
     // This prevents clients from spoofing X-Forwarded-For headers to bypass rate limiting
     // For Docker: typically 1 proxy (Caddy/nginx) between client and app
     // For direct deployment: set to false or specific IP ranges
-    const trustProxyValue = process.env.TRUST_PROXY === 'false' 
-      ? false 
-      : process.env.TRUST_PROXY 
-        ? parseInt(process.env.TRUST_PROXY, 10) || 1
-        : 1; // Default to 1 proxy (secure: only trust the immediate reverse proxy)
-    
+    const trustProxyValue =
+      process.env.TRUST_PROXY === 'false'
+        ? false
+        : process.env.TRUST_PROXY
+          ? parseInt(process.env.TRUST_PROXY, 10) || 1
+          : 1; // Default to 1 proxy (secure: only trust the immediate reverse proxy)
+
     this.app.set('trust proxy', trustProxyValue);
-    
+
     // Request logging
     this.app.use(requestLogger);
-    
+
     // Response compression - reduces payload size by 60-80%
     this.app.use(compression({ threshold: 1024 }));
-    
+
     // CORS configuration
     // Uses CORS_OPTIONS from constants to ensure consistency
     // When credentials: true, origin cannot be '*' - handled in constants
-    this.app.use(cors({
-      ...SERVER_CONFIG.CORS_OPTIONS,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-    }));
-    
+    this.app.use(
+      cors({
+        ...SERVER_CONFIG.CORS_OPTIONS,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      })
+    );
+
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-    
+
     // Rate limiting
     this.app.use('/api', apiRateLimit);
-    
+
+    // Timezone telemetry tracking
+    this.app.use('/api', timezonetelemetryMiddleware);
+
     // Static files
-    this.app.use(express.static('public', {
-      maxAge: '1h', // Cache static files for 1 hour
-      etag: true,
-      lastModified: true
-    }));
-    
+    this.app.use(
+      express.static('public', {
+        maxAge: '1h', // Cache static files for 1 hour
+        etag: true,
+        lastModified: true,
+      })
+    );
+
     logger.debug('Express middleware configured');
   }
 
@@ -77,13 +87,13 @@ export class WebServer {
   setupRoutes() {
     // Health check endpoint (before API routes)
     this.app.get('/health', this.healthCheck);
-    
+
     // API routes
     this.app.use('/api', apiRoutes);
-    
+
     // Serve frontend (catch-all for SPA)
     this.app.get('*', this.serveFrontend);
-    
+
     logger.debug('Application routes configured');
   }
 
@@ -93,10 +103,10 @@ export class WebServer {
   setupErrorHandling() {
     // 404 handler
     this.app.use(notFoundHandler);
-    
+
     // Global error handler
     this.app.use(errorHandler);
-    
+
     logger.debug('Error handling configured');
   }
 
@@ -104,9 +114,12 @@ export class WebServer {
    * Health check endpoint
    */
   healthCheck = async (req, res) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:92',message:'Healthcheck started',data:{uptime:process.uptime()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    sendTelemetry({
+      location: 'src/server/index.js:92',
+      message: 'Healthcheck started',
+      data: { uptime: process.uptime() },
+      hypothesisId: 'B',
+    });
     try {
       const health = {
         status: 'healthy',
@@ -116,71 +129,92 @@ export class WebServer {
         version: process.env.npm_package_version || '1.0.0',
         services: {
           mastodon: 'unknown',
-          database: 'unknown'
+          database: 'unknown',
         },
         memory: {
           used: Math.round(process.memoryUsage().heapUsed / (1024 * 1024)),
-          total: Math.round(process.memoryUsage().heapTotal / (1024 * 1024))
-        }
+          total: Math.round(process.memoryUsage().heapTotal / (1024 * 1024)),
+        },
       };
 
       // Test Mastodon connectivity
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:111',message:'Before Mastodon API test',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      sendTelemetry({
+        location: 'src/server/index.js:111',
+        message: 'Before Mastodon API test',
+        data: {},
+        hypothesisId: 'B',
+      });
       try {
         // Quick API call to test connectivity
-        await mastodonService.getTrendingTags(1);
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:114',message:'Mastodon API test succeeded',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+        await withTimeout(
+          mastodonService.getTrendingTags(1),
+          config.health.timeoutMs,
+          'Mastodon health check timeout'
+        );
+        sendTelemetry({
+          location: 'src/server/index.js:114',
+          message: 'Mastodon API test succeeded',
+          data: {},
+          hypothesisId: 'B',
+        });
         health.services.mastodon = 'healthy';
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:117',message:'Mastodon API test failed',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/server/index.js:117',
+          message: 'Mastodon API test failed',
+          data: { error: error.message, code: error.code, timeoutMs: config.health.timeoutMs },
+          hypothesisId: 'B',
+        });
         health.services.mastodon = 'unhealthy';
         health.status = 'degraded';
       }
 
       // Test database connectivity
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:121',message:'Before database health check',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
+      sendTelemetry({
+        location: 'src/server/index.js:121',
+        message: 'Before database health check',
+        data: {},
+        hypothesisId: 'C',
+      });
       try {
         const dbHealth = getDatabase().healthCheck();
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:123',message:'Database health check succeeded',data:{status:dbHealth.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/server/index.js:123',
+          message: 'Database health check succeeded',
+          data: { status: dbHealth.status },
+          hypothesisId: 'C',
+        });
         health.services.database = dbHealth.status;
         if (dbHealth.status !== 'healthy') {
           health.status = 'degraded';
         }
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:128',message:'Database health check failed',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
+        sendTelemetry({
+          location: 'src/server/index.js:128',
+          message: 'Database health check failed',
+          data: { error: error.message, code: error.code },
+          hypothesisId: 'C',
+        });
         health.services.database = 'unhealthy';
         health.status = 'degraded';
       }
 
       // Determine HTTP status code
       const statusCode = health.status === 'healthy' ? 200 : 503;
-      
+
       loggers.apiRequest(req.method, req.url);
       loggers.apiResponse(req.method, req.url, statusCode, 0);
-      
+
       res.status(statusCode).json(health);
-      
     } catch (error) {
       logger.error('Health check failed', error);
       res.status(503).json({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error.message
+        error: error.message,
       });
     }
-  }
+  };
 
   /**
    * Serve frontend application
@@ -197,11 +231,11 @@ export class WebServer {
         logger.error('Failed to serve frontend', error);
         res.status(500).json({
           error: 'Failed to serve frontend',
-          code: 'FRONTEND_ERROR'
+          code: 'FRONTEND_ERROR',
         });
       }
     });
-  }
+  };
 
   /**
    * Start the web server
@@ -216,37 +250,46 @@ export class WebServer {
     validateCorsConfig();
 
     return new Promise((resolve, reject) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:183',message:'Before server.listen',data:{host:config.server.host,port:config.server.port},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
+      sendTelemetry({
+        location: 'src/server/index.js:183',
+        message: 'Before server.listen',
+        data: { host: config.server.host, port: config.server.port },
+        hypothesisId: 'A',
+      });
       try {
         this.server = this.app.listen(config.server.port, config.server.host, () => {
-          // #region agent log
-          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:186',message:'Server listen callback executed',data:{host:config.server.host,port:config.server.port},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
+          sendTelemetry({
+            location: 'src/server/index.js:186',
+            message: 'Server listen callback executed',
+            data: { host: config.server.host, port: config.server.port },
+            hypothesisId: 'A',
+          });
           this.isStarted = true;
-          
-          logger.info(`Web server started successfully`, {
+
+          logger.info('Web server started successfully', {
             host: config.server.host,
             port: config.server.port,
             environment: config.server.environment,
             nodeVersion: process.version,
-            pid: process.pid
+            pid: process.pid,
           });
 
           loggers.business('server_started', {
             host: config.server.host,
             port: config.server.port,
-            environment: config.server.environment
+            environment: config.server.environment,
           });
 
           resolve();
         });
 
         this.server.on('error', (error) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:205',message:'Server error event',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
+          sendTelemetry({
+            location: 'src/server/index.js:205',
+            message: 'Server error event',
+            data: { error: error.message, code: error.code },
+            hypothesisId: 'A',
+          });
           logger.error('Server startup failed', error);
           reject(error);
         });
@@ -256,7 +299,6 @@ export class WebServer {
           logger.warn('Client error', error);
           socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
         });
-
       } catch (error) {
         logger.error('Failed to start server', error);
         reject(error);
@@ -275,7 +317,7 @@ export class WebServer {
 
     return new Promise((resolve) => {
       logger.info('Stopping web server...');
-      
+
       this.server.close((error) => {
         if (error) {
           logger.error('Error stopping server', error);
@@ -283,7 +325,7 @@ export class WebServer {
           logger.info('Web server stopped successfully');
           loggers.business('server_stopped');
         }
-        
+
         this.isStarted = false;
         resolve();
       });
@@ -305,16 +347,15 @@ export class WebServer {
    */
   async shutdown() {
     logger.info('Initiating graceful shutdown...');
-    
+
     try {
       // Stop accepting new connections
       await this.stop();
-      
+
       // Cleanup resources
       await this.cleanup();
-      
+
       logger.info('Graceful shutdown completed');
-      
     } catch (error) {
       logger.error('Error during shutdown', error);
       throw error;
@@ -327,13 +368,13 @@ export class WebServer {
   async cleanup() {
     // Close database connections, clear caches, etc.
     // This would be expanded based on actual resources used
-    
+
     try {
       // Clear any caches
       if (global.gc) {
         global.gc();
       }
-      
+
       logger.debug('Resources cleaned up');
     } catch (error) {
       logger.error('Error during cleanup', error);
@@ -373,7 +414,7 @@ export class WebServer {
       memory: process.memoryUsage(),
       pid: process.pid,
       nodeVersion: process.version,
-      connections: this.server?.connections || 0
+      connections: this.server?.connections || 0,
     };
   }
 
@@ -386,7 +427,7 @@ export class WebServer {
       totalRequests: 0,
       averageResponseTime: 0,
       errorRate: 0,
-      lastRequestTime: null
+      lastRequestTime: null,
     };
   }
 }
@@ -396,25 +437,11 @@ export const webServer = new WebServer();
 
 // Handle process signals for graceful shutdown
 process.on('SIGTERM', async () => {
-  logger.info('Received SIGTERM, starting graceful shutdown...');
-  try {
-    await webServer.shutdown();
-    process.exit(0);
-  } catch (error) {
-    logger.error('Error during shutdown', error);
-    process.exit(1);
-  }
+  await handleShutdownSignal('SIGTERM');
 });
 
 process.on('SIGINT', async () => {
-  logger.info('Received SIGINT, starting graceful shutdown...');
-  try {
-    await webServer.shutdown();
-    process.exit(0);
-  } catch (error) {
-    logger.error('Error during shutdown', error);
-    process.exit(1);
-  }
+  await handleShutdownSignal('SIGINT');
 });
 
 // Helper function to check if an error is a network timeout error
@@ -424,67 +451,127 @@ function isNetworkTimeoutError(error) {
   if (error?.code === 'ETIMEDOUT') {
     return true;
   }
-  
+
   // Check if it's an AggregateError and if any of its errors are ETIMEDOUT
   if (error?.name === 'AggregateError' && Array.isArray(error.errors)) {
-    return error.errors.some(err => err?.code === 'ETIMEDOUT');
+    return error.errors.some((err) => err?.code === 'ETIMEDOUT');
   }
-  
+
   // Also check the code property on AggregateError itself (some implementations set it)
   if (error?.name === 'AggregateError' && error?.code === 'ETIMEDOUT') {
     return true;
   }
-  
+
   return false;
+}
+
+function withTimeout(promise, timeoutMs, message) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const timeoutError = new Error(message);
+      timeoutError.code = 'ETIMEDOUT';
+      reject(timeoutError);
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  });
+}
+
+async function handleShutdownSignal(signal) {
+  logger.info(`Received ${signal}, starting graceful shutdown...`);
+  try {
+    await webServer.shutdown();
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', error);
+    process.exit(1);
+  }
+}
+
+function handleNetworkTimeoutNotice(source, error, hypothesisId, extraData = {}) {
+  sendTelemetry({
+    location: `src/server/index.js:${source}`,
+    message: `Network timeout detected in ${source}`,
+    data: {
+      code: error.code,
+      name: error.name,
+      isAggregate: error.name === 'AggregateError',
+      errorsCount: error.errors?.length,
+      ...extraData,
+    },
+    hypothesisId,
+  });
+  logger.debug(
+    'Network timeout error from connection retry (non-fatal) - server continues running',
+    {
+      code: error.code,
+      name: error.name,
+      message: error.message || 'Connection timeout during retry',
+      isAggregateError: error.name === 'AggregateError',
+      errorsCount: error.errors?.length || 0,
+    }
+  );
 }
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:442',message:'Uncaught exception handler',data:{error:error.message,code:error.code,name:error.name,isAggregate:error.name==='AggregateError',errorsCount:error.errors?.length,stack:error.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
-  
+  sendTelemetry({
+    location: 'src/server/index.js:442',
+    message: 'Uncaught exception handler',
+    data: {
+      error: error.message,
+      code: error.code,
+      name: error.name,
+      isAggregate: error.name === 'AggregateError',
+      errorsCount: error.errors?.length,
+      stack: error.stack?.substring(0, 200),
+    },
+    hypothesisId: 'C',
+  });
+
   // Don't shutdown for network timeout errors - these are often transient
   // ETIMEDOUT errors from network operations should not crash the server
   // These errors typically occur from connection retries or keep-alive connections
   // that fail after the main request has already completed successfully
   if (isNetworkTimeoutError(error)) {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:451',message:'Network timeout detected in uncaughtException',data:{code:error.code,name:error.name,isAggregate:error.name==='AggregateError',errorsCount:error.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    // Log at debug level to reduce noise - these are expected in container environments
-    // This error occurs when Node.js tries multiple connection attempts (e.g., multiple IPs from DNS)
-    // and all timeout. The main request likely completed successfully before this error.
-    logger.debug('Network timeout error from connection retry (non-fatal) - server continues running', {
-      code: error.code,
-      name: error.name,
-      message: error.message || 'Connection timeout during retry',
-      isAggregateError: error.name === 'AggregateError',
-      errorsCount: error.errors?.length || 0
-    });
+    handleNetworkTimeoutNotice('uncaughtException', error, 'C');
     return; // Continue running instead of shutting down
   }
-  
+
   // For other uncaught exceptions, log with full context and shutdown gracefully
   logger.error('Uncaught exception', {
     error: {
       message: error.message,
       code: error.code,
       name: error.name,
-      stack: error.stack
-    }
+      stack: error.stack,
+    },
   });
-  
+
   logger.error('Shutting down due to uncaught exception');
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:476',message:'Unhandled promise rejection',data:{reason:reason?.message||String(reason),code:reason?.code,name:reason?.name,isAggregate:reason?.name==='AggregateError',errorsCount:reason?.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-  
+  sendTelemetry({
+    location: 'src/server/index.js:476',
+    message: 'Unhandled promise rejection',
+    data: {
+      reason: reason?.message || String(reason),
+      code: reason?.code,
+      name: reason?.name,
+      isAggregate: reason?.name === 'AggregateError',
+      errorsCount: reason?.errors?.length,
+    },
+    hypothesisId: 'B',
+  });
+
   // Extract error information safely
   // If reason is an Error object, use it directly; otherwise create errorInfo from it
   const error = reason instanceof Error ? reason : { message: String(reason) };
@@ -493,35 +580,25 @@ process.on('unhandledRejection', (reason, promise) => {
     code: error.code,
     name: error.name,
     stack: error.stack,
-    errors: error.errors // For AggregateError
+    errors: error.errors, // For AggregateError
   };
-  
-  logger.error('Unhandled promise rejection', { 
+
+  logger.error('Unhandled promise rejection', {
     reason: errorInfo,
-    promise: promise?.toString?.() || 'Unknown promise'
+    promise: promise?.toString?.() || 'Unknown promise',
   });
-  
+
   // Don't shutdown for network timeout errors - these are often transient
   // ETIMEDOUT errors from network operations should not crash the server
   // These errors typically occur from connection retries or keep-alive connections
   // that fail after the main request has already completed successfully
   if (isNetworkTimeoutError(error)) {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/server/index.js:502',message:'Network timeout detected in unhandledRejection',data:{code:errorInfo.code,name:errorInfo.name,isAggregate:errorInfo.name==='AggregateError',errorsCount:errorInfo.errors?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    // Use debug level instead of warn to reduce log noise
-    // These errors are expected in container environments with network retries
-    logger.debug('Network timeout rejection caught (likely from connection retry) - server will continue running', {
-      code: errorInfo.code,
-      name: errorInfo.name,
-      message: errorInfo.message || 'Connection timeout during retry',
-      isAggregateError: errorInfo.name === 'AggregateError',
-      errorsCount: errorInfo.errors?.length || 0,
-      note: 'This error typically occurs when Node.js tries multiple connection attempts and all timeout. The main request likely completed successfully.'
+    handleNetworkTimeoutNotice('unhandledRejection', errorInfo, 'B', {
+      note: 'This error typically occurs when Node.js tries multiple connection attempts and all timeout. The main request likely completed successfully.',
     });
     return; // Continue running instead of shutting down
   }
-  
+
   // For other unhandled rejections, log and shutdown gracefully
   logger.error('Shutting down due to unhandled promise rejection');
   process.exit(1);

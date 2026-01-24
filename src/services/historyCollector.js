@@ -4,6 +4,7 @@ import { HASHTAGS, getHashtagsForDay } from '../constants/index.js';
 import { logger, loggers } from '../utils/logger.js';
 import moment from 'moment-timezone';
 import { appConfig as config } from '../config/index.js';
+import { getCurrentDateInTimezone, getTimezoneLogContext } from '../utils/timezone.js';
 
 /**
  * Service for collecting and storing hashtag history data
@@ -17,22 +18,22 @@ export class HistoryCollector {
         skipped: 0,
         errors: 0,
         lastRun: null,
-        lastReset: null
+        lastReset: null,
       },
       hashtagData: {
         collected: 0,
         skipped: 0,
         errors: 0,
         lastRun: null,
-        lastReset: null
+        lastReset: null,
       },
       dateRange: {
         collected: 0,
         skipped: 0,
         errors: 0,
         lastRun: null,
-        lastReset: null
-      }
+        lastReset: null,
+      },
     };
   }
 
@@ -64,14 +65,28 @@ export class HistoryCollector {
   }
 
   /**
-   * Collect history data for a single hashtag
-   * @param {string} hashtag - Hashtag to collect data for
-   * @param {string} date - Date in YYYY-MM-DD format (defaults to today)
-   * @param {string} operationContext - Operation context: 'allHashtags' when called from collectAllHashtags, 'hashtagData' when called directly
+   * Collect and store history data for a specific hashtag
+   * @param {string} hashtag - Hashtag name (without #)
+   * @param {string} date - Target date (YYYY-MM-DD format) or null for today
+   * @param {string} operationContext - Context for statistics tracking
    * @returns {Promise<boolean>} True if collected, false if skipped
    */
   async collectHashtagData(hashtag, date = null, operationContext = 'hashtagData') {
-    const targetDate = date || moment().tz(config.server.timezone).format('YYYY-MM-DD');
+    // Determine target date using server timezone
+    // NOTE: The server timezone is used to determine "today" for data collection
+    // The Mastodon API returns UTC timestamps, but we need to know which local
+    // date to collect data for (today/yesterday in server timezone)
+    const targetDate = date || getCurrentDateInTimezone(config.server.timezone);
+
+    logger.info(
+      'Starting hashtag history collection',
+      getTimezoneLogContext(config.server.timezone, {
+        hashtag,
+        targetDate,
+        providedDate: date,
+        operation: operationContext,
+      })
+    );
 
     try {
       // Check if we already have data for this date
@@ -81,7 +96,12 @@ export class HistoryCollector {
         return false;
       }
 
-      logger.info(`Collecting history data for ${hashtag} on ${targetDate}`);
+      logger.info(`Collecting history data for ${hashtag} on ${targetDate}`, {
+        hashtag,
+        targetDate,
+        timezone: config.server.timezone,
+        utcTime: moment().utc().format(),
+      });
 
       // Fetch data from Mastodon API
       const history = await mastodonService.getHashtagUse(hashtag);
@@ -95,9 +115,9 @@ export class HistoryCollector {
       // Mastodon API returns 'day' as Unix timestamp (seconds) representing midnight UTC
       // IMPORTANT: API aggregates data by UTC day, so we must use UTC for timestamp conversion
       // The local timezone is only used to determine which date to collect (today/yesterday)
-      
+
       // Try to find by converting timestamp to date string (using UTC)
-      let dayData = history.find(day => {
+      let dayData = history.find((day) => {
         const dayTimestamp = parseInt(day.day);
         if (isNaN(dayTimestamp)) {
           // If day is already a date string, compare directly
@@ -110,11 +130,11 @@ export class HistoryCollector {
 
       if (!dayData) {
         logger.warn(`No data found for ${hashtag} on ${targetDate}`, {
-          availableDates: history.slice(0, 3).map(d => {
+          availableDates: history.slice(0, 3).map((d) => {
             const ts = parseInt(d.day);
             // Use UTC for conversion (API aggregates by UTC day)
             return isNaN(ts) ? d.day : moment.unix(ts).utc().format('YYYY-MM-DD');
-          })
+          }),
         });
         return false;
       }
@@ -126,64 +146,64 @@ export class HistoryCollector {
       // Save to database
       databaseService.saveDailyHashtagData(hashtag, targetDate, {
         uses,
-        accounts
+        accounts,
       });
 
       this._updateStats(operationContext, 'collected');
       logger.info(`Successfully collected data for ${hashtag} on ${targetDate}`, {
         uses: dayData.uses,
-        accounts: dayData.accounts
+        accounts: dayData.accounts,
       });
 
       return true;
-
     } catch (error) {
       this._updateStats(operationContext, 'errors');
       loggers.error(`Failed to collect data for ${hashtag} on ${targetDate}`, error);
-      
+
       // Don't throw - continue with other hashtags
       return false;
     }
   }
 
   /**
-   * Collect history data for all configured hashtags
-   * @param {string} date - Date in YYYY-MM-DD format (defaults to today)
+   * Collect history for all configured hashtags
+   * @param {string} date - Target date (YYYY-MM-DD format) or null for today
    * @returns {Promise<Object>} Collection summary
    */
   async collectAllHashtags(date = null) {
-    const targetDate = date || moment().tz(config.server.timezone).format('YYYY-MM-DD');
-    
-    logger.info(`Starting history collection for all hashtags on ${targetDate}`);
+    const targetDate = date || getCurrentDateInTimezone(config.server.timezone);
+
+    logger.info(
+      'Starting history collection for all hashtags',
+      getTimezoneLogContext(config.server.timezone, {
+        targetDate,
+        providedDate: date,
+      })
+    );
 
     // Reset statistics for this operation
     this._resetStats('allHashtags');
 
     // Get all unique hashtags from configuration
     const allHashtags = new Set();
-    HASHTAGS.forEach(dayHashtags => {
+    HASHTAGS.forEach((dayHashtags) => {
       const hashtags = getHashtagsForDay(dayHashtags);
-      hashtags.forEach(tag => allHashtags.add(tag));
+      hashtags.forEach((tag) => allHashtags.add(tag));
     });
 
     const hashtagsArray = Array.from(allHashtags);
     logger.info(`Found ${hashtagsArray.length} unique hashtags to collect`);
 
-    // Collect data for each hashtag
-    // Process in batches to avoid overwhelming the API
-    const batchSize = 3;
-    for (let i = 0; i < hashtagsArray.length; i += batchSize) {
-      const batch = hashtagsArray.slice(i, i + batchSize);
-      
-      await Promise.all(
-        batch.map(hashtag => this.collectHashtagData(hashtag, targetDate, 'allHashtags'))
-      );
-
-      // Small delay between batches to respect rate limits
-      if (i + batchSize < hashtagsArray.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    await this._runWithConcurrency(
+      hashtagsArray,
+      (hashtag) => this.collectHashtagData(hashtag, targetDate, 'allHashtags'),
+      {
+        concurrency: 3,
+        minDelayMs: 1000,
+        maxRetries: 3,
+        baseBackoffMs: 800,
       }
-    }
+    );
 
     const stats = this.stats.allHashtags;
     const summary = {
@@ -192,13 +212,76 @@ export class HistoryCollector {
       collected: stats.collected,
       skipped: stats.skipped,
       errors: stats.errors,
-      success: stats.errors === 0
+      success: stats.errors === 0,
     };
 
     logger.info('History collection completed', summary);
     loggers.business('history_collection_completed', summary);
 
     return summary;
+  }
+
+  async _runWithConcurrency(items, handler, options) {
+    const concurrency = Math.max(1, options.concurrency || 1);
+    const minDelayMs = Math.max(0, options.minDelayMs || 0);
+    const maxRetries = Math.max(0, options.maxRetries || 0);
+    const baseBackoffMs = Math.max(0, options.baseBackoffMs || 0);
+
+    const queue = items.slice();
+    let activeCount = 0;
+
+    return new Promise((resolve) => {
+      const runNext = () => {
+        if (queue.length === 0 && activeCount === 0) {
+          resolve();
+          return;
+        }
+
+        while (activeCount < concurrency && queue.length > 0) {
+          const item = queue.shift();
+          activeCount += 1;
+          this._runWithRetries(item, handler, maxRetries, baseBackoffMs)
+            .finally(() => {
+              activeCount -= 1;
+              if (minDelayMs > 0) {
+                setTimeout(runNext, minDelayMs);
+              } else {
+                runNext();
+              }
+            });
+        }
+      };
+
+      runNext();
+    });
+  }
+
+  async _runWithRetries(item, handler, maxRetries, baseBackoffMs) {
+    let attempt = 0;
+    while (true) {
+      try {
+        await handler(item);
+        return;
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw error;
+        }
+
+        if (attempt >= maxRetries) {
+          throw error;
+        }
+
+        attempt += 1;
+        const jitter = Math.floor(Math.random() * 200);
+        const delay = baseBackoffMs * Math.pow(2, attempt - 1) + jitter;
+        logger.warn('Retrying hashtag collection after error', {
+          attempt,
+          delay,
+          error: error.message,
+        });
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
   }
 
   /**
@@ -231,7 +314,7 @@ export class HistoryCollector {
     while (currentDate.isSameOrBefore(end)) {
       const dateStr = currentDate.format('YYYY-MM-DD');
       logger.info(`Collecting data for ${dateStr}`);
-      
+
       const summary = await this.collectAllHashtags(dateStr);
       allSummaries.push(summary);
 
@@ -246,7 +329,7 @@ export class HistoryCollector {
 
       // Delay between days to respect rate limits
       if (currentDate.isSameOrBefore(end)) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
@@ -257,7 +340,7 @@ export class HistoryCollector {
       totalCollected: stats.collected,
       totalSkipped: stats.skipped,
       totalErrors: stats.errors,
-      dailySummaries: allSummaries
+      dailySummaries: allSummaries,
     };
 
     logger.info('Date range collection completed', totalSummary);
@@ -276,23 +359,23 @@ export class HistoryCollector {
           skipped: this.stats.allHashtags.skipped,
           errors: this.stats.allHashtags.errors,
           lastRun: this.stats.allHashtags.lastRun,
-          lastReset: this.stats.allHashtags.lastReset
+          lastReset: this.stats.allHashtags.lastReset,
         },
         hashtagData: {
           collected: this.stats.hashtagData.collected,
           skipped: this.stats.hashtagData.skipped,
           errors: this.stats.hashtagData.errors,
           lastRun: this.stats.hashtagData.lastRun,
-          lastReset: this.stats.hashtagData.lastReset
+          lastReset: this.stats.hashtagData.lastReset,
         },
         dateRange: {
           collected: this.stats.dateRange.collected,
           skipped: this.stats.dateRange.skipped,
           errors: this.stats.dateRange.errors,
           lastRun: this.stats.dateRange.lastRun,
-          lastReset: this.stats.dateRange.lastReset
-        }
-      }
+          lastReset: this.stats.dateRange.lastReset,
+        },
+      },
     };
   }
 }

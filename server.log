@@ -1,0 +1,55 @@
+
+> hashbot2@1.0.0 server
+> node server-new.js
+
+2026-01-23T20:20:56.229Z [[32minfo[39m]: Database connection established {"service":"hashbot2","environment":"development","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+2026-01-23T20:20:56.230Z [[32minfo[39m]: Running database migrations... {"service":"hashbot2","environment":"development"}
+2026-01-23T20:20:56.231Z [[32minfo[39m]: Database migrations completed successfully {"service":"hashbot2","environment":"development"}
+2026-01-23T20:20:56.231Z [[32minfo[39m]: Database migrations completed {"service":"hashbot2","environment":"development"}
+2026-01-23T20:20:56.245Z [[32minfo[39m]: Web server started successfully {"service":"hashbot2","environment":"development","host":"0.0.0.0","port":32768,"nodeVersion":"v25.3.0","pid":54249}
+2026-01-23T20:20:56.245Z [[32minfo[39m]: Business Event {"service":"hashbot2","environment":"development","event":"server_started","host":"0.0.0.0","port":32768}
+2026-01-23T20:20:59.102Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/dashboard/telemetry","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:20:59.108Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/telemetry","statusCode":200,"duration":6,"ip":"127.0.0.1"}
+2026-01-23T20:20:59.153Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/favicon.ico","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:20:59.156Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/favicon.ico","statusCode":304,"duration":3,"ip":"127.0.0.1"}
+2026-01-23T20:21:11.399Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/dashboard/telemetry","ip":"127.0.0.1","userAgent":"curl/8.18.0"}
+2026-01-23T20:21:11.400Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/telemetry","statusCode":200,"duration":1,"ip":"127.0.0.1"}
+2026-01-23T20:21:12.832Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily?timezone=America%2FSao_Paulo","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:21:12.835Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/current?timezone=America%2FSao_Paulo","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:21:12.836Z [[32minfo[39m]: Daily hashtags requested {"service":"hashbot2","environment":"development"}
+2026-01-23T20:21:12.836Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/daily?timezone=America%2FSao_Paulo","statusCode":200,"duration":4,"ip":"127.0.0.1"}
+2026-01-23T20:21:12.837Z [[32minfo[39m]: Current hashtag requested {"service":"hashbot2","environment":"development","hashtag":"sextaserie","timezone":"America/Sao_Paulo"}
+2026-01-23T20:21:12.838Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/current?timezone=America%2FSao_Paulo","statusCode":304,"duration":3,"ip":"127.0.0.1"}
+2026-01-23T20:21:12.838Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/trending?limit=10&timezone=America%2FSao_Paulo","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:21:12.839Z [[32minfo[39m]: Trending tags requested {"service":"hashbot2","environment":"development","limit":10,"offset":0}
+2026-01-23T20:21:12.875Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/favicon.ico","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:21:12.876Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/favicon.ico","statusCode":304,"duration":1,"ip":"127.0.0.1"}
+2026-01-23T20:21:13.717Z [[32minfo[39m]: API Request {"service":"hashbot2","environment":"development","method":"GET","url":"trends/tags","userId":null}
+2026-01-23T20:21:13.718Z [[32minfo[39m]: Performance {"service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":875,"endpoint":"trends/tags","method":"get"}
+2026-01-23T20:21:13.718Z [[32minfo[39m]: Fetched 30 trending tags {"service":"hashbot2","environment":"development","limit":100,"offset":0}
+2026-01-23T20:21:13.721Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/?limit=10&timezone=America%2FSao_Paulo","statusCode":200,"duration":883,"ip":"127.0.0.1"}
+2026-01-23T20:21:13.726Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/sextaserie/stats?timezone=America%2FSao_Paulo","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:21:13.728Z [[32minfo[39m]: Hashtag stats requested {"service":"hashbot2","environment":"development","original":"sextaserie","normalized":"sextaserie","timeframe":"today"}
+2026-01-23T20:21:13.729Z [[32minfo[39m]: Starting hashtag analysis for: sextaserie {"service":"hashbot2","environment":"development","options":{"maxPages":1,"timeframe":"today","timezone":"America/Sao_Paulo"}}
+2026-01-23T20:21:13.729Z [[32minfo[39m]: Starting to fetch all toots for hashtag: sextaserie {"service":"hashbot2","environment":"development","maxPages":1}
+2026-01-23T20:21:13.729Z [[32minfo[39m]: Fetching toots for hashtag: sextaserie {"service":"hashbot2","environment":"development","params":{"limit":40}}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: API Request {"service":"hashbot2","environment":"development","method":"GET","url":"timelines/tag/sextaserie","userId":null}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: Performance {"service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":705,"endpoint":"timelines/tag/sextaserie","method":"get"}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: Successfully fetched 40 toots for hashtag: sextaserie {"service":"hashbot2","environment":"development"}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: Business Event {"service":"hashbot2","environment":"development","event":"toots_fetched","hashtag":"sextaserie","count":40}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: Completed fetching toots for hashtag: sextaserie {"service":"hashbot2","environment":"development","totalToots":40,"pagesFetched":1}
+2026-01-23T20:21:14.548Z [[32minfo[39m]: Business Event {"service":"hashbot2","environment":"development","event":"all_toots_fetched","hashtag":"sextaserie","count":40,"pages":1}
+2026-01-23T20:21:14.606Z [[32minfo[39m]: API Request {"service":"hashbot2","environment":"development","method":"GET","url":"tags/sextaserie","userId":null}
+2026-01-23T20:21:14.606Z [[32minfo[39m]: Performance {"service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":763,"endpoint":"tags/sextaserie","method":"get"}
+2026-01-23T20:21:14.607Z [[32minfo[39m]: Fetched hashtag statistics for: sextaserie {"service":"hashbot2","environment":"development","following":false,"historyLength":7}
+2026-01-23T20:21:14.607Z [[32minfo[39m]: Starting to process 40 toots {"service":"hashbot2","environment":"development","options":{"timezone":"America/Sao_Paulo","filterByDate":"2026-01-23"}}
+2026-01-23T20:21:14.612Z [[32minfo[39m]: Completed processing toots {"service":"hashbot2","environment":"development","inputCount":40,"outputCount":30,"duration":5,"stats":{"totalProcessed":40,"validToots":40,"ignoredToots":1,"errors":0}}
+2026-01-23T20:21:14.612Z [[32minfo[39m]: Performance {"service":"hashbot2","environment":"development","operation":"toot_processing","duration":5,"inputCount":40,"outputCount":30}
+2026-01-23T20:21:14.612Z [[32minfo[39m]: Completed analysis for hashtag: sextaserie {"service":"hashbot2","environment":"development","totalToots":40,"filteredToots":30,"timeframe":"today","weeklyTotal":33}
+2026-01-23T20:21:14.613Z [[32minfo[39m]: Successfully generated stats for hashtag: sextaserie {"service":"hashbot2","environment":"development","tootCount":30,"uniqueUsers":17}
+2026-01-23T20:21:14.614Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/sextaserie/stats?timezone=America%2FSao_Paulo","statusCode":200,"duration":888,"ip":"127.0.0.1"}
+2026-01-23T20:21:18.027Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/dashboard/telemetry","ip":"127.0.0.1","userAgent":"curl/8.18.0"}
+2026-01-23T20:21:18.029Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/telemetry","statusCode":200,"duration":2,"ip":"127.0.0.1"}
+2026-01-23T20:22:29.976Z [[32minfo[39m]: Request started {"service":"hashbot2","environment":"development","method":"GET","url":"/api/hashtag/daily","ip":"127.0.0.1","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+2026-01-23T20:22:29.977Z [[32minfo[39m]: Daily hashtags requested {"service":"hashbot2","environment":"development"}
+2026-01-23T20:22:29.978Z [[32minfo[39m]: Request completed {"service":"hashbot2","environment":"development","method":"GET","url":"/daily","statusCode":200,"duration":1,"ip":"127.0.0.1"}

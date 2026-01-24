@@ -2053,6 +2053,8 @@
       browserTimezone = 'UTC';
     }
 
+    console.info(`✓ Timezone detected: ${browserTimezone} (${getTimezoneOffset ? '' : 'offset will be calculated after utilities load'})`);
+
     // State management for cleanup
     let refreshInterval = null;
     let currentAbortedController = null;
@@ -5082,12 +5084,65 @@
       });
     }
 
-    // Format date helper
+    // Get timezone offset for display
+    function getTimezoneOffset(timezone) {
+      const date = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        timeZoneName: 'shortOffset'
+      });
+      
+      try {
+        const parts = formatter.formatToParts(date);
+        const offsetPart = parts.find(part => part.type === 'timeZoneName');
+        return offsetPart ? offsetPart.value : '';
+      } catch (e) {
+        // Fallback to manual calculation
+        const offset = -date.getTimezoneOffset();
+        const hours = Math.floor(Math.abs(offset) / 60);
+        const minutes = Math.abs(offset) % 60;
+        const sign = offset >= 0 ? '+' : '-';
+        return `UTC${sign}${hours}${minutes > 0 ? ':' + minutes.toString().padStart(2, '0') : ''}`;
+      }
+    }
+
+    // Get timezone display name
+    function getTimezoneName(timezone) {
+      const parts = timezone.split('/');
+      return parts[parts.length - 1].replace(/_/g, ' ');
+    }
+
+    // Format date helper with timezone information
     function formatDate(dateString) {
       if (!dateString) return '-';
       // Parse date and format using browser's timezone automatically
       const date = new Date(dateString + 'T00:00:00');
       return date.toLocaleDateString('pt-BR', { timeZone: browserTimezone });
+    }
+
+    // Format date with timezone tooltip
+    function formatDateWithTooltip(dateString) {
+      if (!dateString) return '-';
+      const formattedDate = formatDate(dateString);
+      const tzOffset = getTimezoneOffset(browserTimezone);
+      const tzName = getTimezoneName(browserTimezone);
+      return `<span title="Timezone: ${tzName} (${tzOffset})" style="cursor: help; border-bottom: 1px dotted #a0aec0;">${formattedDate}</span>`;
+    }
+
+    // Format datetime for display
+    function formatDateTime(dateTimeString) {
+      if (!dateTimeString) return '-';
+      const date = new Date(dateTimeString);
+      return date.toLocaleString('pt-BR', { timeZone: browserTimezone });
+    }
+
+    // Format datetime with timezone tooltip
+    function formatDateTimeWithTooltip(dateTimeString) {
+      if (!dateTimeString) return '-';
+      const formattedDateTime = formatDateTime(dateTimeString);
+      const tzOffset = getTimezoneOffset(browserTimezone);
+      const tzName = getTimezoneName(browserTimezone);
+      return `<span title="Timezone: ${tzName} (${tzOffset})" style="cursor: help; border-bottom: 1px dotted #a0aec0;">${formattedDateTime}</span>`;
     }
 
     // Make functions global

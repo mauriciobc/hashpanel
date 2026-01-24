@@ -4,6 +4,7 @@ import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { BusinessError, ValidationError } from '../errors/index.js';
 import { generateTootLink } from '../utils/linkGenerator.js';
+import { getCurrentDateFormatted } from '../utils/timezone.js';
 
 export class TootService {
   constructor() {
@@ -11,7 +12,7 @@ export class TootService {
       totalPosted: 0,
       successfulPosts: 0,
       failedPosts: 0,
-      lastPostTime: null
+      lastPostTime: null,
     };
   }
 
@@ -44,13 +45,13 @@ export class TootService {
         `📝 Posts hoje: ${todayCount}`,
         `👥 Participantes: ${uniqueUsers}`,
         `📈 Posts na semana: ${weeklyTotal}`,
-        ''
+        '',
       ];
 
       // Add engagement section
       if (todayCount > 0) {
         summaryLines.push(
-          `🔥 Engajamento de hoje:`,
+          '🔥 Engajamento de hoje:',
           `⭐ ${engagement.totalFavorites} favoritos`,
           `🔄 ${engagement.totalBoosts} boosts`,
           `💬 ${engagement.totalReplies} respostas`,
@@ -61,16 +62,16 @@ export class TootService {
       // Add top posts section
       if (topToots.length > 0) {
         summaryLines.push('🏆 Principais posts:');
-        
+
         // Generate all links in parallel
-        const linkPromises = topToots.map(toot => generateTootLink(toot.id));
+        const linkPromises = topToots.map((toot) => generateTootLink(toot.id));
         const links = await Promise.all(linkPromises);
-        
+
         // Iterate over topToots and resolved links to build summary lines
         for (let i = 0; i < topToots.length; i++) {
           const toot = topToots[i];
           const link = links[i];
-          
+
           summaryLines.push(
             `${i + 1}. @${toot.account.username} (Score: ${toot.relevanceScore})`,
             `   🔗 ${link}`,
@@ -81,12 +82,12 @@ export class TootService {
 
       // Add footer
       summaryLines.push(
-        `📅 Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-        `🤖 Via #Hashbot2`
+        `📅 Gerado em ${getCurrentDateFormatted(config.server.timezone)}`,
+        '🤖 Via #Hashbot2'
       );
 
       const summary = summaryLines.join('\n');
-      
+
       // Validate summary length
       if (summary.length > 500) {
         logger.warn(`Summary exceeds 500 characters: ${summary.length}`);
@@ -96,11 +97,10 @@ export class TootService {
 
       logger.info(`Generated summary for ${hashtag}`, {
         length: summary.length,
-        tootCount: todayCount
+        tootCount: todayCount,
       });
 
       return summary;
-      
     } catch (error) {
       loggers.error(`Failed to generate summary for hashtag: ${hashtag}`, error);
       throw new BusinessError(`Failed to generate summary: ${error.message}`);
@@ -113,7 +113,7 @@ export class TootService {
   truncateSummary(summaryLines, maxLength) {
     const truncatedLines = [];
     let currentLength = 0;
-    
+
     for (const line of summaryLines) {
       if (currentLength + line.length + 1 > maxLength) {
         break;
@@ -121,27 +121,28 @@ export class TootService {
       truncatedLines.push(line);
       currentLength += line.length + 1;
     }
-    
+
     // Add truncation notice if needed, ensuring it fits within maxLength
     if (truncatedLines.length < summaryLines.length) {
       const notice = '... (resumo truncado)';
       // Include preceding newline if truncatedLines is not empty
-      const noticeLength = truncatedLines.length > 0 
-        ? notice.length + 1  // +1 for the newline before notice
-        : notice.length;
-      
+      const noticeLength =
+        truncatedLines.length > 0
+          ? notice.length + 1 // +1 for the newline before notice
+          : notice.length;
+
       // Remove lines until notice fits
       while (currentLength + noticeLength > maxLength && truncatedLines.length > 0) {
         const lastLine = truncatedLines.pop();
         currentLength -= lastLine.length + 1; // +1 for the newline
       }
-      
+
       // Add notice if it fits
       if (currentLength + noticeLength <= maxLength) {
         truncatedLines.push(notice);
       }
     }
-    
+
     return truncatedLines.join('\n');
   }
 
@@ -158,32 +159,31 @@ export class TootService {
     }
 
     logger.info(`Posting summary for hashtag: ${hashtag}`, {
-      summaryLength: summary.length
+      summaryLength: summary.length,
     });
 
     try {
       // Validate summary before posting
       this.validateSummary(summary);
-      
+
       // Post to Mastodon
       const result = await mastodonService.createToot(summary, {
         language: 'pt',
         visibility: 'public',
-        sensitive: false
+        sensitive: false,
       });
 
       // Update statistics
       this.updatePostingStats(true);
-      
+
       loggers.business('summary_posted', {
         tootId: result.id,
         hashtag,
         summaryLength: summary.length,
-        url: result.url
+        url: result.url,
       });
 
       return result;
-      
     } catch (error) {
       this.updatePostingStats(false);
       loggers.error(`Failed to post summary for hashtag: ${hashtag}`, error);
@@ -204,7 +204,9 @@ export class TootService {
     }
 
     if (summary.length > 500) {
-      throw new ValidationError(`Summary exceeds 500 character limit (${summary.length} characters)`);
+      throw new ValidationError(
+        `Summary exceeds 500 character limit (${summary.length} characters)`
+      );
     }
 
     // Check for required content
@@ -227,7 +229,9 @@ export class TootService {
     }
 
     if (content.length > 500) {
-      throw new ValidationError(`Content exceeds 500 character limit (${content.length} characters)`);
+      throw new ValidationError(
+        `Content exceeds 500 character limit (${content.length} characters)`
+      );
     }
   }
 
@@ -236,7 +240,7 @@ export class TootService {
    */
   updatePostingStats(success) {
     this.postingStats.totalPosted++;
-    
+
     if (success) {
       this.postingStats.successfulPosts++;
       this.postingStats.lastPostTime = new Date();
@@ -255,32 +259,31 @@ export class TootService {
 
     logger.info('Creating custom toot', {
       contentLength: content.length,
-      options
+      options,
     });
 
     try {
       // Validate content
       this.validateCustomToot(content);
-      
+
       // Create toot with custom options
       const result = await mastodonService.createToot(content, {
         language: options.language || 'pt',
         visibility: options.visibility || 'public',
         sensitive: options.sensitive || false,
-        ...options
+        ...options,
       });
 
       // Update statistics
       this.updatePostingStats(true);
-      
+
       loggers.business('custom_toot_created', {
         tootId: result.id,
         contentLength: content.length,
-        visibility: options.visibility
+        visibility: options.visibility,
       });
 
       return result;
-      
     } catch (error) {
       this.updatePostingStats(false);
       loggers.error('Failed to create custom toot', error);
@@ -297,21 +300,20 @@ export class TootService {
     try {
       // Generate summary
       const summary = await this.generateSummary(hashtag, analysis);
-      
+
       // Post summary
       const result = await this.postSummary(summary, hashtag);
-      
+
       loggers.business('summary_generated_and_posted', {
         tootId: result.id,
         hashtag,
-        summaryLength: summary.length
+        summaryLength: summary.length,
       });
 
       return {
         summary,
-        toot: result
+        toot: result,
       };
-      
     } catch (error) {
       loggers.error(`Failed to generate and post summary for hashtag: ${hashtag}`, error);
       throw error;
@@ -326,16 +328,15 @@ export class TootService {
 
     try {
       const summary = await this.generateSummary(hashtag, analysis);
-      
+
       return {
         summary,
         length: summary.length,
         characterCount: summary.length,
         hashtagCount: (summary.match(/#/g) || []).length,
         lineCount: summary.split('\n').length,
-        isValid: summary.length <= 500
+        isValid: summary.length <= 500,
       };
-      
     } catch (error) {
       loggers.error(`Failed to preview summary for hashtag: ${hashtag}`, error);
       throw error;
@@ -346,14 +347,15 @@ export class TootService {
    * Get posting statistics
    */
   getStats() {
-    const successRate = this.postingStats.totalPosted > 0 
-      ? (this.postingStats.successfulPosts / this.postingStats.totalPosted) * 100 
-      : 0;
+    const successRate =
+      this.postingStats.totalPosted > 0
+        ? (this.postingStats.successfulPosts / this.postingStats.totalPosted) * 100
+        : 0;
 
     return {
       ...this.postingStats,
       successRate: Math.round(successRate * 100) / 100,
-      failureRate: Math.round((100 - successRate) * 100) / 100
+      failureRate: Math.round((100 - successRate) * 100) / 100,
     };
   }
 
@@ -365,9 +367,9 @@ export class TootService {
       totalPosted: 0,
       successfulPosts: 0,
       failedPosts: 0,
-      lastPostTime: null
+      lastPostTime: null,
     };
-    
+
     logger.info('Toot service statistics reset');
   }
 
@@ -380,7 +382,7 @@ export class TootService {
     return {
       posts: [],
       total: this.postingStats.successfulPosts,
-      limit
+      limit,
     };
   }
 
@@ -390,24 +392,24 @@ export class TootService {
   canPost() {
     // Add any posting restrictions here
     // For example: rate limiting, time restrictions, etc.
-    
+
     const now = new Date();
     const lastPost = this.postingStats.lastPostTime;
-    
+
     // Example: don't post more than once per hour
     if (lastPost) {
       const timeSinceLastPost = now - lastPost;
       const oneHour = 60 * 60 * 1000;
-      
+
       if (timeSinceLastPost < oneHour) {
         return {
           allowed: false,
           reason: 'Rate limit: Only one post per hour allowed',
-          nextAllowedTime: new Date(lastPost.getTime() + oneHour)
+          nextAllowedTime: new Date(lastPost.getTime() + oneHour),
         };
       }
     }
-    
+
     return { allowed: true };
   }
 }

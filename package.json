@@ -15,8 +15,12 @@
     "dev:server": "nodemon server-new.js",
     "dev:cli": "nodemon cli.js",
     "dev:watch": "nodemon --watch src --exec \"node server-new.js\"",
-    "test": "echo \"Test framework not yet implemented\"",
-    "lint": "echo \"ESLint not yet configured\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.js\"",
     "clean": "rm -rf logs node_modules/.cache",
     "logs": "tail -f logs/combined.log",
     "status": "node cli.js status",
@@ -45,8 +49,15 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "concurrently": "^9.2.1",
-    "nodemon": "^3.1.11"
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2",
+    "vitest": "^4.0.18"
   },
   "keywords": [
     "mastodon",

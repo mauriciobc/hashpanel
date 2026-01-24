@@ -25,35 +25,35 @@ export class CLIApplication {
 
     try {
       logger.info('Starting Hashbot CLI application', { options });
-      
+
       // Validate configuration
       this.validateConfiguration();
-      
+
       // Get the daily hashtag
       const dailyHashtag = this.getDailyHashtag(options.date);
       logger.info(`Processing daily hashtag: ${dailyHashtag}`);
-      
+
       // Analyze hashtag usage
       const analysis = await this.hashtagService.analyzeHashtag(dailyHashtag);
-      
+
       // Check if there are today's toots
       if (!analysis.hasTodayToots()) {
         console.log('Nenhum post encontrado para hoje. Encerrando.');
         logger.info('No toots found for today', { hashtag: dailyHashtag });
         return;
       }
-      
+
       // Generate summary
       const summary = await this.tootService.generateSummary(dailyHashtag, analysis);
       console.log('\n=== RESUMO DO DIA ===');
       console.log(summary);
       console.log('===================\n');
-      
+
       // Show trending tags
       if (options.showTrending !== false) {
         await this.showTrendingTags();
       }
-      
+
       // Prompt for posting if not in dry-run mode
       if (!options.dryRun) {
         const shouldPost = await this.promptForPosting();
@@ -62,24 +62,23 @@ export class CLIApplication {
         }
       } else {
         console.log('Modo dry-run: post não publicado.');
-        logger.info('Dry-run mode - would have posted summary', { 
+        logger.info('Dry-run mode - would have posted summary', {
           hashtag: dailyHashtag,
-          summaryLength: summary.length 
+          summaryLength: summary.length,
         });
       }
-      
+
       const duration = Date.now() - startTime;
       logger.info('CLI application completed successfully', { duration });
-      
     } catch (error) {
       loggers.error('CLI execution failed', error);
       console.error(`\n❌ Erro: ${error.message}`);
-      
+
       // Show helpful error messages
       if (error instanceof ConfigurationError) {
         console.error('\nVerifique suas variáveis de ambiente no arquivo .env');
       }
-      
+
       throw error;
     } finally {
       this.isRunning = false;
@@ -94,7 +93,7 @@ export class CLIApplication {
       { path: ['mastodon', 'url'], name: 'MASTODON_URL' },
       { path: ['mastodon', 'clientKey'], name: 'CLIENT_KEY' },
       { path: ['mastodon', 'clientSecret'], name: 'CLIENT_SECRET' },
-      { path: ['mastodon', 'accessToken'], name: 'ACCESS_TOKEN' }
+      { path: ['mastodon', 'accessToken'], name: 'ACCESS_TOKEN' },
     ];
 
     const missingVars = requiredConfigPaths
@@ -103,7 +102,7 @@ export class CLIApplication {
         return !value;
       })
       .map(({ name }) => name);
-    
+
     if (missingVars.length > 0) {
       throw new ConfigurationError(
         `Missing required environment variables: ${missingVars.join(', ')}`,
@@ -121,17 +120,17 @@ export class CLIApplication {
   getDailyHashtag(date = null) {
     const targetDate = date ? new Date(date) : new Date();
     const dayOfWeek = targetDate.getDay();
-    
+
     if (dayOfWeek < 0 || dayOfWeek > 6) {
       throw new BusinessError('Invalid day of week calculated');
     }
-    
+
     const hashtagEntry = HASHTAGS[dayOfWeek];
-    
+
     if (!hashtagEntry) {
       throw new BusinessError(`No hashtag configured for day ${dayOfWeek}`);
     }
-    
+
     // Return first hashtag if multiple are configured
     return getFirstHashtagForDay(hashtagEntry);
   }
@@ -144,17 +143,16 @@ export class CLIApplication {
       console.log('\n=== TAGS EM ALTA ===');
       const result = await this.hashtagService.getTrendingTags(5);
       const trendingTags = result.tags;
-      
+
       if (trendingTags.length === 0) {
         console.log('Nenhuma tag em alta encontrada.');
         return;
       }
-      
+
       trendingTags.forEach((tag, index) => {
         console.log(`${index + 1}. #${tag.name} (${tag.history?.[0]?.uses || 0} usos)`);
       });
       console.log('====================\n');
-      
     } catch (error) {
       loggers.error('Failed to fetch trending tags', error);
       console.log('\n⚠️  Não foi possível carregar as tags em alta.');
@@ -166,11 +164,11 @@ export class CLIApplication {
    */
   async promptForPosting() {
     const readline = await import('readline');
-    
+
     return new Promise((resolve) => {
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
 
       rl.question('Deseja publicar este post? (s/N) ', (answer) => {
@@ -187,19 +185,18 @@ export class CLIApplication {
   async postSummary(summary, hashtag) {
     try {
       console.log('\n📤 Publicando post...');
-      
+
       const result = await this.tootService.postSummary(summary, hashtag);
-      
-      console.log(`✅ Post publicado com sucesso!`);
+
+      console.log('✅ Post publicado com sucesso!');
       console.log(`📝 ID: ${result.id}`);
       console.log(`🔗 URL: ${result.url}`);
-      
+
       loggers.business('summary_posted', {
         tootId: result.id,
         hashtag,
-        summaryLength: summary.length
+        summaryLength: summary.length,
       });
-      
     } catch (error) {
       loggers.error('Failed to post summary', error, { hashtag });
       console.error(`\n❌ Falha ao publicar post: ${error.message}`);
@@ -219,12 +216,12 @@ export class CLIApplication {
 
     try {
       const analysis = await this.hashtagService.analyzeHashtag(hashtag);
-      
+
       console.log(`\n=== ANÁLISE: #${hashtag} ===`);
       console.log(`Total de posts hoje: ${analysis.getTodayCount()}`);
       console.log(`Participantes únicos: ${analysis.getUniqueUserCount()}`);
       console.log(`Posts na semana: ${analysis.getWeeklyTotal()}`);
-      
+
       if (options.showTopToots !== false) {
         const topToots = analysis.getTopToots(5);
         console.log('\nTop posts:');
@@ -232,11 +229,10 @@ export class CLIApplication {
           console.log(`${index + 1}. @${toot.account.username} (Score: ${toot.relevanceScore})`);
         });
       }
-      
+
       console.log('========================\n');
-      
+
       return analysis;
-      
     } catch (error) {
       loggers.error(`Failed to analyze hashtag: ${hashtag}`, error);
       console.error(`❌ Falha na análise: ${error.message}`);
@@ -252,18 +248,18 @@ export class CLIApplication {
     console.log(`Ambiente: ${config.server.environment}`);
     console.log(`Timezone: ${config.server.timezone}`);
     console.log(`API Mastodon: ${config.mastodon.url}`);
-    
+
     try {
       // Test API connectivity
       const result = await this.hashtagService.getTrendingTags(1);
       const trendingTags = result.tags;
-      console.log(`API Status: ✅ Conectado`);
+      console.log('API Status: ✅ Conectado');
       console.log(`Tags em alta disponíveis: ${trendingTags.length > 0 ? 'Sim' : 'Não'}`);
     } catch (error) {
-      console.log(`API Status: ❌ Erro de conexão`);
+      console.log('API Status: ❌ Erro de conexão');
       console.log(`Erro: ${error.message}`);
     }
-    
+
     console.log('========================\n');
   }
 
@@ -272,15 +268,15 @@ export class CLIApplication {
    */
   async shutdown() {
     logger.info('Shutting down CLI application');
-    
+
     if (this.isRunning) {
       console.log('\n⏹️  Encerrando aplicação...');
       this.isRunning = false;
     }
-    
+
     // Close any open connections, cleanup resources
     await this.cleanup();
-    
+
     logger.info('CLI application shutdown complete');
   }
 
@@ -301,12 +297,12 @@ export class CLIApplication {
       config: {
         environment: config.server.environment,
         timezone: config.server.timezone,
-        mastodonUrl: config.mastodon.url
+        mastodonUrl: config.mastodon.url,
       },
       services: {
         hashtagService: this.hashtagService.getStats(),
-        tootService: this.tootService.getStats()
-      }
+        tootService: this.tootService.getStats(),
+      },
     };
   }
 }
@@ -319,25 +315,25 @@ let isShuttingDown = false;
 export async function runCLI(args = process.argv) {
   const app = new CLIApplication();
   appInstance = app;
-  
+
   // Parse command line arguments
   const options = parseArguments(args);
-  
+
   // Handle different commands
   try {
     switch (options.command) {
       case 'analyze':
         await app.analyzeHashtag(options.hashtag, options);
         break;
-        
+
       case 'status':
         await app.showStatus();
         break;
-        
+
       case 'help':
         showHelp();
         break;
-        
+
       case 'run':
       default:
         await app.run(options);
@@ -354,26 +350,28 @@ export async function runCLI(args = process.argv) {
  */
 function parseArguments(args) {
   const options = { command: 'run' };
-  
+
   for (let i = 2; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--dry-run':
         options.dryRun = true;
         break;
-        
+
       case '--no-trending':
         options.showTrending = false;
         break;
-        
+
       case '--date':
         if (i + 1 >= args.length) {
-          throw new Error('Erro: --date requer um valor (formato: YYYY-MM-DD). Use --help para mais informações.');
+          throw new Error(
+            'Erro: --date requer um valor (formato: YYYY-MM-DD). Use --help para mais informações.'
+          );
         }
         options.date = args[++i];
         break;
-        
+
       case 'analyze':
         options.command = 'analyze';
         if (i + 1 >= args.length) {
@@ -381,18 +379,18 @@ function parseArguments(args) {
         }
         options.hashtag = args[++i];
         break;
-        
+
       case 'status':
         options.command = 'status';
         break;
-        
+
       case 'help':
       case '--help':
         options.command = 'help';
         break;
     }
   }
-  
+
   return options;
 }
 
@@ -432,7 +430,7 @@ process.on('SIGINT', async () => {
 
   isShuttingDown = true;
   console.log('\n\nRecebido sinal SIGINT, encerrando graciosamente...');
-  
+
   try {
     if (appInstance) {
       await appInstance.shutdown();
@@ -455,7 +453,7 @@ process.on('SIGTERM', async () => {
 
   isShuttingDown = true;
   console.log('\n\nRecebido sinal SIGTERM, encerrando graciosamente...');
-  
+
   try {
     if (appInstance) {
       await appInstance.shutdown();

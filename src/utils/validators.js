@@ -17,10 +17,10 @@ export function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max 
   if (daysValue === undefined || daysValue === null || daysValue === '') {
     return defaultValue;
   }
-  
+
   // Parse the value
   const parsed = Number(daysValue);
-  
+
   // Check if parsing resulted in NaN (clearly invalid input)
   if (isNaN(parsed)) {
     throw new ValidationError(
@@ -29,7 +29,7 @@ export function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max 
       daysValue
     );
   }
-  
+
   // Check if it's a finite integer
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
     throw new ValidationError(
@@ -38,20 +38,20 @@ export function validateDaysParameter(daysValue, defaultValue = 7, min = 1, max 
       daysValue
     );
   }
-  
+
   // Clamp to acceptable range
   const clamped = Math.max(min, Math.min(max, parsed));
-  
+
   // If value was provided but needed clamping, log a warning
   if (clamped !== parsed) {
     logger.warn('Days parameter clamped to valid range', {
       original: parsed,
       clamped,
       min,
-      max
+      max,
     });
   }
-  
+
   return clamped;
 }
 
@@ -67,7 +67,7 @@ export function validateTimezoneParameter(timezoneValue, defaultValue = null) {
   if (timezoneValue === undefined || timezoneValue === null || timezoneValue === '') {
     return defaultValue !== null ? defaultValue : config.server.timezone;
   }
-  
+
   // Reject arrays - must be a single value
   if (Array.isArray(timezoneValue)) {
     throw new ValidationError(
@@ -76,7 +76,7 @@ export function validateTimezoneParameter(timezoneValue, defaultValue = null) {
       timezoneValue
     );
   }
-  
+
   // Must be a string
   if (typeof timezoneValue !== 'string') {
     throw new ValidationError(
@@ -85,7 +85,7 @@ export function validateTimezoneParameter(timezoneValue, defaultValue = null) {
       timezoneValue
     );
   }
-  
+
   // Must be non-empty string
   if (timezoneValue.trim() === '') {
     throw new ValidationError(
@@ -94,7 +94,7 @@ export function validateTimezoneParameter(timezoneValue, defaultValue = null) {
       timezoneValue
     );
   }
-  
+
   // Validate IANA timezone identifier using Intl.DateTimeFormat
   // This is the standard way to validate timezones in JavaScript
   try {
@@ -111,6 +111,6 @@ export function validateTimezoneParameter(timezoneValue, defaultValue = null) {
     // Re-throw unexpected errors
     throw error;
   }
-  
+
   return timezoneValue;
 }

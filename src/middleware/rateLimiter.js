@@ -17,31 +17,31 @@ export const apiRateLimit = rateLimit({
     error: {
       message: 'Too many requests from this IP, please try again later',
       code: 'RATE_LIMIT_EXCEEDED',
-      retryAfter: 900 // 15 minutes in seconds
-    }
+      retryAfter: 900, // 15 minutes in seconds
+    },
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: (req, res) => {
     const resetTime = new Date(Date.now() + 15 * 60 * 1000);
     const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-    
+
     logger.warn('Rate limit exceeded', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       url: req.url,
-      method: req.method
+      method: req.method,
     });
-    
+
     res.status(429).json({
       error: {
         message: 'Too many requests from this IP, please try again later',
         code: 'RATE_LIMIT_EXCEEDED',
         retryAfter,
-        resetTime: resetTime.toISOString()
-      }
+        resetTime: resetTime.toISOString(),
+      },
     });
-  }
+  },
 });
 
 // Stricter rate limiting for posting endpoints
@@ -57,30 +57,30 @@ export const postingRateLimit = rateLimit({
     error: {
       message: 'Too many posts, please wait before posting again',
       code: 'POSTING_RATE_LIMIT_EXCEEDED',
-      retryAfter: 3600 // 1 hour in seconds
-    }
+      retryAfter: 3600, // 1 hour in seconds
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const resetTime = new Date(Date.now() + 60 * 60 * 1000);
     const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-    
+
     logger.warn('Posting rate limit exceeded', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      url: req.url
+      url: req.url,
     });
-    
+
     res.status(429).json({
       error: {
         message: 'Too many posts, please wait before posting again',
         code: 'POSTING_RATE_LIMIT_EXCEEDED',
         retryAfter,
-        resetTime: resetTime.toISOString()
-      }
+        resetTime: resetTime.toISOString(),
+      },
     });
-  }
+  },
 });
 
 // Rate limiting for moderate operations (dashboard stats, hashtag analysis)
@@ -97,8 +97,8 @@ export const moderateRateLimit = rateLimit({
     error: {
       message: 'Too many requests, please wait before trying again',
       code: 'MODERATE_RATE_LIMIT_EXCEEDED',
-      retryAfter: 900
-    }
+      retryAfter: 900,
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -109,22 +109,22 @@ export const moderateRateLimit = rateLimit({
   handler: (req, res) => {
     const resetTime = new Date(Date.now() + 15 * 60 * 1000);
     const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-    
+
     logger.warn('Moderate rate limit exceeded', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      url: req.url
+      url: req.url,
     });
-    
+
     res.status(429).json({
       error: {
         message: 'Too many requests, please wait before trying again',
         code: 'MODERATE_RATE_LIMIT_EXCEEDED',
         retryAfter,
-        resetTime: resetTime.toISOString()
-      }
+        resetTime: resetTime.toISOString(),
+      },
     });
-  }
+  },
 });
 
 // Rate limiting for light operations (media proxy, simple endpoints)
@@ -141,30 +141,30 @@ export const lightRateLimit = rateLimit({
     error: {
       message: 'Too many requests, please wait a moment before trying again',
       code: 'LIGHT_RATE_LIMIT_EXCEEDED',
-      retryAfter: 300 // 5 minutes in seconds
-    }
+      retryAfter: 300, // 5 minutes in seconds
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     const resetTime = new Date(Date.now() + 5 * 60 * 1000);
     const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-    
+
     logger.warn('Light rate limit exceeded', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      url: req.url
+      url: req.url,
     });
-    
+
     res.status(429).json({
       error: {
         message: 'Too many requests, please wait a moment before trying again',
         code: 'LIGHT_RATE_LIMIT_EXCEEDED',
         retryAfter,
-        resetTime: resetTime.toISOString()
-      }
+        resetTime: resetTime.toISOString(),
+      },
     });
-  }
+  },
 });
 
 // Very strict rate limiting for expensive operations (kept for truly heavy operations)
@@ -181,8 +181,8 @@ export const heavyRateLimit = rateLimit({
     error: {
       message: 'Too many heavy requests, please wait before trying again',
       code: 'HEAVY_RATE_LIMIT_EXCEEDED',
-      retryAfter: 900
-    }
+      retryAfter: 900,
+    },
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -193,22 +193,22 @@ export const heavyRateLimit = rateLimit({
   handler: (req, res) => {
     const resetTime = new Date(Date.now() + 15 * 60 * 1000);
     const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-    
+
     logger.warn('Heavy rate limit exceeded', {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
-      url: req.url
+      url: req.url,
     });
-    
+
     res.status(429).json({
       error: {
         message: 'Too many heavy requests, please wait before trying again',
         code: 'HEAVY_RATE_LIMIT_EXCEEDED',
         retryAfter,
-        resetTime: resetTime.toISOString()
-      }
+        resetTime: resetTime.toISOString(),
+      },
     });
-  }
+  },
 });
 
 // Custom rate limiting middleware for specific endpoints
@@ -216,83 +216,86 @@ export const createCustomRateLimit = (options = {}) => {
   const baseMax = options.max || 100;
   return rateLimit({
     windowMs: options.windowMs || 15 * 60 * 1000,
-    max: typeof baseMax === 'function' 
-      ? (req) => {
-          const multiplier = req.rateLimitMultiplier ?? 1;
-          return Math.floor(baseMax(req) * multiplier);
-        }
-      : (req) => {
-          const multiplier = req.rateLimitMultiplier ?? 1;
-          return Math.floor(baseMax * multiplier);
-        },
+    max:
+      typeof baseMax === 'function'
+        ? (req) => {
+            const multiplier = req.rateLimitMultiplier ?? 1;
+            return Math.floor(baseMax(req) * multiplier);
+          }
+        : (req) => {
+            const multiplier = req.rateLimitMultiplier ?? 1;
+            return Math.floor(baseMax * multiplier);
+          },
     message: options.message || {
       error: {
         message: 'Rate limit exceeded',
-        code: 'CUSTOM_RATE_LIMIT_EXCEEDED'
-      }
+        code: 'CUSTOM_RATE_LIMIT_EXCEEDED',
+      },
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: options.keyGenerator || ((req) => {
-      return ipKeyGenerator(req);
-    }),
+    keyGenerator:
+      options.keyGenerator ||
+      ((req) => {
+        return ipKeyGenerator(req);
+      }),
     skip: options.skip || (() => false),
-    handler: options.handler || ((req, res) => {
-      logger.warn('Custom rate limit exceeded', {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        url: req.url
-      });
-      
-      res.status(429).json(options.message || {
-        error: {
-          message: 'Rate limit exceeded',
-          code: 'CUSTOM_RATE_LIMIT_EXCEEDED'
-        }
-      });
-    })
+    handler:
+      options.handler ||
+      ((req, res) => {
+        logger.warn('Custom rate limit exceeded', {
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          url: req.url,
+        });
+
+        res.status(429).json(
+          options.message || {
+            error: {
+              message: 'Rate limit exceeded',
+              code: 'CUSTOM_RATE_LIMIT_EXCEEDED',
+            },
+          }
+        );
+      }),
   });
 };
 
 // In-memory storage for distributed rate limiting (fallback when Redis is not available)
-// This Map is safe for concurrent access because JavaScript runs single-threaded
-// (event loop processes one operation at a time)
+// Uses fixed window buckets for O(1) updates per request
 const rateLimitStore = new Map();
 
 // Cleanup interval to prevent memory leaks
 // Using .unref() so the interval doesn't keep the process alive when no other work exists
-const cleanupInterval = setInterval(() => {
-  const now = Date.now();
-  const windowStart = now - (15 * 60 * 1000); // 15 minutes ago
-  
-  for (const [key, timestamps] of rateLimitStore.entries()) {
-    const validTimestamps = timestamps.filter(ts => ts > windowStart);
-    
-    if (validTimestamps.length === 0) {
-      rateLimitStore.delete(key);
-    } else {
-      rateLimitStore.set(key, validTimestamps);
+const cleanupInterval = setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (entry.resetAt <= now) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000).unref(); // Cleanup every 5 minutes
+  },
+  5 * 60 * 1000
+).unref(); // Cleanup every 5 minutes
 
 /**
  * Generates a unique client identifier for rate limiting.
  * Uses IP address from req.ip or req.socket.remoteAddress.
- * 
+ *
  * @param {Object} req - Express request object
  * @returns {string|null} Client identifier for rate limiting, or null if no reliable identifier exists
  */
 function getClientIdentifier(req) {
   // Try to get IP address from request
   const ip = req.ip || req.socket?.remoteAddress;
-  
+
   // Check if IP is valid (not undefined, null, or 'unknown')
   // Note: localhost IPs are still valid identifiers for rate limiting
   if (ip && ip !== 'unknown') {
     return ip;
   }
-  
+
   // Fail-closed: Return null if no reliable IP is present
   // We intentionally fail-closed for unidentifiable clients to prevent security issues.
   // If header-based identification is ever required, it must include explicit documentation
@@ -307,10 +310,10 @@ export const distributedRateLimit = async (req, res, next) => {
   // Configuration - increased from 100 to 200 for better UX
   const windowMs = 15 * 60 * 1000; // 15 minutes
   const maxRequests = 200; // Increased from 100 for better UX
-  
+
   // Get client identifier using robust identification method
   const key = getClientIdentifier(req);
-  
+
   // Fail-closed: Reject request if no reliable client identifier exists
   // This prevents all unknown clients from sharing a single rate-limit bucket
   if (!key) {
@@ -319,80 +322,74 @@ export const distributedRateLimit = async (req, res, next) => {
       socketRemoteAddress: req.socket?.remoteAddress,
       userAgent: req.get('User-Agent'),
       url: req.url,
-      method: req.method
+      method: req.method,
     });
-    
+
     return res.status(400).json({
       error: {
         message: 'Unable to identify client. Request rejected for security reasons.',
         code: 'CLIENT_IDENTIFICATION_FAILED',
-        details: 'The server cannot reliably identify your client. This may occur when required headers are missing or when the request is malformed.'
-      }
+        details:
+          'The server cannot reliably identify your client. This may occur when required headers are missing or when the request is malformed.',
+      },
     });
   }
-  
+
   const endpoint = req.path;
   const limitKey = `rate_limit:${endpoint}:${key}`;
-  
+
   try {
     const now = Date.now();
-    const windowStart = now - windowMs;
-    
-    // Get or initialize timestamps for this key
-    if (!rateLimitStore.has(limitKey)) {
-      rateLimitStore.set(limitKey, []);
+
+    // Get or initialize bucket for this key
+    let entry = rateLimitStore.get(limitKey);
+    if (!entry || entry.resetAt <= now) {
+      entry = {
+        count: 0,
+        resetAt: now + windowMs,
+      };
+      rateLimitStore.set(limitKey, entry);
     }
-    
-    const timestamps = rateLimitStore.get(limitKey);
-    
-    // Remove old timestamps outside the window
-    const validTimestamps = timestamps.filter(ts => ts > windowStart);
-    
-    // Check if limit is exceeded
-    const currentCount = validTimestamps.length;
-    
-    if (currentCount >= maxRequests) {
+
+    if (entry.count >= maxRequests) {
       logger.warn('Distributed rate limit exceeded', {
         ip: req.ip || key,
         endpoint,
-        currentCount,
-        limit: maxRequests
+        currentCount: entry.count,
+        limit: maxRequests,
       });
-      
-      const resetTime = new Date(now + windowMs);
+
+      const resetTime = new Date(entry.resetAt);
       const retryAfter = Math.ceil((resetTime.getTime() - now) / 1000);
-      
+
       return res.status(429).json({
         error: {
           message: 'Rate limit exceeded',
           code: 'DISTRIBUTED_RATE_LIMIT_EXCEEDED',
           retryAfter,
-          resetTime: resetTime.toISOString()
-        }
+          resetTime: resetTime.toISOString(),
+        },
       });
     }
-    
-    // Add current request timestamp
-    validTimestamps.push(now);
-    rateLimitStore.set(limitKey, validTimestamps);
-    
+
+    entry.count += 1;
+
     next();
-    
   } catch (error) {
     logger.error('Error in distributed rate limiting', {
       error: error.message,
       stack: error.stack,
       ip: req.ip || key,
-      endpoint
+      endpoint,
     });
-    
+
     // Fail closed - deny request if rate limiting fails
     // This prevents potential abuse when the rate limiter is unavailable
     return res.status(503).json({
       error: {
         message: 'Service temporarily unavailable',
-        code: 'RATE_LIMIT_CHECK_FAILED'
-      }
+        code: 'RATE_LIMIT_CHECK_FAILED',
+      },
     });
   }
 };
@@ -405,25 +402,25 @@ export const adaptiveRateLimit = (req, res, next) => {
   // Adjust rate limits based on current server load
   const memoryUsage = process.memoryUsage();
   const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-  
+
   // If server is under heavy load, reduce rate limits
   let multiplier = 1;
-  
+
   if (memoryUsagePercent > 80) {
     multiplier = 0.5; // Halve the rate limit
   } else if (memoryUsagePercent > 60) {
     multiplier = 0.75; // Reduce by 25%
   }
-  
+
   // Store multiplier for rate limiters to use
   req.rateLimitMultiplier = multiplier;
-  
+
   logger.debug('Adaptive rate limiting applied', {
     ip: req.ip,
     memoryUsagePercent,
-    multiplier
+    multiplier,
   });
-  
+
   next();
 };
 
@@ -446,9 +443,9 @@ export const authenticatedRateLimit = rateLimit({
   message: {
     error: {
       message: 'Too many requests for authenticated user',
-      code: 'AUTH_RATE_LIMIT_EXCEEDED'
-    }
-  }
+      code: 'AUTH_RATE_LIMIT_EXCEEDED',
+    },
+  },
 });
 
 // WebSocket rate limiting (for future implementation)
@@ -461,34 +458,34 @@ export class WebSocketRateLimiter {
   checkLimit(connectionId, limit = 100, windowMs = 15 * 60 * 1000) {
     const now = Date.now();
     const windowStart = now - windowMs;
-    
+
     if (!this.connections.has(connectionId)) {
       this.connections.set(connectionId, []);
     }
-    
+
     const requests = this.connections.get(connectionId);
-    
+
     // Remove old requests outside the window
-    const validRequests = requests.filter(timestamp => timestamp > windowStart);
-    
+    const validRequests = requests.filter((timestamp) => timestamp > windowStart);
+
     if (validRequests.length >= limit) {
       return false; // Rate limit exceeded
     }
-    
+
     // Add current request
     validRequests.push(now);
     this.connections.set(connectionId, validRequests);
-    
+
     return true; // Allow request
   }
 
   cleanup() {
     const now = Date.now();
-    const windowStart = now - (15 * 60 * 1000); // 15 minutes ago
-    
+    const windowStart = now - 15 * 60 * 1000; // 15 minutes ago
+
     for (const [connectionId, requests] of this.connections) {
-      const validRequests = requests.filter(timestamp => timestamp > windowStart);
-      
+      const validRequests = requests.filter((timestamp) => timestamp > windowStart);
+
       if (validRequests.length === 0) {
         // Remove empty entries
         this.connections.delete(connectionId);
@@ -496,9 +493,9 @@ export class WebSocketRateLimiter {
         this.connections.set(connectionId, validRequests);
       }
     }
-    
+
     logger.debug('Rate limiter cleanup completed', {
-      activeConnections: this.connections.size
+      activeConnections: this.connections.size,
     });
   }
 

@@ -6,37 +6,35 @@ import { ValidationError } from '../errors/index.js';
 const cachedBaseUrl = (() => {
   try {
     const mastodonUrl = new URL(config.mastodon.url);
-    
+
     // Detect known API path patterns (e.g., /api, /api/v1, /api/v2, etc.)
     const apiPathPattern = /^\/api(\/v\d+)?\/?$/;
     const pathname = mastodonUrl.pathname;
-    
+
     let baseUrl;
     if (apiPathPattern.test(pathname)) {
       // If path matches API pattern, use origin only
       baseUrl = mastodonUrl.origin;
-      logger.debug('Detected API path pattern, using origin only', { 
-        pathname, 
-        baseUrl 
+      logger.debug('Detected API path pattern, using origin only', {
+        pathname,
+        baseUrl,
       });
     } else {
       // Otherwise, combine origin with pathname, normalizing slashes
-      const normalizedPathname = pathname.endsWith('/') 
-        ? pathname.slice(0, -1) 
-        : pathname;
+      const normalizedPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
       baseUrl = mastodonUrl.origin + normalizedPathname;
-      logger.debug('Using origin with pathname', { 
-        pathname, 
-        normalizedPathname, 
-        baseUrl 
+      logger.debug('Using origin with pathname', {
+        pathname,
+        normalizedPathname,
+        baseUrl,
       });
     }
-    
+
     return baseUrl;
   } catch (error) {
-    logger.error('Failed to parse Mastodon URL for caching', { 
-      url: config.mastodon.url, 
-      error: error.message 
+    logger.error('Failed to parse Mastodon URL for caching', {
+      url: config.mastodon.url,
+      error: error.message,
     });
     // Last resort: return config URL as-is (may be malformed)
     return config.mastodon.url;
@@ -58,11 +56,10 @@ export function generateTootLink(tootId) {
   try {
     // Use cached base URL to avoid repeated parsing
     const webUrl = new URL(`${cachedBaseUrl}/web/statuses/${tootId}`);
-    
+
     logger.debug(`Generated toot link: ${webUrl.href}`, { tootId });
-    
+
     return webUrl.href;
-    
   } catch (error) {
     logger.error(`Failed to generate toot link for ID: ${tootId}`, error);
     throw new ValidationError(`Failed to generate toot link: ${error.message}`);
@@ -81,11 +78,10 @@ export function generateProfileLink(username, instance = null) {
     // If instance is provided, use it; otherwise use the configured instance
     const baseUrl = instance || new URL(config.mastodon.url).origin;
     const profileUrl = new URL(`${baseUrl}/@${username}`);
-    
+
     logger.debug(`Generated profile link: ${profileUrl.href}`, { username, instance });
-    
+
     return profileUrl.href;
-    
   } catch (error) {
     logger.error(`Failed to generate profile link for username: ${username}`, error);
     throw new ValidationError(`Failed to generate profile link: ${error.message}`);
@@ -107,11 +103,10 @@ export function generateHashtagLink(hashtag, instance = null) {
     // If instance is provided, use it; otherwise use the configured instance
     const baseUrl = instance || new URL(config.mastodon.url).origin;
     const tagUrl = new URL(`${baseUrl}/tags/${cleanHashtag}`);
-    
+
     logger.debug(`Generated hashtag link: ${tagUrl.href}`, { hashtag: cleanHashtag, instance });
-    
+
     return tagUrl.href;
-    
   } catch (error) {
     logger.error(`Failed to generate hashtag link for: ${hashtag}`, error);
     throw new ValidationError(`Failed to generate hashtag link: ${error.message}`);
@@ -128,14 +123,14 @@ export function extractTootId(url) {
 
   try {
     const urlObj = new URL(url);
-    
+
     // Handle different URL patterns:
     // /web/statuses/12345
     // /@username/12345
     // /statuses/12345
-    
+
     const pathParts = urlObj.pathname.split('/').filter(Boolean);
-    
+
     // Find the numeric ID in the path
     for (let i = pathParts.length - 1; i >= 0; i--) {
       const part = pathParts[i];
@@ -144,9 +139,8 @@ export function extractTootId(url) {
         return part;
       }
     }
-    
+
     throw new ValidationError(`No toot ID found in URL: ${url}`);
-    
   } catch (error) {
     logger.error(`Failed to extract toot ID from URL: ${url}`, error);
     throw new ValidationError(`Failed to extract toot ID: ${error.message}`);
@@ -163,21 +157,20 @@ export function validateMastodonUrl(url) {
 
   try {
     const urlObj = new URL(url);
-    
+
     // Check if it's a valid HTTP/HTTPS URL
     if (!['http:', 'https:'].includes(urlObj.protocol)) {
       throw new ValidationError('URL must use HTTP or HTTPS protocol');
     }
-    
+
     // Check if it looks like a Mastodon instance URL
     // This is a basic check - could be enhanced
     if (!urlObj.hostname || urlObj.hostname.length < 3) {
       throw new ValidationError('Invalid hostname in URL');
     }
-    
+
     logger.debug(`Validated Mastodon URL: ${url}`);
     return true;
-    
   } catch (error) {
     logger.error(`Failed to validate Mastodon URL: ${url}`, error);
     throw new ValidationError(`Invalid Mastodon URL: ${error.message}`);
@@ -195,14 +188,13 @@ export function generateApiUrl(endpoint) {
   try {
     // Ensure endpoint starts with /
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
+
     // Combine base API URL with endpoint
     const apiUrl = new URL(cleanEndpoint, config.mastodon.url);
-    
+
     logger.debug(`Generated API URL: ${apiUrl.href}`, { endpoint });
-    
+
     return apiUrl.href;
-    
   } catch (error) {
     logger.error(`Failed to generate API URL for endpoint: ${endpoint}`, error);
     throw new ValidationError(`Failed to generate API URL: ${error.message}`);
@@ -219,11 +211,10 @@ export function generateMediaUrl(mediaId) {
 
   try {
     const mediaUrl = generateApiUrl(`/media/${mediaId}`);
-    
+
     logger.debug(`Generated media URL: ${mediaUrl}`, { mediaId });
-    
+
     return mediaUrl;
-    
   } catch (error) {
     logger.error(`Failed to generate media URL for ID: ${mediaId}`, error);
     throw new ValidationError(`Failed to generate media URL: ${error.message}`);
@@ -240,11 +231,10 @@ export function generateContextUrl(tootId) {
 
   try {
     const contextUrl = generateApiUrl(`/statuses/${tootId}/context`);
-    
+
     logger.debug(`Generated context URL: ${contextUrl}`, { tootId });
-    
+
     return contextUrl;
-    
   } catch (error) {
     logger.error(`Failed to generate context URL for toot ID: ${tootId}`, error);
     throw new ValidationError(`Failed to generate context URL: ${error.message}`);
@@ -261,7 +251,7 @@ export function parseMastodonUrl(url) {
 
   try {
     const urlObj = new URL(url);
-    
+
     const parsed = {
       protocol: urlObj.protocol,
       hostname: urlObj.hostname,
@@ -270,13 +260,12 @@ export function parseMastodonUrl(url) {
       pathname: urlObj.pathname,
       isApi: urlObj.pathname.includes('/api/'),
       isWeb: urlObj.pathname.includes('/web/'),
-      instance: urlObj.origin
+      instance: urlObj.origin,
     };
-    
+
     logger.debug(`Parsed Mastodon URL: ${url}`, parsed);
-    
+
     return parsed;
-    
   } catch (error) {
     logger.error(`Failed to parse Mastodon URL: ${url}`, error);
     throw new ValidationError(`Failed to parse Mastodon URL: ${error.message}`);
@@ -294,14 +283,13 @@ export function generateShortUrl(url) {
   try {
     const urlObj = new URL(url);
     const short = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
-    
+
     // Truncate if too long
     if (short.length > 50) {
       return short.substring(0, 47) + '...';
     }
-    
+
     return short;
-    
   } catch (error) {
     logger.error(`Failed to generate short URL for: ${url}`, error);
     return url;

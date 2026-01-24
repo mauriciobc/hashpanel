@@ -7,7 +7,7 @@ export class HashbotError extends Error {
     this.statusCode = statusCode;
     this.details = details;
     this.timestamp = new Date().toISOString();
-    
+
     // Ensure stack trace is preserved
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -21,14 +21,14 @@ export class HashbotError extends Error {
       code: this.code,
       statusCode: this.statusCode,
       details: this.details,
-      timestamp: this.timestamp
+      timestamp: this.timestamp,
     };
-    
+
     // Include stack trace only in non-production environments or when explicitly requested
     if (this.includeStack || process.env.NODE_ENV !== 'production') {
       json.stack = this.stack;
     }
-    
+
     return json;
   }
 }
@@ -46,7 +46,7 @@ export class APIError extends HashbotError {
   constructor(message, originalError = null, details = {}) {
     super(message, 'API_ERROR', 502, {
       originalError: originalError?.message,
-      ...details
+      ...details,
     });
     this.name = 'APIError';
   }
