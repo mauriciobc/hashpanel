@@ -143,6 +143,73 @@ router.get(
 );
 
 /**
+ * GET /api/trending/compare
+ * Compare multiple trending tags
+ */
+router.get(
+  '/compare',
+  asyncHandler(async (req, res) => {
+    const { tags } = req.query;
+
+    if (!tags) {
+      throw new ValidationError('Tags parameter is required');
+    }
+
+    const tagList = tags.split(',').map((tag) => tag.trim().replace('#', '').toLowerCase());
+
+    if (tagList.length < 2 || tagList.length > 5) {
+      throw new ValidationError('Please provide between 2 and 5 tags to compare');
+    }
+
+    logger.info('Trending tags comparison requested', { tags: tagList });
+
+    try {
+      const result = await hashtagService.getTrendingTags(50);
+      const trendingTags = result.tags;
+      const foundTags = trendingTags.filter((tag) => tagList.includes(tag.name.toLowerCase()));
+
+      if (foundTags.length === 0) {
+        return res.status(404).json({
+          error: {
+            message: 'None of the specified tags were found in trending tags',
+            code: 'NO_TAGS_FOUND',
+          },
+        });
+      }
+
+      const comparison = {
+        tags: foundTags.map((tag) => ({
+          name: tag.name,
+          currentUses: tag.history?.[0]?.uses || 0,
+          weekTotal: tag.history?.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0) || 0,
+          trendDirection: getTrendDirection(tag.history),
+          rank: foundTags.indexOf(tag) + 1,
+        })),
+        statistics: {
+          totalUses: foundTags.reduce((sum, tag) => sum + (tag.history?.[0]?.uses || 0), 0),
+          averageUses: Math.round(
+            foundTags.reduce((sum, tag) => sum + (tag.history?.[0]?.uses || 0), 0) /
+              foundTags.length
+          ),
+          topPerformer: foundTags.reduce((top, tag) =>
+            (tag.history?.[0]?.uses || 0) > (top.history?.[0]?.uses || 0) ? tag : top
+          ),
+        },
+        missingTags: tagList.filter(
+          (tag) => !foundTags.some((foundTag) => foundTag.name.toLowerCase() === tag.toLowerCase())
+        ),
+        generatedAt: new Date().toISOString(),
+      };
+
+      res.json(comparison);
+    } catch (error) {
+      logger.error('Failed to compare trending tags', error);
+      throw error;
+    }
+  })
+);
+
+/**
  * GET /api/trending/:tag
  * Get detailed information about a specific trending tag
  */
@@ -206,73 +273,6 @@ router.get(
       res.json(detailedInfo);
     } catch (error) {
       logger.error(`Failed to get trending tag details for: ${tag}`, error);
-      throw error;
-    }
-  })
-);
-
-/**
- * GET /api/trending/compare
- * Compare multiple trending tags
- */
-router.get(
-  '/compare',
-  asyncHandler(async (req, res) => {
-    const { tags } = req.query;
-
-    if (!tags) {
-      throw new ValidationError('Tags parameter is required');
-    }
-
-    const tagList = tags.split(',').map((tag) => tag.trim().replace('#', '').toLowerCase());
-
-    if (tagList.length < 2 || tagList.length > 5) {
-      throw new ValidationError('Please provide between 2 and 5 tags to compare');
-    }
-
-    logger.info('Trending tags comparison requested', { tags: tagList });
-
-    try {
-      const result = await hashtagService.getTrendingTags(50);
-      const trendingTags = result.tags;
-      const foundTags = trendingTags.filter((tag) => tagList.includes(tag.name.toLowerCase()));
-
-      if (foundTags.length === 0) {
-        return res.status(404).json({
-          error: {
-            message: 'None of the specified tags were found in trending tags',
-            code: 'NO_TAGS_FOUND',
-          },
-        });
-      }
-
-      const comparison = {
-        tags: foundTags.map((tag) => ({
-          name: tag.name,
-          currentUses: tag.history?.[0]?.uses || 0,
-          weekTotal: tag.history?.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0) || 0,
-          trendDirection: getTrendDirection(tag.history),
-          rank: foundTags.indexOf(tag) + 1,
-        })),
-        statistics: {
-          totalUses: foundTags.reduce((sum, tag) => sum + (tag.history?.[0]?.uses || 0), 0),
-          averageUses: Math.round(
-            foundTags.reduce((sum, tag) => sum + (tag.history?.[0]?.uses || 0), 0) /
-              foundTags.length
-          ),
-          topPerformer: foundTags.reduce((top, tag) =>
-            (tag.history?.[0]?.uses || 0) > (top.history?.[0]?.uses || 0) ? tag : top
-          ),
-        },
-        missingTags: tagList.filter(
-          (tag) => !foundTags.some((foundTag) => foundTag.name.toLowerCase() === tag.toLowerCase())
-        ),
-        generatedAt: new Date().toISOString(),
-      };
-
-      res.json(comparison);
-    } catch (error) {
-      logger.error('Failed to compare trending tags', error);
       throw error;
     }
   })

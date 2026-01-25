@@ -18,6 +18,10 @@ echo -e "${CYAN}═════════════════════�
 echo -e "${CYAN}  CONFIGURAÇÃO DE CRON JOB PARA COLETA DIÁRIA${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
+echo -e "${BLUE}ℹ️  Este job executará:${NC}"
+echo -e "   1. Coleta de histórico de hashtags"
+echo -e "   2. Publicação de relatório diário (tema claro)"
+echo ""
 
 # Obter diretório do script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,6 +1,10 @@
 import logger from '../utils/logger.js';
 import { getTimezoneInfo, getTimezoneOffset } from '../utils/timezone.js';
 
+const MAX_REQUESTS_PER_TIMEZONE = 100;
+const PRUNE_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const RETENTION_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 /**
  * Telemetry service for tracking timezone usage patterns
  * Collects anonymous usage statistics to understand how users interact with the system
@@ -22,6 +26,11 @@ class TelemetryService {
       invalidTimezones: 0,
       boundaryRequests: 0, // Requests near midnight
     };
+
+    // Schedule periodic pruning of old requests
+    // Using unref() if available so this interval doesn't prevent the process from exiting
+    const interval = setInterval(() => this.pruneOldRequests(), PRUNE_INTERVAL_MS);
+    if (interval.unref) interval.unref();
   }
 
   /**
@@ -58,15 +67,50 @@ class TelemetryService {
     if (!this.requestsByTimezone.has(timezone)) {
       this.requestsByTimezone.set(timezone, []);
     }
-    this.requestsByTimezone.get(timezone).push({
+    
+    const timezoneRequests = this.requestsByTimezone.get(timezone);
+    timezoneRequests.push({
       timestamp: new Date().toISOString(),
       endpoint: context.endpoint,
       userAgent: context.userAgent,
     });
 
+    // Enforce max requests limit
+    if (timezoneRequests.length > MAX_REQUESTS_PER_TIMEZONE) {
+      timezoneRequests.shift();
+    }
+
     // Log periodically (every 100 requests)
     if (this.stats.totalRequests % 100 === 0) {
       this._logSummary();
+    }
+  }
+
+  /**
+   * Remove requests older than the retention period
+   */
+  pruneOldRequests() {
+    const now = Date.now();
+    let prunedCount = 0;
+
+    for (const [timezone, requests] of this.requestsByTimezone.entries()) {
+      const validRequests = requests.filter(req => {
+        const reqTime = new Date(req.timestamp).getTime();
+        return (now - reqTime) < RETENTION_PERIOD_MS;
+      });
+
+      if (validRequests.length !== requests.length) {
+        prunedCount += (requests.length - validRequests.length);
+        if (validRequests.length === 0) {
+          this.requestsByTimezone.delete(timezone);
+        } else {
+          this.requestsByTimezone.set(timezone, validRequests);
+        }
+      }
+    }
+    
+    if (prunedCount > 0) {
+      logger.debug(`Pruned ${prunedCount} old telemetry requests`);
     }
   }
 
@@ -96,7 +140,7 @@ class TelemetryService {
         timezone: tz,
         offset: getTimezoneOffset(tz),
         count,
-        percentage: ((count / this.stats.requestsWithTimezone) * 100).toFixed(1),
+        percentage: this.stats.requestsWithTimezone ? ((count / this.stats.requestsWithTimezone) * 100).toFixed(1) : "0.0",
       }));
 
     return {

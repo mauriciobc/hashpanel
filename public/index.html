@@ -5097,12 +5097,28 @@
         const offsetPart = parts.find(part => part.type === 'timeZoneName');
         return offsetPart ? offsetPart.value : '';
       } catch (e) {
-        // Fallback to manual calculation
-        const offset = -date.getTimezoneOffset();
-        const hours = Math.floor(Math.abs(offset) / 60);
-        const minutes = Math.abs(offset) % 60;
-        const sign = offset >= 0 ? '+' : '-';
-        return `UTC${sign}${hours}${minutes > 0 ? ':' + minutes.toString().padStart(2, '0') : ''}`;
+        // Fallback: compute offset for the provided timezone (not local)
+        try {
+          // Format the date in UTC and target timezone to calculate offset
+          const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+          const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+          
+          // Calculate offset in minutes
+          const offset = (tzDate - utcDate) / (1000 * 60);
+          const hours = Math.floor(Math.abs(offset) / 60);
+          const minutes = Math.abs(offset) % 60;
+          const sign = offset >= 0 ? '+' : '-';
+          
+          return `UTC${sign}${hours.toString().padStart(2, '0')}${minutes > 0 ? ':' + minutes.toString().padStart(2, '0') : ''}`;
+        } catch (fallbackError) {
+          // Last resort: return local offset with warning
+          console.warn('Failed to calculate timezone offset for', timezone, fallbackError);
+          const offset = -date.getTimezoneOffset();
+          const hours = Math.floor(Math.abs(offset) / 60);
+          const minutes = Math.abs(offset) % 60;
+          const sign = offset >= 0 ? '+' : '-';
+          return `UTC${sign}${hours.toString().padStart(2, '0')}${minutes > 0 ? ':' + minutes.toString().padStart(2, '0') : ''}`;
+        }
       }
     }
 

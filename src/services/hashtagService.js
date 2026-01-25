@@ -102,7 +102,7 @@ export class HashtagService {
       // Process toots with appropriate filtering
       const processOptions = {
         limit: options.limit,
-        timezone: options.timezone, // Pass client timezone if provided
+        timezone: usedTimezone, // Use validated timezone for consistency with cache key
       };
 
       if (shouldFilterByDate) {

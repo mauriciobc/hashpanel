@@ -10,6 +10,7 @@ import timezonetelemetryMiddleware from '../middleware/timezonetelemetry.js';
 import { apiRoutes } from './routes/index.js';
 import { sendTelemetry } from '../utils/telemetry.js';
 import { mastodonService } from '../services/mastodon.js';
+import { hashtagListener } from '../services/hashtagListener.js';
 import { getDatabase } from '../database/index.js';
 
 export class WebServer {
@@ -228,11 +229,29 @@ export class WebServer {
     // Serve index.html for SPA routing
     res.sendFile('index.html', { root: 'public' }, (error) => {
       if (error) {
-        logger.error('Failed to serve frontend', error);
-        res.status(500).json({
-          error: 'Failed to serve frontend',
-          code: 'FRONTEND_ERROR',
+        // Handle aborted requests gracefully (common for cached resources like favicon)
+        if (error.code === 'ECONNABORTED') {
+          logger.debug('Client aborted request', {
+            path: req.path,
+            method: req.method,
+          });
+          // Don't try to send a response if connection is already closed
+          return;
+        }
+
+        // Log actual errors
+        logger.error('Failed to serve frontend', error, {
+          path: req.path,
+          code: error.code,
         });
+
+        // Only try to send error response if connection is still open
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'Failed to serve frontend',
+            code: 'FRONTEND_ERROR',
+          });
+        }
       }
     });
   };
@@ -280,6 +299,11 @@ export class WebServer {
             environment: config.server.environment,
           });
 
+          // Inicia o listener de hashtag em background
+          hashtagListener.start().catch(err => {
+            logger.error('Falha ao iniciar HashtagListener em background', err);
+          });
+
           resolve();
         });
 
@@ -317,6 +341,9 @@ export class WebServer {
 
     return new Promise((resolve) => {
       logger.info('Stopping web server...');
+
+      // Para o listener de hashtag
+      hashtagListener.stop();
 
       this.server.close((error) => {
         if (error) {
@@ -405,7 +432,9 @@ export class WebServer {
   /**
    * Get server statistics
    */
-  getStats() {
+  async getStats() {
+    const connections = await this.getConnectionsCount();
+
     return {
       isStarted: this.isStarted,
       port: config.server.port,
@@ -414,8 +443,27 @@ export class WebServer {
       memory: process.memoryUsage(),
       pid: process.pid,
       nodeVersion: process.version,
-      connections: this.server?.connections || 0,
+      connections,
     };
+  }
+
+  /**
+   * Get active connections count using modern Node.js API
+   */
+  async getConnectionsCount() {
+    if (!this.server || !this.server.getConnections) {
+      return 'unknown';
+    }
+
+    return new Promise((resolve) => {
+      this.server.getConnections((err, count) => {
+        if (err) {
+          resolve('unknown');
+        } else {
+          resolve(count);
+        }
+      });
+    });
   }
 
   /**

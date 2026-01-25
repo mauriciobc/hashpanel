@@ -86,6 +86,91 @@ export class CLIApplication {
   }
 
   /**
+   * Run the daily image report
+   */
+  async runDailyReport(options = {}) {
+    if (this.isRunning) {
+      throw new BusinessError('CLI application is already running');
+    }
+
+    this.isRunning = true;
+    const startTime = Date.now();
+
+    try {
+      logger.info('Starting daily image report via CLI', { options });
+      
+      if (options.dryRun) {
+        console.log('🚀 Gerando imagem do relatório (modo dry-run)...');
+        
+        const { hashtagService } = await import('../services/hashtagService.js');
+        const { imageGenerator } = await import('../services/imageGenerator.js');
+        const fs = await import('fs/promises');
+        
+        const dailyHashtag = hashtagService.getDailyHashtag({ timezone: config.server.timezone });
+        const analysis = await hashtagService.analyzeHashtag(dailyHashtag, {
+          timezone: config.server.timezone,
+          maxPages: 3
+        });
+
+        if (!analysis.hasTodayToots()) {
+          console.log('⚠️  Nenhum post encontrado para hoje.');
+          return;
+        }
+
+        const stats = {
+          hashtag: dailyHashtag,
+          summary: {
+            tootCount: analysis.getTodayCount(),
+            uniqueUsers: analysis.getUniqueUserCount(),
+            weeklyTotal: analysis.getWeeklyTotal()
+          }
+        };
+
+        const theme = options.theme || 'dark';
+        const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats, { theme });
+        const themeSuffix = theme === 'light' ? '-light' : '';
+        const imagePath = `./daily-report-${dailyHashtag}${themeSuffix}-preview.png`;
+        await fs.writeFile(imagePath, imageBuffer);
+        
+        console.log('✅ Imagem gerada com sucesso!');
+        console.log(`📁 Salva em: ${imagePath}`);
+        console.log(`🎨 Tema: ${theme === 'light' ? 'Claro' : 'Escuro'}`);
+        console.log(`📊 Dados: ${stats.summary.tootCount} posts, ${stats.summary.uniqueUsers} participantes, ${stats.summary.weeklyTotal} na semana`);
+        console.log(`♿ Texto ALT: ${altText}`);
+        console.log('\nModo dry-run: nenhum post foi publicado.');
+        
+        return;
+      }
+
+      const theme = options.theme || 'dark';
+      console.log('🚀 Iniciando processo de relatório diário com imagem...');
+      console.log(`🎨 Tema: ${theme === 'light' ? 'Claro' : 'Escuro'}`);
+
+      const result = await this.tootService.generateAndPostDailyReport({
+        timezone: config.server.timezone,
+        theme
+      });
+
+      if (result.success) {
+        console.log('✅ Relatório diário publicado com sucesso!');
+        console.log(`📝 ID: ${result.toot.id}`);
+        console.log(`🔗 URL: ${result.toot.url}`);
+      } else {
+        console.log(`⚠️  Relatório não publicado: ${result.reason}`);
+      }
+
+      const duration = Date.now() - startTime;
+      logger.info('Daily image report completed successfully', { duration });
+    } catch (error) {
+      loggers.error('Daily image report failed', error);
+      console.error(`\n❌ Falha no relatório diário: ${error.message}`);
+      throw error;
+    } finally {
+      this.isRunning = false;
+    }
+  }
+
+  /**
    * Validate application configuration
    */
   validateConfiguration() {
@@ -330,6 +415,10 @@ export async function runCLI(args = process.argv) {
         await app.showStatus();
         break;
 
+      case 'report':
+        await app.runDailyReport(options);
+        break;
+
       case 'help':
         showHelp();
         break;
@@ -359,6 +448,11 @@ function parseArguments(args) {
         options.dryRun = true;
         break;
 
+      case '--light':
+      case '--light-theme':
+        options.theme = 'light';
+        break;
+
       case '--no-trending':
         options.showTrending = false;
         break;
@@ -384,6 +478,24 @@ function parseArguments(args) {
         options.command = 'status';
         break;
 
+      case 'report':
+        options.command = 'report';
+        // Parse report-specific flags
+        const reportFlagIndex = i + 1;
+        while (reportFlagIndex < args.length && args[reportFlagIndex].startsWith('--')) {
+          const flag = args[reportFlagIndex];
+          if (flag === '--dry-run') {
+            options.dryRun = true;
+            i++;
+          } else if (flag === '--light' || flag === '--light-theme') {
+            options.theme = 'light';
+            i++;
+          } else {
+            break;
+          }
+        }
+        break;
+
       case 'help':
       case '--help':
         options.command = 'help';
@@ -403,20 +515,25 @@ Hashbot2 - Monitoramento de hashtags do Mastodon
 
 Comandos:
   run                    Executa análise diária (padrão)
+  report                 Gera e publica relatório com imagem
   analyze <hashtag>     Analisa hashtag específica
   status                 Mostra status da aplicação
   help                   Mostra esta ajuda
 
 Opções:
-  --dry-run             Mostra resumo sem publicar
+  --dry-run             Gera imagem/resumo sem publicar
+  --light               Usa tema claro na imagem (padrão: escuro)
   --no-trending         Não mostra tags em alta
   --date <YYYY-MM-DD>   Data específica para análise
 
 Exemplos:
-  node src/cli/index.js
-  node src/cli/index.js --dry-run
-  node src/cli/index.js analyze javascript
-  node src/cli/index.js status
+  node cli.js
+  node cli.js --dry-run
+  node cli.js report --dry-run
+  node cli.js report --light
+  node cli.js report --dry-run --light
+  node cli.js analyze javascript
+  node cli.js status
 `);
 }
 

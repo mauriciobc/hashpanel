@@ -83,50 +83,6 @@ export const postingRateLimit = rateLimit({
   },
 });
 
-// Rate limiting for moderate operations (dashboard stats, hashtag analysis)
-// Increased from 5 to 20 requests per 15 minutes for better UX
-export const moderateRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: (req) => {
-    // Apply adaptive rate limiting multiplier if available
-    const baseLimit = 20; // Increased from 5 for better UX
-    const multiplier = req.rateLimitMultiplier ?? 1;
-    return Math.floor(baseLimit * multiplier);
-  },
-  message: {
-    error: {
-      message: 'Too many requests, please wait before trying again',
-      code: 'MODERATE_RATE_LIMIT_EXCEEDED',
-      retryAfter: 900,
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/health' || req.path === '/api/health';
-  },
-  handler: (req, res) => {
-    const resetTime = new Date(Date.now() + 15 * 60 * 1000);
-    const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-
-    logger.warn('Moderate rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      url: req.url,
-    });
-
-    res.status(429).json({
-      error: {
-        message: 'Too many requests, please wait before trying again',
-        code: 'MODERATE_RATE_LIMIT_EXCEEDED',
-        retryAfter,
-        resetTime: resetTime.toISOString(),
-      },
-    });
-  },
-});
-
 // Rate limiting for light operations (media proxy, simple endpoints)
 // More permissive for frequently accessed resources
 export const lightRateLimit = rateLimit({
@@ -160,50 +116,6 @@ export const lightRateLimit = rateLimit({
       error: {
         message: 'Too many requests, please wait a moment before trying again',
         code: 'LIGHT_RATE_LIMIT_EXCEEDED',
-        retryAfter,
-        resetTime: resetTime.toISOString(),
-      },
-    });
-  },
-});
-
-// Very strict rate limiting for expensive operations (kept for truly heavy operations)
-// Increased from 5 to 10 requests per 15 minutes
-export const heavyRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: (req) => {
-    // Apply adaptive rate limiting multiplier if available
-    const baseLimit = 10; // Increased from 5 for better UX
-    const multiplier = req.rateLimitMultiplier ?? 1;
-    return Math.floor(baseLimit * multiplier);
-  },
-  message: {
-    error: {
-      message: 'Too many heavy requests, please wait before trying again',
-      code: 'HEAVY_RATE_LIMIT_EXCEEDED',
-      retryAfter: 900,
-    },
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for health checks
-    return req.path === '/health' || req.path === '/api/health';
-  },
-  handler: (req, res) => {
-    const resetTime = new Date(Date.now() + 15 * 60 * 1000);
-    const retryAfter = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
-
-    logger.warn('Heavy rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      url: req.url,
-    });
-
-    res.status(429).json({
-      error: {
-        message: 'Too many heavy requests, please wait before trying again',
-        code: 'HEAVY_RATE_LIMIT_EXCEEDED',
         retryAfter,
         resetTime: resetTime.toISOString(),
       },

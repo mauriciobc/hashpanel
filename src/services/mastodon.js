@@ -81,6 +81,14 @@ export class MastodonService {
 
     this.lastRequestTime = 0;
     this.requestCount = 0;
+    
+    // Rate limit tracking from Mastodon API
+    this.rateLimitInfo = {
+      limit: null,
+      remaining: null,
+      reset: null,
+      lastUpdated: null,
+    };
   }
 
   /**
@@ -141,6 +149,73 @@ export class MastodonService {
   }
 
   /**
+   * Extract and monitor rate limit headers from Mastodon API response
+   * @param {object} response - Response object from Mastodon API
+   * @param {string} endpoint - API endpoint for logging context
+   * @private
+   */
+  _monitorRateLimitHeaders(response, endpoint) {
+    if (!response || !response.resp || !response.resp.headers) {
+      return;
+    }
+
+    const headers = response.resp.headers;
+    const limit = parseInt(headers['x-ratelimit-limit']) || null;
+    const remaining = parseInt(headers['x-ratelimit-remaining']) || null;
+    const reset = headers['x-ratelimit-reset'] || null;
+
+    // Update rate limit info
+    if (limit !== null || remaining !== null || reset !== null) {
+      this.rateLimitInfo = {
+        limit,
+        remaining,
+        reset,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      // Calculate usage percentage
+      const percentUsed = limit && remaining !== null 
+        ? ((limit - remaining) / limit * 100).toFixed(1) 
+        : 'N/A';
+
+      // Log at different levels based on remaining requests
+      if (remaining !== null && remaining < 50) {
+        logger.warn('Mastodon API rate limit low', {
+          endpoint,
+          limit,
+          remaining,
+          reset,
+          percentUsed: `${percentUsed}%`,
+        });
+      } else if (remaining !== null && remaining < 100) {
+        logger.info('Mastodon API rate limit status', {
+          endpoint,
+          limit,
+          remaining,
+          reset,
+          percentUsed: `${percentUsed}%`,
+        });
+      } else {
+        logger.debug('Mastodon API rate limit status', {
+          endpoint,
+          limit,
+          remaining,
+          reset,
+          percentUsed: `${percentUsed}%`,
+        });
+      }
+    }
+  }
+
+  /**
+   * Get current rate limit information from Mastodon API
+   * @returns {object} Rate limit information
+   */
+  getRateLimitInfo() {
+    return { ...this.rateLimitInfo };
+  }
+
+  /**
    * Apply rate limiting between API requests
    */
   async applyRateLimit() {
@@ -195,6 +270,9 @@ export class MastodonService {
       if (!response || !response.data) {
         throw new APIError(`Invalid response from ${endpoint}`, null, { endpoint, params, method });
       }
+
+      // Monitor rate limit headers from Mastodon API
+      this._monitorRateLimitHeaders(response, endpoint);
 
       loggers.apiRequest(method.toUpperCase(), endpoint);
       loggers.performance('mastodon_api_request', duration, { endpoint, method });
@@ -310,7 +388,7 @@ export class MastodonService {
 
   _executeRequest(clientMethod, endpoint, params, method) {
     sendTelemetry({
-      location: 'src/services/mastodon.js:makeAPIRequest',
+      location: 'src/services/mastodon.js:_executeRequest',
       message: 'Before client method call',
       data: { endpoint, method },
       hypothesisId: 'A',
@@ -320,7 +398,7 @@ export class MastodonService {
       const requestPromise = clientMethod.call(this.client, endpoint, params);
       return Promise.resolve(requestPromise).catch((error) => {
         sendTelemetry({
-          location: 'src/services/mastodon.js:makeAPIRequest_rejected',
+          location: 'src/services/mastodon.js:_executeRequest_rejected',
           message: 'Request promise rejected',
           data: {
             endpoint,
@@ -337,7 +415,7 @@ export class MastodonService {
       });
     } catch (syncError) {
       sendTelemetry({
-        location: 'src/services/mastodon.js:makeAPIRequest_sync_error',
+        location: 'src/services/mastodon.js:_executeRequest_sync_error',
         message: 'Synchronous error in client method call',
         data: {
           endpoint,
@@ -489,7 +567,7 @@ export class MastodonService {
    */
   async getTrendingTags(limit = 10, offset = 0) {
     sendTelemetry({
-      location: 'src/services/mastodon.js:232',
+      location: 'src/services/mastodon.js:getTrendingTags',
       message: 'getTrendingTags entry',
       data: { limit, offset },
       hypothesisId: 'A',
@@ -497,14 +575,14 @@ export class MastodonService {
     try {
       const params = { limit: Math.min(limit, 100), offset };
       sendTelemetry({
-        location: 'src/services/mastodon.js:236',
+        location: 'src/services/mastodon.js:getTrendingTags',
         message: 'Before makeAPIRequest for trends/tags',
         data: { params },
         hypothesisId: 'A',
       });
       const tags = await this.makeAPIRequest('trends/tags', params);
       sendTelemetry({
-        location: 'src/services/mastodon.js:239',
+        location: 'src/services/mastodon.js:getTrendingTags',
         message: 'getTrendingTags succeeded',
         data: { tagsCount: tags?.length },
         hypothesisId: 'A',
@@ -515,7 +593,7 @@ export class MastodonService {
       return tags;
     } catch (error) {
       sendTelemetry({
-        location: 'src/services/mastodon.js:247',
+        location: 'src/services/mastodon.js:getTrendingTags',
         message: 'getTrendingTags error',
         data: {
           error: error.message,
@@ -584,12 +662,106 @@ export class MastodonService {
   }
 
   /**
+   * Upload media to Mastodon
+   * @param {Buffer} fileBuffer - File content buffer
+   * @param {string} description - Alt text for the media
+   * @returns {Promise<Object>} Media upload response
+   */
+  async uploadMedia(fileBuffer, description = '') {
+    logger.info('Uploading media to Mastodon', {
+      bufferSize: fileBuffer.length,
+      descriptionLength: description.length
+    });
+
+    // Use native FormData and Blob (Node.js 18+)
+    const form = new FormData();
+    const blob = new Blob([fileBuffer], { type: 'image/png' });
+    form.append('file', blob, 'report.png');
+    
+    if (description) {
+      form.append('description', description);
+    }
+
+    try {
+      // Try v2 endpoint first (modern Mastodon)
+      const baseUrl = config.mastodon.url.replace(/\/v1\/$/, '/');
+      const v2Url = `${baseUrl}v2/media`;
+      
+      logger.info('Uploading media via fetch (v2)', { url: v2Url });
+      
+      const response = await fetch(v2Url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.mastodon.accessToken}`
+        },
+        body: form
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        // If v2 fails, try v1
+        if (response.status === 404 || response.status === 500) {
+          logger.info('v2 endpoint failed, trying v1', { status: response.status });
+          
+          // Recreate form for v1 attempt with native FormData/Blob
+          const form2 = new FormData();
+          const blob2 = new Blob([fileBuffer], { type: 'image/png' });
+          form2.append('file', blob2, 'report.png');
+          if (description) {
+            form2.append('description', description);
+          }
+          
+          const v1Url = `${baseUrl}v1/media`;
+          const v1Response = await fetch(v1Url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${config.mastodon.accessToken}`
+            },
+            body: form2
+          });
+          
+          if (!v1Response.ok) {
+            const v1ErrorText = await v1Response.text();
+            logger.error('Both v2 and v1 media endpoints failed', {
+              v2Status: response.status,
+              v1Status: v1Response.status,
+              v2Error: errorText.substring(0, 200),
+              v1Error: v1ErrorText.substring(0, 200)
+            });
+            throw new Error(`Mastodon API error: v2 returned ${response.status}, v1 returned ${v1Response.status}`);
+          }
+          
+          const v1Data = await v1Response.json();
+          logger.info('Successfully uploaded media via v1', { mediaId: v1Data.id });
+          return v1Data;
+        }
+        
+        throw new Error(`Mastodon API error (${response.status}): ${errorText.substring(0, 500)}`);
+      }
+
+      const responseData = await response.json();
+      
+      if (!responseData || !responseData.id) {
+        throw new APIError('Invalid response when uploading media', null, { responseData });
+      }
+
+      logger.info('Successfully uploaded media via v2', { mediaId: responseData.id });
+      return responseData;
+    } catch (error) {
+      loggers.error('Failed to upload media', error);
+      throw new APIError(`Failed to upload media: ${error.message}`, error);
+    }
+  }
+
+  /**
    * Get service statistics
    */
   getStats() {
     return {
       requestCount: this.requestCount,
       lastRequestTime: this.lastRequestTime,
+      rateLimitInfo: this.getRateLimitInfo(),
       config: {
         rateLimitDelay: config.performance.rateLimitDelay,
         maxApiPages: config.performance.maxApiPages,

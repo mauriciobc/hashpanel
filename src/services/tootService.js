@@ -1,5 +1,6 @@
 import { mastodonService } from './mastodon.js';
 import { dataProcessor } from './dataProcessor.js';
+import { imageGenerator } from './imageGenerator.js';
 import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { BusinessError, ValidationError } from '../errors/index.js';
@@ -321,6 +322,108 @@ export class TootService {
   }
 
   /**
+   * Generate and post daily report with image
+   * @param {Object} options - Report generation options
+   * @param {string} options.timezone - Timezone for analysis
+   * @param {string} options.saveImagePath - Optional path to save image locally
+   * @param {string} options.theme - Theme for image ('dark' or 'light'), defaults to 'dark'
+   */
+  async generateAndPostDailyReport(options = {}) {
+    const { 
+      timezone = config.server.timezone, 
+      saveImagePath = null,
+      theme = 'dark'
+    } = options;
+    const { hashtagService } = await import('./hashtagService.js');
+    const fs = await import('fs/promises');
+    
+    logger.info('Starting daily image report process', { theme });
+
+    try {
+      // 1. Get daily hashtag and analysis
+      const dailyHashtag = hashtagService.getDailyHashtag({ timezone });
+      const analysis = await hashtagService.analyzeHashtag(dailyHashtag, {
+        timezone,
+        maxPages: 3 // Keep it quick
+      });
+
+      if (!analysis.hasTodayToots()) {
+        logger.warn('No toots found for today, skipping image report');
+        return { success: false, reason: 'no_toots' };
+      }
+
+      // 2. Prepare stats for image
+      const stats = {
+        hashtag: dailyHashtag,
+        summary: {
+          tootCount: analysis.getTodayCount(),
+          uniqueUsers: analysis.getUniqueUserCount(),
+          weeklyTotal: analysis.getWeeklyTotal()
+        }
+      };
+
+      // 3. Generate image with accessible alt text
+      const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats, { theme });
+
+      // Save image locally if path provided or if upload is likely to fail
+      if (saveImagePath) {
+        await fs.writeFile(saveImagePath, imageBuffer);
+        logger.info('Image saved locally', { path: saveImagePath });
+      }
+
+      // 4. Upload image to Mastodon with accessible description
+      let mediaResult;
+      try {
+        mediaResult = await mastodonService.uploadMedia(
+          imageBuffer,
+          altText
+        );
+      } catch (uploadError) {
+        // Save image on upload failure
+        const fallbackPath = `./daily-report-${dailyHashtag}-${Date.now()}.png`;
+        try {
+          await fs.writeFile(fallbackPath, imageBuffer);
+          logger.warn('Upload failed, image saved locally for manual posting', { 
+            path: fallbackPath,
+            error: uploadError.message.substring(0, 200)
+          });
+        } catch (saveError) {
+          logger.error('Failed to save image locally', { error: saveError.message });
+        }
+        throw uploadError;
+      }
+
+      // 5. Create toot text
+      const tootText = `#hashpanel #${dailyHashtag}\n\n📊 Relatório do dia: ${config.server.publicUrl}`;
+
+      // 6. Post toot with media
+      const postResult = await mastodonService.createToot(tootText, {
+        media_ids: [mediaResult.id],
+        language: 'pt',
+        visibility: 'public'
+      });
+
+      this.updatePostingStats(true);
+
+      loggers.business('daily_image_report_posted', {
+        tootId: postResult.id,
+        hashtag: dailyHashtag,
+        mediaId: mediaResult.id
+      });
+
+      return {
+        success: true,
+        toot: postResult,
+        media: mediaResult
+      };
+    } catch (error) {
+      this.updatePostingStats(false);
+      loggers.error('Failed to generate and post daily image report', error);
+      throw error;
+    }
+  }
+
+  /**
    * Preview summary without posting
    */
   async previewSummary(hashtag, analysis) {
@@ -376,13 +479,14 @@ export class TootService {
   /**
    * Get posting history (placeholder for future implementation)
    */
-  async getPostingHistory(limit = 10) {
+  async getPostingHistory(limit = 10, offset = 0) {
     // This would typically query a database or log file
     // For now, return basic info
     return {
       posts: [],
       total: this.postingStats.successfulPosts,
       limit,
+      offset,
     };
   }
 

@@ -10,6 +10,8 @@ O HashPanel é uma aplicação Node.js que:
 - 📈 Fornece um dashboard web para visualização de estatísticas
 - 🤖 Gera e publica resumos diários automaticamente (opcional)
 - 📱 Calcula relevância de posts baseado em interações e seguidores
+- 🎨 Gera imagens de dashboard com temas claro/escuro
+- 💬 Bot automático que responde a mentions com relatórios
 
 ## ✨ Funcionalidades
 
@@ -20,6 +22,10 @@ O HashPanel é uma aplicação Node.js que:
 - **API RESTful**: Endpoints para integração e automação
 - **CLI Interativa**: Interface de linha de comando para operações diárias
 - **Coleção Automatizada**: Sistema de coleta de dados via cron jobs
+- **Bot de Mentions**: Responde automaticamente a mentions com relatórios de hashtags
+- **Geração de Imagens**: Cria imagens de dashboard com temas claro/escuro
+- **Proxy de Mídia**: Proxy de imagens para evitar problemas de CORS
+- **♿ Acessibilidade**: Descrições ALT detalhadas em todas as imagens (WCAG 2.1 AA)
 
 ## 🛠️ Tecnologias
 
@@ -27,9 +33,12 @@ O HashPanel é uma aplicação Node.js que:
 - **Express.js** - Servidor web
 - **SQLite** (better-sqlite3) - Banco de dados
 - **Mastodon API** - Integração com Mastodon
+- **Canvas** - Geração de imagens de dashboard
+- **WebSocket** - Conexão em tempo real para bot de mentions
 - **Winston** - Sistema de logs estruturado
 - **Moment.js** - Manipulação de datas e timezones
 - **Zod** - Validação de configuração
+- **Node-Cache** - Cache em memória
 
 ## 📦 Requisitos
 
@@ -69,10 +78,14 @@ Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 ```env
 # Mastodon API
 MASTODON_URL=https://sua-instancia.mastodon.social/api/v1/
+CLIENT_KEY=your_client_key_here
+CLIENT_SECRET=your_client_secret_here
 ACCESS_TOKEN=seu_token_aqui
 
 # Servidor
 PORT=3000
+HOST=0.0.0.0
+SERVER_PUBLIC_URL=http://localhost:3000
 NODE_ENV=development
 
 # CORS (apenas produção)
@@ -80,6 +93,12 @@ CORS_ORIGIN=https://seu-dominio.com
 
 # Timezone (opcional, padrão: America/Sao_Paulo)
 PREFERRED_TIMEZONE=America/Sao_Paulo
+
+# Trust Proxy (opcional, padrão: 1)
+TRUST_PROXY=1
+
+# Telemetry (opcional)
+# TELEMETRY_ENDPOINT=https://your-telemetry-server.com/ingest/your-token
 ```
 
 ### Como Obter o Access Token
@@ -149,7 +168,122 @@ Visualize estatísticas de uso de fusos horários:
 GET /api/dashboard/telemetry
 ```
 
-Para mais detalhes, consulte o [Guia de Fusos Horários](docs/TIMEZONE_GUIDE.md).
+O sistema detecta automaticamente o fuso horário do navegador e ajusta todas as informações de acordo.
+
+## 🤖 Bot de Mentions Automático
+
+O HashPanel inclui um bot que responde automaticamente a mentions no Mastodon, fornecendo relatórios de hashtags em tempo real.
+
+### Como Funciona
+
+1. **Conexão WebSocket**: O bot se conecta ao streaming API do Mastodon
+2. **Detecção de Mentions**: Monitora mentions diretas ao bot
+3. **Análise de Hashtags**: Extrai hashtags mencionadas na mensagem
+4. **Geração de Relatório**: Cria imagem de dashboard com estatísticas
+5. **Resposta Automática**: Publica resposta com imagem e dados
+
+### Uso
+
+Mencione o bot em um post com uma hashtag:
+
+```
+@seu_bot me mostra dados da #tercinema
+```
+
+O bot responderá automaticamente com:
+- Imagem de dashboard da hashtag
+- Estatísticas resumidas
+- Link para o dashboard completo
+
+### Configuração
+
+O bot inicia automaticamente quando o servidor é iniciado. Para desabilitar, remova a inicialização em `src/server/index.js`.
+
+**Requisitos**: Node.js 21+ ou Node.js 18/20 com `--experimental-websocket`
+
+## 🎨 Geração de Imagens de Dashboard
+
+O sistema gera imagens de dashboard automaticamente com suporte a temas claro e escuro.
+
+### Características
+
+- **Temas**: Claro e escuro
+- **Formato**: PNG 800x800px
+- **Conteúdo**: 4 cards com estatísticas principais
+- **Acessibilidade**: Descrições ALT completas (WCAG 2.1 AA)
+
+### Uso Programático
+
+```javascript
+import { imageGenerator } from './services/imageGenerator.js';
+
+const stats = {
+  hashtag: 'tercinema',
+  summary: {
+    weeklyTotal: 150,
+    uniqueUsers: 45,
+    todayCount: 23
+  }
+};
+
+const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats, 'dark');
+```
+
+## ♿ Acessibilidade
+
+O HashPanel implementa práticas de acessibilidade para garantir que o conteúdo seja acessível a todos os usuários, seguindo os padrões WCAG 2.1 Nível AA.
+
+### Descrições ALT nas Imagens
+
+Todas as imagens de dashboard geradas incluem descrições ALT completas e estruturadas que descrevem todos os 4 cards com informações detalhadas:
+
+**Exemplo de descrição ALT gerada:**
+```
+Dashboard HashPanel para #tercinema. 
+Dados organizados em 4 cards: 
+Card 1: Total da semana - 150 posts. 
+Card 2: Participantes únicos - 45 usuários. 
+Card 3: Posts hoje - 23 posts. 
+Card 4: Hashtag atual - #tercinema.
+```
+
+**Características das descrições ALT:**
+- ✅ Descreve todos os 4 cards do dashboard
+- ✅ Usa singular/plural corretamente
+- ✅ Estrutura em 6 partes lógicas
+- ✅ Trata valores zero e dados ausentes
+- ✅ Preserva caracteres especiais (acentuação)
+
+**Conformidade**: WCAG 2.1 Nível AA (Critério 1.1.1 - Conteúdo Não-textual)
+
+### Implementação Técnica
+
+O sistema de geração de ALT text está implementado em `src/services/imageGenerator.js`:
+
+- Função `generateAltText()` cria descrições estruturadas automaticamente
+- Retorno de `generateDashboardImage()` inclui tanto `imageBuffer` quanto `altText`
+- Todos os pontos de uso (bot de mentions, relatório diário, CLI) foram atualizados
+
+### Beneficiários
+
+Esta implementação beneficia especialmente:
+- Usuários de leitores de tela (NVDA, JAWS, VoiceOver, TalkBack)
+- Pessoas com deficiência visual
+- Usuários em conexões lentas (ALT text carrega antes da imagem)
+- Bots e crawlers que indexam conteúdo alternativo
+
+### Testes de Acessibilidade
+
+O projeto inclui 11 testes unitários específicos para validação de acessibilidade:
+- Geração de texto ALT descritivo
+- Tratamento de valores zero e ausentes
+- Estrutura e formatação correta
+- Preservação de caracteres especiais
+
+Execute os testes com:
+```bash
+npm test -- tests/unit/services/imageGenerator.test.js
+```
 
 ## 📖 Como Usar
 
@@ -220,15 +354,19 @@ hashpanel/
 │   │   └── routes/       # Rotas da API
 │   │       ├── dashboard.js
 │   │       ├── hashtag.js
+│   │       ├── media.js
 │   │       ├── trending.js
 │   │       └── toot.js
 │   ├── services/         # Serviços de negócio
 │   │   ├── databaseService.js
 │   │   ├── dataProcessor.js
+│   │   ├── hashtagListener.js
 │   │   ├── hashtagService.js
 │   │   ├── historyCollector.js
+│   │   ├── imageGenerator.js
 │   │   ├── mastodon.js
 │   │   ├── relevanceCalculator.js
+│   │   ├── telemetryService.js
 │   │   └── tootService.js
 │   └── utils/            # Utilitários
 │       ├── linkGenerator.js
@@ -275,13 +413,25 @@ hashpanel/
 - `npm run cron:setup` - Configura coleta automática
 - `npm run cron:test` - Testa script de coleta
 
+### Qualidade de Código
+- `npm run lint` - Verifica problemas de linting
+- `npm run lint:fix` - Corrige automaticamente problemas de linting
+- `npm run format` - Formata código com Prettier
+- `npm test` - Executa testes unitários
+- `npm run test:watch` - Executa testes em modo watch
+- `npm run test:coverage` - Executa testes com relatório de cobertura
+
 ## 📡 API Endpoints
+
+### Health Check
+- `GET /health` - Status de saúde do sistema (Mastodon API, Database, memória)
 
 ### Dashboard
 - `GET /api/dashboard-data` - Dados consolidados do dashboard
 - `GET /api/hashtag-stats` - Estatísticas da hashtag atual
 - `GET /api/top-toots` - Posts mais relevantes
 - `GET /api/trending-tags` - Hashtags em alta
+- `GET /api/dashboard/telemetry` - Estatísticas de telemetria (timezones, etc.)
 
 ### Hashtags
 - `GET /api/hashtag/:hashtag/stats` - Estatísticas de uma hashtag
@@ -291,6 +441,10 @@ hashpanel/
 ### Posts
 - `GET /api/toot/:id` - Detalhes de um post
 - `GET /api/toot-embed/:id` - Embed de um post
+- `POST /api/toot/validate` - Valida conteúdo antes de publicar
+
+### Mídia
+- `GET /api/media/proxy` - Proxy de imagens (evita CORS, query param: `url`)
 
 ### Trending
 - `GET /api/trending` - Hashtags trending
@@ -326,6 +480,15 @@ O sistema utiliza cache em memória para:
 - Estatísticas de hashtags (TTL: 10 minutos)
 - Tags trending (TTL: 15 minutos)
 - Dados gerais (TTL: 5 minutos)
+- Imagens proxyadas (TTL: 1 hora, configurável)
+
+### Proxy de Mídia
+
+O endpoint `/api/media/proxy` permite fazer proxy de imagens para evitar problemas de CORS:
+- Validação de domínios permitidos (whitelist)
+- Cache de imagens em memória
+- Limite de tamanho: 10MB por imagem
+- Rate limiting reduzido para operações de mídia
 
 ## 🐛 Solução de Problemas
 
@@ -355,6 +518,47 @@ npm run diagnose:collection
 npm run collect:history
 ```
 
+### Bot de Mentions Não Responde
+
+- Verifique se o bot está rodando: `npm run status`
+- Confirme que o `ACCESS_TOKEN` tem permissões de leitura e escrita
+- Verifique os logs: `npm run logs`
+- Para Node.js 18/20, use `--experimental-websocket` flag
+- Node.js 21+ tem suporte nativo a WebSocket
+
+### Problemas com Geração de Imagens
+
+- Verifique se `canvas` está instalado: `npm install canvas`
+- Em sistemas Linux, pode ser necessário instalar dependências do sistema:
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+  
+  # Alpine
+  apk add build-base cairo-dev pango-dev jpeg-dev giflib-dev
+  ```
+
+## 🧪 Testes
+
+O projeto inclui testes unitários usando Vitest:
+
+```bash
+# Executar todos os testes
+npm test
+
+# Modo watch (desenvolvimento)
+npm run test:watch
+
+# Com cobertura
+npm run test:coverage
+```
+
+### Estrutura de Testes
+
+- `tests/unit/` - Testes unitários por módulo
+- Cobertura de serviços principais
+- Testes de utilitários e helpers
+
 ## 📝 Licença
 
 ISC
@@ -363,9 +567,41 @@ ISC
 
 Contribuições são bem-vindas! Por favor:
 1. Faça um fork do projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Abra um Pull Request
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+### Diretrizes de Contribuição
+
+- Siga os padrões de código existentes
+- Adicione testes para novas funcionalidades
+- Atualize a documentação quando necessário
+- Use commits descritivos
+
+## 🔧 Oportunidades de Melhoria Futuras
+
+O projeto está em constante evolução. Algumas melhorias planejadas incluem:
+
+### Alta Prioridade
+- **Logging Estruturado**: Substituir `console.log` por logger estruturado em todo o código
+- **Segurança**: Auditoria completa de queries SQL para garantir uso de prepared statements
+- **Tratamento de Erros**: Melhorar consistência no tratamento de promises e erros assíncronos
+- **Validação**: Garantir que todos os endpoints usem validação Zod completa
+
+### Média Prioridade
+- **Performance**: Otimizar estratégia de cache e implementar cache warming
+- **Monitoramento**: Adicionar métricas detalhadas e sistema de alertas
+- **Testes**: Aumentar cobertura de testes e adicionar testes de integração
+- **Documentação API**: Criar documentação OpenAPI/Swagger completa
+
+### Baixa Prioridade
+- **TypeScript**: Considerar migração gradual para TypeScript ou JSDoc mais rigoroso
+- **Frontend**: Refatorar frontend em módulos separados
+- **i18n**: Adicionar suporte a múltiplos idiomas
+- **Performance**: Testes de carga e stress testing
+
+Para contribuir com melhorias, consulte a seção [Contribuindo](#-contribuindo).
 
 ## 📧 Suporte
 

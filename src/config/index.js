@@ -15,6 +15,7 @@ const envSchema = z.object({
   // Optional configuration with defaults
   PORT: z.string().default('3000'),
   HOST: z.string().default('0.0.0.0'),
+  SERVER_PUBLIC_URL: z.string().url().optional().default('http://localhost:3000'),
   PREFERRED_TIMEZONE: z
     .string()
     .default('America/Sao_Paulo')
@@ -55,6 +56,9 @@ const envSchema = z.object({
 
   // Health check settings
   HEALTHCHECK_TIMEOUT_MS: z.coerce.number().int().min(500).default(2500),
+
+  // Telemetry settings
+  TELEMETRY_ENDPOINT: z.string().url().optional(),
 });
 
 // Parse and validate environment variables
@@ -72,6 +76,7 @@ export const appConfig = {
   server: {
     port: parseInt(env.PORT),
     host: env.HOST,
+    publicUrl: env.SERVER_PUBLIC_URL,
     timezone: env.PREFERRED_TIMEZONE,
     environment: env.NODE_ENV,
   },
@@ -102,5 +107,8 @@ export const appConfig = {
   },
   logging: {
     level: env.LOG_LEVEL,
+  },
+  telemetry: {
+    endpoint: env.TELEMETRY_ENDPOINT || null,
   },
 };

@@ -1,12 +1,24 @@
 import { appConfig as config } from '../config/index.js';
 import { logger } from './logger.js';
 
-const TELEMETRY_ENDPOINT = 'http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840';
-
 /**
- * Send telemetry data to the ingestion service
- * @param {Object} data - Telemetry payload
+ * Get the default telemetry endpoint based on environment
+ * @returns {string} The telemetry endpoint URL
  */
+const getDefaultEndpoint = () => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  return isDevelopment
+    ? 'http://127.0.0.1:7246/ingest/f426892d-b7cd-4420-929c-80542dc01840'
+    : 'https://telemetry.hashpanel.com/ingest/f426892d-b7cd-4420-929c-80542dc01840';
+};
+
+import { randomUUID } from 'crypto';
+
+// Generate once per module load (per process)
+const SESSION_ID = randomUUID();
+
+const TELEMETRY_ENDPOINT = getDefaultEndpoint();
+
 export const sendTelemetry = async (data) => {
   if (process.env.NODE_ENV === 'test' || process.env.DISABLE_TELEMETRY === 'true') {
     return;
@@ -15,8 +27,8 @@ export const sendTelemetry = async (data) => {
   const payload = {
     ...data,
     timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'run1',
+    sessionId: data.sessionId || SESSION_ID,
+    runId: data.runId,
     hypothesisId: data.hypothesisId || 'default',
   };
 
@@ -32,6 +44,6 @@ export const sendTelemetry = async (data) => {
     }
   } catch (error) {
     // Ignore telemetry errors to avoid crashing the main application
-    logger.debug('Telemetry network error', { error: error.message });
+    logger?.debug?.('Telemetry network error', { error: error?.message, stack: error?.stack });
   }
 };

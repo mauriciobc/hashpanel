@@ -8,3 +8,5 @@ data/
 !README.md
 logs/
 .cursor/debug.log
+*.pid
+*.log

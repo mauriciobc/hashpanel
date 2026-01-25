@@ -19,6 +19,10 @@ printf "${CYAN}═════════════════════�
 printf "${CYAN}  CONFIGURAÇÃO DE CRON JOB PARA COLETA DIÁRIA${NC}\n"
 printf "${CYAN}═══════════════════════════════════════════════════════════${NC}\n"
 printf "\n"
+printf "${BLUE}ℹ️  Este job executará:${NC}\n"
+printf "   1. Coleta de histórico de hashtags\n"
+printf "   2. Publicação de relatório diário (tema claro)\n"
+printf "\n"
 
 # Obter diretório do script de forma robusta
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")

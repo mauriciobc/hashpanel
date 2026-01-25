@@ -7,6 +7,7 @@ vi.mock('mastodon-api');
 
 import { logger, loggers } from '../../../src/utils/logger.js';
 import { sendTelemetry } from '../../../src/utils/telemetry.js';
+import { appConfig } from '../../../src/config/index.js';
 
 describe('MastodonService', () => {
   let service;
@@ -100,33 +101,27 @@ describe('MastodonService', () => {
 
   describe('fetchAllToots', () => {
     it('should fetch all pages of toots', async () => {
-      // Mock tootsPerPage to 2 for this test
-      vi.mock('../../../src/config/index.js', async (importOriginal) => {
-        const original = await importOriginal();
-        return {
-          ...original,
-          appConfig: {
-            ...original.appConfig,
-            performance: {
-              ...original.appConfig.performance,
-              tootsPerPage: 2
-            }
-          }
-        };
-      });
+      // Save original value and spy on the config
+      const originalTootsPerPage = appConfig.performance.tootsPerPage;
+      const spy = vi.spyOn(appConfig.performance, 'tootsPerPage', 'get').mockReturnValue(2);
 
-      const page1 = [{ id: '10' }, { id: '9' }];
-      const page2 = [{ id: '8' }];
-      
-      mockGet
-        .mockResolvedValueOnce({ data: page1 })
-        .mockResolvedValueOnce({ data: page2 });
+      try {
+        const page1 = [{ id: '10' }, { id: '9' }];
+        const page2 = [{ id: '8' }];
+        
+        mockGet
+          .mockResolvedValueOnce({ data: page1 })
+          .mockResolvedValueOnce({ data: page2 });
 
-      const result = await service.fetchAllToots('test', 2);
+        const result = await service.fetchAllToots('test', 2);
 
-      expect(result).toHaveLength(3);
-      expect(mockGet).toHaveBeenCalledTimes(2);
-      expect(mockGet).toHaveBeenNthCalledWith(2, 'timelines/tag/test', expect.objectContaining({ max_id: '9' }));
+        expect(result).toHaveLength(3);
+        expect(mockGet).toHaveBeenCalledTimes(2);
+        expect(mockGet).toHaveBeenNthCalledWith(2, 'timelines/tag/test', expect.objectContaining({ max_id: '9' }));
+      } finally {
+        // Restore original value
+        spy.mockRestore();
+      }
     });
   });
 

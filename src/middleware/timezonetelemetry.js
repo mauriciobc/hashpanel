@@ -16,12 +16,17 @@ export function timezonetelemetryMiddleware(req, res, next) {
       ip: req.ip,
     };
 
-    // Track timezone usage
-    telemetryService.trackTimezone(timezone, context);
+    try {
+      // Track timezone usage
+      telemetryService.trackTimezone(timezone, context);
 
-    // Check if request is near timezone boundary
-    if (isAtTimezoneBoundary(new Date(), timezone, 60)) {
-      telemetryService.trackBoundaryRequest(timezone);
+      // Check if request is near timezone boundary
+      if (isAtTimezoneBoundary(new Date(), timezone, 60)) {
+        telemetryService.trackBoundaryRequest(timezone);
+      }
+    } catch (error) {
+      // Log but don't block the request
+      console.error('Telemetry tracking failed:', error);
     }
   }
 

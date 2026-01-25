@@ -93,6 +93,18 @@ EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Coleta concluída com sucesso" >> "$LOG_FILE"
+  
+  # Gerar e publicar relatório diário com tema claro
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Gerando relatório diário com tema claro" >> "$LOG_FILE"
+  "$NODE_PATH" "$PROJECT_DIR/cli.js" report --light >> "$LOG_FILE" 2>&1
+  REPORT_EXIT_CODE=$?
+  
+  if [ $REPORT_EXIT_CODE -eq 0 ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Relatório publicado com sucesso" >> "$LOG_FILE"
+  else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro ao publicar relatório (código: $REPORT_EXIT_CODE)" >> "$LOG_FILE"
+    # Não falhar o job se o relatório falhar
+  fi
 else
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro na coleta (código: $EXIT_CODE)" >> "$LOG_FILE"
 fi

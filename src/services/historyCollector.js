@@ -241,6 +241,14 @@ export class HistoryCollector {
           const item = queue.shift();
           activeCount += 1;
           this._runWithRetries(item, handler, maxRetries, baseBackoffMs)
+            .catch((error) => {
+              logger.error('Task failed after retries in concurrent execution', {
+                item,
+                handlerName: handler.name || 'anonymous',
+                error: error.message,
+                stack: error.stack,
+              });
+            })
             .finally(() => {
               activeCount -= 1;
               if (minDelayMs > 0) {

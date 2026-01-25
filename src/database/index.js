@@ -146,7 +146,7 @@ export class DatabaseService {
     } catch (error) {
       logger.error('Failed to get database stats', error);
       return {
-        connected: true,
+        connected: false,
         path: this.dbPath,
         error: error.message,
       };

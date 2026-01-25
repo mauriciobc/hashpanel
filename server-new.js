@@ -12,13 +12,18 @@ sendTelemetry({
 });
 
 // Start web server
-webServer.start().catch(error => {
-  sendTelemetry({
-    location: 'server-new.js:startup_fail',
-    message: 'Server startup failed',
-    data: { error: error.message, code: error.code, stack: error.stack },
-    hypothesisId: 'A'
-  });
-  console.error('Server failed to start:', error);
-  process.exit(1);
+webServer.start().catch(async error => {
+  try {
+    await sendTelemetry({
+      location: 'server-new.js:startup_fail',
+      message: 'Server startup failed',
+      data: { error: error.message, code: error.code },
+      hypothesisId: 'A'
+    });
+  } catch (telemetryError) {
+    // Ignore telemetry errors to ensure process can exit
+  } finally {
+    console.error('Server failed to start:', error);
+    process.exit(1);
+  }
 });

@@ -151,12 +151,28 @@ router.get(
       clearTimeout(timeout);
 
       if (!response.ok) {
+        // Handle 403/404 gracefully - these are expected for expired/deleted images
+        if (response.status === 403 || response.status === 404) {
+          logger.warn('Image not accessible (expired or removed)', {
+            url: validatedUrl,
+            status: response.status,
+            statusText: response.statusText,
+          });
+
+          // Return 404 to the client (don't cache this response)
+          return res.status(404).json({
+            error: 'Image not found',
+            message: 'The requested image is no longer available',
+            code: 'IMAGE_NOT_AVAILABLE',
+          });
+        }
+
         throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
 
       // Check content type
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      if (!contentType.startsWith('image/')) {
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
         throw new ValidationError('URL does not point to an image');
       }
 
@@ -230,11 +246,23 @@ router.get(
       res.send(buffer);
     } catch (error) {
       if (error.name === 'AbortError') {
-        logger.error('Image fetch timeout', { url: validatedUrl });
+        logger.warn('Image fetch timeout', { url: validatedUrl, timeout: 10000 });
         throw new ValidationError('Image fetch timeout');
       }
 
-      logger.error('Failed to proxy image', error, { url: validatedUrl });
+      // Check if error message contains 403/404 (from throw in !response.ok block)
+      const is403or404Error =
+        error.message.includes('403') || error.message.includes('404');
+
+      if (is403or404Error) {
+        logger.warn('Image proxy failed due to unavailable resource', {
+          url: validatedUrl,
+          error: error.message,
+        });
+      } else {
+        logger.error('Failed to proxy image', error, { url: validatedUrl });
+      }
+
       throw new ValidationError(`Failed to fetch image: ${error.message}`);
     }
   })

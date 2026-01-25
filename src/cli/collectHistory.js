@@ -38,7 +38,7 @@ async function main() {
     if (last7DaysIndex !== -1) {
       // Collect last 7 days
       const endDate = moment().format('YYYY-MM-DD');
-      const startDate = moment().subtract(7, 'days').format('YYYY-MM-DD');
+      const startDate = moment().subtract(6, 'days').format('YYYY-MM-DD');
 
       console.log(`Collecting history data from ${startDate} to ${endDate} (last 7 days)...`);
       const summary = await historyCollector.collectDateRange(startDate, endDate);

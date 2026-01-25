@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
-import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import { databaseService } from '../../services/databaseService.js';
 import { ValidationError } from '../../errors/index.js';
@@ -86,7 +85,6 @@ router.get(
  */
 router.get(
   '/:hashtag/stats',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const paramsResult = hashtagParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {
@@ -204,7 +202,6 @@ router.get(
  */
 router.get(
   '/:hashtag/timeline',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const paramsResult = hashtagParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {
@@ -274,7 +271,6 @@ router.get(
  */
 router.get(
   '/:hashtag/analysis',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const paramsResult = hashtagParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {
@@ -326,7 +322,6 @@ router.get(
  */
 router.get(
   '/:hashtag/users',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const paramsResult = hashtagParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {
@@ -455,7 +450,6 @@ router.get(
  */
 router.get(
   '/history/weekly',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const queryResult = historyQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
@@ -499,7 +493,6 @@ router.get(
  */
 router.get(
   '/:hashtag/history/weekly',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const paramsResult = hashtagParamsSchema.safeParse(req.params);
     if (!paramsResult.success) {

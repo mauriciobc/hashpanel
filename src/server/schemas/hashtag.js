@@ -49,7 +49,7 @@ export const usersQuerySchema = z.object({
 });
 
 export const historyQuerySchema = z.object({
-  year: z.coerce.number().int().min(2020).max(2100).default(new Date().getFullYear()),
+  year: z.coerce.number().int().min(2020).max(2100).default(() => new Date().getFullYear()),
   week: z.coerce.number().int().min(1).max(53).optional(),
   date: z
     .string()

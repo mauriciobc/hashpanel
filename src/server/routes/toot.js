@@ -386,6 +386,57 @@ router.post(
 );
 
 /**
+ * POST /api/toot/daily-image
+ * Post the daily summary with a generated image report
+ * Body: { timezone?: string, theme?: 'dark' | 'light' }
+ */
+router.post(
+  '/daily-image',
+  postingRateLimit,
+  asyncHandler(async (req, res) => {
+    const { timezone: clientTimezone, theme = 'dark' } = req.body;
+    const validatedTimezone = validateTimezoneParameter(clientTimezone);
+
+    // Validate theme parameter
+    const validatedTheme = ['dark', 'light'].includes(theme) ? theme : 'dark';
+
+    logger.info('Daily image report requested', {
+      timezone: sanitizeForLog(validatedTimezone, 'generic'),
+      theme: validatedTheme,
+    });
+
+    try {
+      const result = await tootService.generateAndPostDailyReport({
+        timezone: validatedTimezone,
+        theme: validatedTheme,
+      });
+
+      if (!result.success) {
+        return res.json({
+          success: false,
+          reason: result.reason,
+          message: 'No activity found for today to generate a report.',
+          postedAt: new Date().toISOString(),
+        });
+      }
+
+      res.json({
+        success: true,
+        toot: {
+          id: result.toot.id,
+          url: result.toot.url,
+          createdAt: result.toot.created_at,
+        },
+        postedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Failed to post daily image report', error);
+      throw error;
+    }
+  })
+);
+
+/**
  * GET /api/toot/history
  * Get posting history
  */
@@ -404,7 +455,7 @@ router.get(
     });
 
     try {
-      const history = await tootService.getPostingHistory(sanitizedLimit);
+      const history = await tootService.getPostingHistory(sanitizedLimit, sanitizedOffset);
 
       res.json({
         history: history.posts || [],
@@ -478,11 +529,11 @@ router.post(
       };
 
       // Check length
-      if (content.length > 500) {
+      if (content.length > VALIDATION_CONFIG.MAX_TOOT_LENGTH) {
         validation.isValid = false;
         validation.errors.push({
           field: 'content',
-          message: `Content exceeds 500 character limit (${content.length} characters)`,
+          message: `Content exceeds ${VALIDATION_CONFIG.MAX_TOOT_LENGTH} character limit (${content.length} characters)`,
           code: 'CONTENT_TOO_LONG',
         });
       }
@@ -506,10 +557,11 @@ router.post(
       }
 
       // Warnings
-      if (content.length > 450) {
+      const warningThreshold = Math.floor(VALIDATION_CONFIG.MAX_TOOT_LENGTH * 0.9);
+      if (content.length > warningThreshold) {
         validation.warnings.push({
           field: 'content',
-          message: `Content is close to character limit (${content.length}/500 characters)`,
+          message: `Content is close to character limit (${content.length}/${VALIDATION_CONFIG.MAX_TOOT_LENGTH} characters)`,
           code: 'CONTENT_NEAR_LIMIT',
         });
       }

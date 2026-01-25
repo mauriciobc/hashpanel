@@ -257,8 +257,8 @@ export class DataProcessor {
       logger: logger,
     });
 
-    // Ensure targetDate is in YYYY-MM-DD format
-    const normalizedTargetDate = new Date(targetDate).toISOString().split('T')[0];
+    // Ensure targetDate is in YYYY-MM-DD format and use the same timezone as toot dates
+    const normalizedTargetDate = moment.tz(targetDate, 'YYYY-MM-DD', timezone).format('YYYY-MM-DD');
 
     const filteredToots = toots.filter((toot) => {
       try {

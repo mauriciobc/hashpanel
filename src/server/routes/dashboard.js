@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler.js';
-import { moderateRateLimit } from '../../middleware/rateLimiter.js';
 import { hashtagService } from '../../services/hashtagService.js';
 import telemetryService from '../../services/telemetryService.js';
 import { ValidationError } from '../../errors/index.js';
@@ -17,7 +16,6 @@ const router = Router();
  */
 router.get(
   '/stats',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const { timeframe = 'today', timezone: clientTimezone } = req.query;
 
@@ -93,7 +91,7 @@ router.get(
         mostActiveUsers: analysis.getMostActiveUsers(5),
         metadata: {
           generatedAt: new Date().toISOString(),
-          timezone: process.env.PREFERRED_TIMEZONE || 'America/Sao_Paulo',
+          timezone: instanceTimezone,
         },
       };
 
@@ -163,7 +161,6 @@ router.get(
  */
 router.get(
   '/timeline',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     const { timezone: clientTimezone } = req.query;
     const days = validateDaysParameter(req.query.days, 7, 1, 365);
@@ -243,7 +240,6 @@ router.get(
  */
 router.get(
   '/alerts',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     logger.info('Dashboard alerts requested');
 
@@ -313,7 +309,6 @@ router.get(
  */
 router.get(
   '/telemetry',
-  moderateRateLimit,
   asyncHandler(async (req, res) => {
     try {
       const telemetryStats = telemetryService.getStats();
