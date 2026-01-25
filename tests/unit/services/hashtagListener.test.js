@@ -96,8 +96,8 @@ describe('HashtagListener', () => {
       const content = '<p>#123 não é hashtag válida, mas #tag123 é</p>';
       const result = listener.extractHashtags(content);
       
-      // Regex atual captura #123, mas em produção você pode querer filtrar
-      expect(result).toContain('tag123');
+      expect(result).toEqual(['tag123']);
+      expect(result).not.toContain('123');
     });
   });
 });

@@ -4,11 +4,13 @@ import { appConfig as config } from '../config/index.js';
 import { ConfigurationError, BusinessError } from '../errors/index.js';
 import { HashtagService } from '../services/hashtagService.js';
 import { TootService } from '../services/tootService.js';
+import { ImageGeneratorService } from '../services/imageGenerator.js';
 
 export class CLIApplication {
   constructor() {
     this.hashtagService = new HashtagService();
     this.tootService = new TootService();
+    this.imageGenerator = new ImageGeneratorService();
     this.isRunning = false;
   }
 
@@ -98,16 +100,15 @@ export class CLIApplication {
 
     try {
       logger.info('Starting daily image report via CLI', { options });
-      
+      this.validateConfiguration();
+
       if (options.dryRun) {
         console.log('🚀 Gerando imagem do relatório (modo dry-run)...');
-        
-        const { hashtagService } = await import('../services/hashtagService.js');
-        const { imageGenerator } = await import('../services/imageGenerator.js');
+
         const fs = await import('fs/promises');
-        
-        const dailyHashtag = hashtagService.getDailyHashtag({ timezone: config.server.timezone });
-        const analysis = await hashtagService.analyzeHashtag(dailyHashtag, {
+
+        const dailyHashtag = this.hashtagService.getDailyHashtag({ timezone: config.server.timezone });
+        const analysis = await this.hashtagService.analyzeHashtag(dailyHashtag, {
           timezone: config.server.timezone,
           maxPages: 3
         });
@@ -127,7 +128,7 @@ export class CLIApplication {
         };
 
         const theme = options.theme || 'dark';
-        const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats, { theme });
+        const { imageBuffer, altText } = await this.imageGenerator.generateDashboardImage(stats, { theme });
         const themeSuffix = theme === 'light' ? '-light' : '';
         const imagePath = `./daily-report-${dailyHashtag}${themeSuffix}-preview.png`;
         await fs.writeFile(imagePath, imageBuffer);
@@ -481,19 +482,21 @@ function parseArguments(args) {
       case 'report':
         options.command = 'report';
         // Parse report-specific flags
-        const reportFlagIndex = i + 1;
+        let reportFlagIndex = i + 1;
         while (reportFlagIndex < args.length && args[reportFlagIndex].startsWith('--')) {
           const flag = args[reportFlagIndex];
           if (flag === '--dry-run') {
             options.dryRun = true;
-            i++;
+            reportFlagIndex++;
           } else if (flag === '--light' || flag === '--light-theme') {
             options.theme = 'light';
-            i++;
+            reportFlagIndex++;
           } else {
             break;
           }
         }
+        // Atualizar o índice principal para avançar além das flags consumidas
+        i = reportFlagIndex - 1;
         break;
 
       case 'help':

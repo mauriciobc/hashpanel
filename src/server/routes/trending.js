@@ -155,7 +155,7 @@ router.get(
       throw new ValidationError('Tags parameter is required');
     }
 
-    const tagList = tags.split(',').map((tag) => tag.trim().replace('#', '').toLowerCase());
+    const tagList = tags.split(',').map((tag) => tag.trim().replace('#', '').toLowerCase()).filter(Boolean);
 
     if (tagList.length < 2 || tagList.length > 5) {
       throw new ValidationError('Please provide between 2 and 5 tags to compare');
@@ -178,13 +178,20 @@ router.get(
       }
 
       const comparison = {
-        tags: foundTags.map((tag) => ({
-          name: tag.name,
-          currentUses: tag.history?.[0]?.uses || 0,
-          weekTotal: tag.history?.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0) || 0,
-          trendDirection: getTrendDirection(tag.history),
-          rank: foundTags.indexOf(tag) + 1,
-        })),
+        tags: foundTags.map((tag) => {
+          const idxInTrending = trendingTags?.indexOf(tag);
+          const rank =
+            typeof idxInTrending === 'number' && idxInTrending >= 0
+              ? idxInTrending + 1
+              : (tag.rank ?? foundTags.indexOf(tag) + 1);
+          return {
+            name: tag.name,
+            currentUses: tag.history?.[0]?.uses || 0,
+            weekTotal: tag.history?.reduce((sum, day) => sum + (parseInt(day.uses) || 0), 0) || 0,
+            trendDirection: getTrendDirection(tag.history),
+            rank,
+          };
+        }),
         statistics: {
           totalUses: foundTags.reduce((sum, tag) => sum + (tag.history?.[0]?.uses || 0), 0),
           averageUses: Math.round(

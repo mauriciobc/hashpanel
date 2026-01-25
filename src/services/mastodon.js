@@ -662,12 +662,43 @@ export class MastodonService {
   }
 
   /**
+   * Fetch with AbortController-based timeout (same source as makeAPIRequest).
+   * @param {string} url
+   * @param {RequestInit} init
+   * @param {number} timeoutMs
+   * @returns {Promise<Response>}
+   * @private
+   */
+  async _fetchWithTimeout(url, init, timeoutMs) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      return response;
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        throw new Error(`Request timeout after ${timeoutMs}ms`);
+      }
+      throw e;
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  /**
    * Upload media to Mastodon
    * @param {Buffer} fileBuffer - File content buffer
    * @param {string} description - Alt text for the media
    * @returns {Promise<Object>} Media upload response
    */
   async uploadMedia(fileBuffer, description = '') {
+    // Validate fileBuffer is a valid Buffer
+    if (!Buffer.isBuffer(fileBuffer)) {
+      throw new TypeError(
+        `uploadMedia: fileBuffer must be a valid Buffer, received ${fileBuffer === null ? 'null' : fileBuffer === undefined ? 'undefined' : typeof fileBuffer}`
+      );
+    }
+
     logger.info('Uploading media to Mastodon', {
       bufferSize: fileBuffer.length,
       descriptionLength: description.length
@@ -683,19 +714,21 @@ export class MastodonService {
     }
 
     try {
+      const timeoutMs = config.mastodon.timeout ?? 30000;
+
       // Try v2 endpoint first (modern Mastodon)
       const baseUrl = config.mastodon.url.replace(/\/v1\/$/, '/');
       const v2Url = `${baseUrl}v2/media`;
       
       logger.info('Uploading media via fetch (v2)', { url: v2Url });
       
-      const response = await fetch(v2Url, {
+      const response = await this._fetchWithTimeout(v2Url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${config.mastodon.accessToken}`
         },
         body: form
-      });
+      }, timeoutMs);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -713,13 +746,13 @@ export class MastodonService {
           }
           
           const v1Url = `${baseUrl}v1/media`;
-          const v1Response = await fetch(v1Url, {
+          const v1Response = await this._fetchWithTimeout(v1Url, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${config.mastodon.accessToken}`
             },
             body: form2
-          });
+          }, timeoutMs);
           
           if (!v1Response.ok) {
             const v1ErrorText = await v1Response.text();

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createCanvas, loadImage } from 'canvas';
 import { ImageGeneratorService } from '../../../src/services/imageGenerator.js';
 
 describe('ImageGeneratorService', () => {
@@ -168,10 +169,54 @@ describe('ImageGeneratorService', () => {
         }
       };
 
-      const result = await service.generateDashboardImage(stats);
+      // Gerar com tema dark (padrão)
+      const darkResult = await service.generateDashboardImage(stats);
+      
+      // Gerar com tema light (explícito) para comparação
+      const lightResult = await service.generateDashboardImage(stats, { theme: 'light' });
 
-      expect(Buffer.isBuffer(result.imageBuffer)).toBe(true);
-      expect(result.imageBuffer.length).toBeGreaterThan(0);
+      // Verificar que ambos geram buffers válidos
+      expect(Buffer.isBuffer(darkResult.imageBuffer)).toBe(true);
+      expect(Buffer.isBuffer(lightResult.imageBuffer)).toBe(true);
+      expect(darkResult.imageBuffer.length).toBeGreaterThan(0);
+      expect(lightResult.imageBuffer.length).toBeGreaterThan(0);
+      
+      // Verificar que as imagens são diferentes (tema aplicado corretamente)
+      expect(darkResult.imageBuffer).not.toEqual(lightResult.imageBuffer);
+      
+      // Decodificar as imagens e verificar que as cores de fundo são diferentes
+      const darkImage = await loadImage(darkResult.imageBuffer);
+      const lightImage = await loadImage(lightResult.imageBuffer);
+      
+      // Criar canvas temporários para ler pixels
+      const tempCanvas = createCanvas(1, 1);
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Ler pixel do canto superior esquerdo (deve ter a cor de fundo)
+      tempCtx.drawImage(darkImage, 0, 0);
+      const darkPixel = tempCtx.getImageData(0, 0, 1, 1).data;
+      
+      tempCtx.clearRect(0, 0, 1, 1);
+      tempCtx.drawImage(lightImage, 0, 0);
+      const lightPixel = tempCtx.getImageData(0, 0, 1, 1).data;
+      
+      // Verificar que os pixels são diferentes (cores de fundo diferentes)
+      // Dark theme: #1e1e2e (RGB: 30, 30, 46)
+      // Light theme: #f5f5f5 (RGB: 245, 245, 245)
+      expect(darkPixel[0]).not.toBe(lightPixel[0]); // R diferente
+      expect(darkPixel[1]).not.toBe(lightPixel[1]); // G diferente
+      expect(darkPixel[2]).not.toBe(lightPixel[2]); // B diferente
+      
+      // Verificar valores específicos do tema dark (aproximados devido a compressão PNG)
+      // Dark theme deve ter valores baixos (escuro)
+      expect(darkPixel[0]).toBeLessThan(50); // R < 50
+      expect(darkPixel[1]).toBeLessThan(50); // G < 50
+      expect(darkPixel[2]).toBeLessThan(50); // B < 50
+      
+      // Light theme deve ter valores altos (claro)
+      expect(lightPixel[0]).toBeGreaterThan(200); // R > 200
+      expect(lightPixel[1]).toBeGreaterThan(200); // G > 200
+      expect(lightPixel[2]).toBeGreaterThan(200); // B > 200
     });
 
     it('deve gerar imagem com tema light quando especificado', async () => {

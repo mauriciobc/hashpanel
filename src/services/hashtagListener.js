@@ -244,13 +244,21 @@ export class HashtagListener {
 
   /**
    * Agenda uma reconexão com backoff simples
+   * Chama start() em vez de connect() para garantir que as credenciais sejam obtidas
    */
   scheduleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * this.reconnectAttempts;
       logger.info(`Agendando reconexão em ${delay/1000}s (Tentativa ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      setTimeout(() => this.connect(), delay);
+      setTimeout(() => {
+        // Chama start() para garantir que ownAccountId e ownUsername sejam definidos
+        // start() já chama scheduleReconnect() em caso de erro, então não precisamos tratar aqui
+        this.start().catch(error => {
+          logger.error('Erro na reconexão', error);
+          // start() já chama scheduleReconnect() em caso de erro no bloco catch
+        });
+      }, delay);
     } else {
       logger.error('Número máximo de tentativas de reconexão atingido.');
     }

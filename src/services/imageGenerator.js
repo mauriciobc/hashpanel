@@ -47,9 +47,9 @@ export class ImageGeneratorService {
    */
   generateAltText(stats) {
     const hashtag = stats.hashtag || 'desconhecida';
-    const weeklyTotal = stats.summary.weeklyTotal || 0;
-    const uniqueUsers = stats.summary.uniqueUsers || 0;
-    const tootCount = stats.summary.tootCount || 0;
+    const weeklyTotal = stats.summary?.weeklyTotal || 0;
+    const uniqueUsers = stats.summary?.uniqueUsers || 0;
+    const tootCount = stats.summary?.tootCount || 0;
     
     const parts = [
       `Dashboard HashPanel para #${hashtag}.`,
@@ -106,7 +106,7 @@ export class ImageGeneratorService {
     const cards = [
       {
         title: 'TOTAL DA SEMANA',
-        value: stats.summary.weeklyTotal || 0,
+        value: stats.summary?.weeklyTotal || 0,
         icon: '📊',
         color: cardColors.peach,
         x: margin,
@@ -114,7 +114,7 @@ export class ImageGeneratorService {
       },
       {
         title: 'PARTICIPANTES ÚNICOS',
-        value: stats.summary.uniqueUsers || 0,
+        value: stats.summary?.uniqueUsers || 0,
         icon: '👥',
         color: cardColors.teal,
         x: margin + cardWidth + spacing,
@@ -122,7 +122,7 @@ export class ImageGeneratorService {
       },
       {
         title: 'POSTS HOJE',
-        value: stats.summary.tootCount || 0,
+        value: stats.summary?.tootCount || 0,
         icon: '📝',
         color: cardColors.sky,
         x: margin,
@@ -130,7 +130,7 @@ export class ImageGeneratorService {
       },
       {
         title: 'HASHTAG ATUAL',
-        value: `#${stats.hashtag}`,
+        value: `#${stats.hashtag || 'desconhecida'}`,
         icon: '#',
         color: cardColors.mauve,
         x: margin + cardWidth + spacing,
@@ -173,17 +173,18 @@ export class ImageGeneratorService {
     ctx.quadraticCurveTo(card.x, card.y, card.x + radius, card.y);
     ctx.closePath();
     ctx.fillStyle = colors.cardColor;
-    ctx.fill();
     
-    // Add subtle shadow for light theme
+    // Add subtle shadow for light theme (must be set BEFORE fill)
     if (colors.backgroundColor === '#f5f5f5') {
       ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
       ctx.shadowBlur = 10;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 2;
     }
-
-    // Reset shadow
+    
+    ctx.fill();
+    
+    // Reset shadow immediately after fill
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;

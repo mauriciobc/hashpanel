@@ -15,7 +15,7 @@ const envSchema = z.object({
   // Optional configuration with defaults
   PORT: z.string().default('3000'),
   HOST: z.string().default('0.0.0.0'),
-  SERVER_PUBLIC_URL: z.string().url().optional().default('http://localhost:3000'),
+  SERVER_PUBLIC_URL: z.string().url().optional(),
   PREFERRED_TIMEZONE: z
     .string()
     .default('America/Sao_Paulo')
@@ -62,7 +62,14 @@ const envSchema = z.object({
 });
 
 // Parse and validate environment variables
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+
+// Derive SERVER_PUBLIC_URL from PORT if not explicitly provided
+if (!parsedEnv.SERVER_PUBLIC_URL) {
+  parsedEnv.SERVER_PUBLIC_URL = `http://localhost:${parsedEnv.PORT}`;
+}
+
+export const env = parsedEnv;
 
 // Export configuration object for easy access
 export const appConfig = {

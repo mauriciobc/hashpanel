@@ -250,18 +250,7 @@ router.get(
         throw new ValidationError('Image fetch timeout');
       }
 
-      // Check if error message contains 403/404 (from throw in !response.ok block)
-      const is403or404Error =
-        error.message.includes('403') || error.message.includes('404');
-
-      if (is403or404Error) {
-        logger.warn('Image proxy failed due to unavailable resource', {
-          url: validatedUrl,
-          error: error.message,
-        });
-      } else {
-        logger.error('Failed to proxy image', error, { url: validatedUrl });
-      }
+      logger.error('Failed to proxy image', error, { url: validatedUrl });
 
       throw new ValidationError(`Failed to fetch image: ${error.message}`);
     }

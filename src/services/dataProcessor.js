@@ -257,8 +257,18 @@ export class DataProcessor {
       logger: logger,
     });
 
+    // Parse and validate targetDate with strict format checking
+    const parsedDate = moment.tz(targetDate, 'YYYY-MM-DD', timezone);
+    if (!parsedDate.isValid()) {
+      throw new DataProcessingError(
+        `Invalid target date: "${targetDate}". Expected valid date in YYYY-MM-DD format.`,
+        'filter_date',
+        { targetDate }
+      );
+    }
+
     // Ensure targetDate is in YYYY-MM-DD format and use the same timezone as toot dates
-    const normalizedTargetDate = moment.tz(targetDate, 'YYYY-MM-DD', timezone).format('YYYY-MM-DD');
+    const normalizedTargetDate = parsedDate.format('YYYY-MM-DD');
 
     const filteredToots = toots.filter((toot) => {
       try {

@@ -97,10 +97,12 @@ async function testListener() {
     console.log('✅ Verifique os logs acima para confirmar o comportamento esperado.');
     console.log('⚠️  Nota: Se configurado, respostas REAIS foram enviadas como Direct Messages!');
     
+    process.exit(0);
   } catch (error) {
     console.error('\n❌ Erro durante o teste:', error);
+    process.exit(1);
   } finally {
-    process.exit(0);
+    // Cleanup se necessário no futuro
   }
 }
 

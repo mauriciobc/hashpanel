@@ -380,7 +380,8 @@ export class TootService {
         );
       } catch (uploadError) {
         // Save image on upload failure
-        const fallbackPath = `./daily-report-${dailyHashtag}-${Date.now()}.png`;
+        const sanitizedHashtag = dailyHashtag.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const fallbackPath = `./daily-report-${sanitizedHashtag}-${Date.now()}.png`;
         try {
           await fs.writeFile(fallbackPath, imageBuffer);
           logger.warn('Upload failed, image saved locally for manual posting', { 
