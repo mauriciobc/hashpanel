@@ -21,28 +21,24 @@ RUN npm rebuild better-sqlite3 --build-from-source
 # ============================================
 FROM node:22-alpine
 
-# Install RUNTIME-ONLY dependencies (much lighter)
 RUN apk add --no-cache \
     curl dcron cairo pango pixman libjpeg-turbo giflib \
     fontconfig ttf-dejavu
 
 WORKDIR /app
 
-# Copy ONLY what is necessary from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY package*.json ./
+# 1. Copy the source code first
 COPY . .
 
-# Copy and set permissions for entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+# 2. Overwrite the node_modules with the compiled ones from the builder
+# This ensures that even if node_modules existed locally, they are replaced
+COPY --from=builder /app/node_modules ./node_modules
 
-# Environment Defaults
-ENV NODE_ENV=production \
-    PORT=3000
+# 3. Explicitly set up the entrypoint
+# (Even if it was copied in step 1, we ensure permissions here)
+RUN chmod +x /app/docker-entrypoint.sh && mkdir -p logs data
 
-# Create necessary directories
-RUN mkdir -p logs data
+ENV NODE_ENV=production PORT=3000
 
 EXPOSE 3000
 

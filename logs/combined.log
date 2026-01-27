@@ -16374,3 +16374,26 @@
 {"timestamp":"2026-01-25T14:23:55.131Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"development","operation":"mastodon_api_request","duration":693,"endpoint":"accounts/verify_credentials","method":"get"}
 {"timestamp":"2026-01-25T14:23:55.132Z","level":"INFO","message":"Bot identificado como @mauriciobc (ID: 106461974410609533)","service":"hashbot2","environment":"development"}
 {"timestamp":"2026-01-25T14:23:55.866Z","level":"INFO","message":"Conectado ao streaming de notificações do bot","service":"hashbot2","environment":"development"}
+{"timestamp":"2026-01-27T12:29:27.648Z","level":"INFO","message":"Database connection established","service":"hashbot2","environment":"production","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+{"timestamp":"2026-01-27T12:29:27.650Z","level":"INFO","message":"Running database migrations...","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:29:27.650Z","level":"INFO","message":"Database migrations completed successfully","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:29:27.650Z","level":"INFO","message":"Database migrations completed","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:29:27.683Z","level":"INFO","message":"Web server started successfully","service":"hashbot2","environment":"production","host":"0.0.0.0","port":32768,"nodeVersion":"v25.4.0","pid":25604}
+{"timestamp":"2026-01-27T12:29:27.683Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"production","event":"server_started","host":"0.0.0.0","port":32768}
+{"timestamp":"2026-01-27T12:29:27.684Z","level":"INFO","message":"Iniciando listener de mentions do bot","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:29:28.239Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"production","method":"GET","url":"accounts/verify_credentials","userId":null}
+{"timestamp":"2026-01-27T12:29:28.239Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":552,"endpoint":"accounts/verify_credentials","method":"get"}
+{"timestamp":"2026-01-27T12:29:28.240Z","level":"INFO","message":"Bot identificado como @hashpanel (ID: 115966708269245365)","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:29:30.078Z","level":"INFO","message":"Conectado ao streaming de notificações do bot","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:01.202Z","level":"INFO","message":"Received SIGINT, starting graceful shutdown...","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:03.036Z","level":"INFO","message":"Database connection established","service":"hashbot2","environment":"production","path":"/home/mauriciobc/Documentos/Code/hashpanel/data/hashpanel.db"}
+{"timestamp":"2026-01-27T12:38:03.038Z","level":"INFO","message":"Running database migrations...","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:03.038Z","level":"INFO","message":"Database migrations completed successfully","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:03.039Z","level":"INFO","message":"Database migrations completed","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:03.067Z","level":"INFO","message":"Web server started successfully","service":"hashbot2","environment":"production","host":"0.0.0.0","port":32768,"nodeVersion":"v25.4.0","pid":26112}
+{"timestamp":"2026-01-27T12:38:03.067Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"production","event":"server_started","host":"0.0.0.0","port":32768}
+{"timestamp":"2026-01-27T12:38:03.068Z","level":"INFO","message":"Iniciando listener de mentions do bot","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:04.347Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"production","method":"GET","url":"accounts/verify_credentials","userId":null}
+{"timestamp":"2026-01-27T12:38:04.347Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":1276,"endpoint":"accounts/verify_credentials","method":"get"}
+{"timestamp":"2026-01-27T12:38:04.349Z","level":"INFO","message":"Bot identificado como @hashpanel (ID: 115966708269245365)","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T12:38:06.215Z","level":"INFO","message":"Conectado ao streaming de notificações do bot","service":"hashbot2","environment":"production"}

@@ -99,7 +99,7 @@ export class HashtagListener {
     // Construir versão redacted de forma segura
     const wsUrlRedacted = hasValidToken
       ? wsUrl.replace(token, 'REDACTED')
-      : `${baseUrl}/api/v1/streaming?stream=user&access_token=REDACTED`;
+      : wsUrl; // Quando não há token, usar a URL original (sem parâmetro access_token)
 
     logger.debug(`Conectando ao WebSocket: ${wsUrlRedacted}`);
 
