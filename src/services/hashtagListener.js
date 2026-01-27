@@ -301,12 +301,37 @@ export class HashtagListener {
       const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
       
       // Extrair mais informações do erro se disponível
-      const errorMessage = event.message || event.error?.message || event.toString() || 'Erro desconhecido';
+      let errorMessage = 'Erro desconhecido';
+      if (event.message) {
+        errorMessage = event.message;
+      } else if (event.error?.message) {
+        errorMessage = event.error.message;
+      } else if (event.data) {
+        errorMessage = typeof event.data === 'string' ? event.data : String(event.data);
+      } else if (typeof event === 'string') {
+        errorMessage = event;
+      } else {
+        // Tentar extrair informações úteis do objeto evento
+        try {
+          const eventInfo = JSON.stringify(event, Object.getOwnPropertyNames(event));
+          if (eventInfo && eventInfo !== '{}' && !eventInfo.includes('[object')) {
+            errorMessage = eventInfo;
+          } else if (event?.type) {
+            errorMessage = `Erro do tipo: ${event.type}`;
+          }
+        } catch {
+          // Se JSON.stringify falhar, usar tipo do evento
+          errorMessage = event?.type ? `Erro do tipo: ${event.type}` : 'Erro desconhecido';
+        }
+      }
       const errorCode = event.code || event.error?.code;
       
+      // Normalizar mensagem de erro para comparação case-insensitive
+      const normalizedError = errorMessage?.toLowerCase() ?? '';
+      
       // Detectar especificamente o erro "non-101 status code"
-      const isNon101Error = errorMessage.includes('non-101') || errorMessage.includes('101 status');
-      const isNetworkError = errorMessage.includes('network error') || errorMessage.includes('Network error');
+      const isNon101Error = normalizedError.includes('non-101') || normalizedError.includes('101 status');
+      const isNetworkError = normalizedError.includes('network error');
       
       // Tentar extrair informações adicionais do objeto de erro
       const errorDetails = {
@@ -351,8 +376,7 @@ export class HashtagListener {
             '3. Verifique se a URL do streaming está correta (use getStreamingBaseUrl)',
             '4. Teste a conectividade com a instância Mastodon',
             '5. Verifique logs do servidor Mastodon se tiver acesso'
-          ],
-          url: this._wsUrlRedacted
+          ]
         });
       } else if (isNetworkError) {
         logger.error('Erro no WebSocket de notificações: Erro de rede', {
@@ -369,8 +393,7 @@ export class HashtagListener {
             '2. Teste conectividade: curl ou ping na instância',
             '3. Verifique configurações de firewall/proxy',
             '4. Verifique logs de rede do container Docker'
-          ],
-          url: this._wsUrlRedacted
+          ]
         });
       } else {
         logger.error('Erro no WebSocket de notificações', {
