@@ -17,7 +17,8 @@ services:
     # Load .env file from host (if it exists)
     # Variables from env_file are loaded first, then environment: overrides them
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       # Required Mastodon configuration
       - MASTODON_URL=${MASTODON_URL}

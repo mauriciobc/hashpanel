@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    # Load .env file from host (if it exists)
+    # Load .env file from host (required - will fail if missing)
     # Variables from env_file are loaded first, then environment: overrides them
     # This ensures variables are available even if not exported in host environment
     env_file:

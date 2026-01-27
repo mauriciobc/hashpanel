@@ -94,9 +94,17 @@ export class HashtagListener {
       
       // Verificar campos obrigatórios
       if (!credentials.id) {
+        // Whitelist de campos seguros para log (sem dados sensíveis)
+        const safeKeys = ['id', 'username', 'acct', 'display_name', 'created_at', 'followers_count', 'following_count', 'statuses_count', 'bot', 'locked', 'verified', 'url', 'avatar', 'avatar_static', 'header', 'header_static'];
+        const availableKeys = Object.keys(credentials);
+        const safeKeysPresent = safeKeys.filter(key => key in credentials);
+        const additionalKeysCount = availableKeys.length - safeKeysPresent.length;
+        
         logger.error('Campo "id" não encontrado na resposta de verify_credentials', {
-          availableKeys: Object.keys(credentials),
-          responseSample: JSON.stringify(credentials).substring(0, 200)
+          totalKeys: availableKeys.length,
+          safeKeysPresent,
+          additionalKeysCount,
+          hasCredentials: !!credentials
         });
         throw new Error('Campo "id" não encontrado na resposta de verify_credentials. Verifique se o token de acesso é válido.');
       }
