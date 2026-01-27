@@ -301,8 +301,12 @@ export class HashtagListener {
       const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
       
       // Extrair mais informações do erro se disponível
-      const errorMessage = event.message || event.error?.message || 'Erro desconhecido';
+      const errorMessage = event.message || event.error?.message || event.toString() || 'Erro desconhecido';
       const errorCode = event.code || event.error?.code;
+      
+      // Detectar especificamente o erro "non-101 status code"
+      const isNon101Error = errorMessage.includes('non-101') || errorMessage.includes('101 status');
+      const isNetworkError = errorMessage.includes('network error') || errorMessage.includes('Network error');
       
       // Tentar extrair informações adicionais do objeto de erro
       const errorDetails = {
@@ -311,6 +315,8 @@ export class HashtagListener {
         eventType: event?.type,
         errorMessage,
         errorCode,
+        isNon101Error,
+        isNetworkError,
         // Informações adicionais que podem estar disponíveis
         target: event?.target ? {
           url: event.target.url?.replace(token, 'REDACTED'),
@@ -322,59 +328,136 @@ export class HashtagListener {
         error: event?.error ? {
           message: event.error.message,
           code: event.error.code,
-          name: event.error.name
+          name: event.error.name,
+          stack: event.error.stack
         } : undefined
       };
       
-      logger.error('Erro no WebSocket de notificações', {
-        ...errorDetails,
-        hint: 'Códigos comuns: 1006 (conexão fechada anormalmente), 1002 (erro de protocolo), 1003 (dados inválidos). Verifique se o token é válido e se a instância suporta streaming WebSocket.',
-        troubleshooting: {
-          'non-101 status code': 'O servidor não retornou HTTP 101 (Switching Protocols). Possíveis causas: token inválido (401), sem permissão (403), URL incorreta (404), ou servidor não suporta WebSocket (500).',
-          'network error': 'Erro de rede. Verifique conectividade, firewall, ou se a instância está acessível.'
-        }
-      });
+      // Mensagem de erro específica para non-101
+      if (isNon101Error) {
+        logger.error('Erro no WebSocket de notificações: Servidor não retornou HTTP 101 (Switching Protocols)', {
+          ...errorDetails,
+          diagnosis: 'O servidor Mastodon não aceitou a conexão WebSocket. Isso geralmente indica:',
+          possibleCauses: [
+            '1. Token de acesso inválido ou expirado (HTTP 401)',
+            '2. Token sem permissões adequadas para streaming (HTTP 403)',
+            '3. URL do streaming incorreta (HTTP 404)',
+            '4. Servidor não suporta WebSocket ou está com problemas (HTTP 500)',
+            '5. Problema de rede ou firewall bloqueando conexão WebSocket'
+          ],
+          actions: [
+            '1. Verifique se o ACCESS_TOKEN está correto e não expirou',
+            '2. Confirme que o token tem permissões: read:statuses, read:notifications',
+            '3. Verifique se a URL do streaming está correta (use getStreamingBaseUrl)',
+            '4. Teste a conectividade com a instância Mastodon',
+            '5. Verifique logs do servidor Mastodon se tiver acesso'
+          ],
+          url: this._wsUrlRedacted
+        });
+      } else if (isNetworkError) {
+        logger.error('Erro no WebSocket de notificações: Erro de rede', {
+          ...errorDetails,
+          diagnosis: 'Falha na conexão de rede ao tentar estabelecer WebSocket',
+          possibleCauses: [
+            '1. Instância Mastodon inacessível ou offline',
+            '2. Firewall bloqueando conexões WebSocket',
+            '3. Problema de DNS ou roteamento de rede',
+            '4. Timeout de conexão'
+          ],
+          actions: [
+            '1. Verifique se a instância Mastodon está online',
+            '2. Teste conectividade: curl ou ping na instância',
+            '3. Verifique configurações de firewall/proxy',
+            '4. Verifique logs de rede do container Docker'
+          ],
+          url: this._wsUrlRedacted
+        });
+      } else {
+        logger.error('Erro no WebSocket de notificações', {
+          ...errorDetails,
+          hint: 'Códigos comuns: 1006 (conexão fechada anormalmente), 1002 (erro de protocolo), 1003 (dados inválidos). Verifique se o token é válido e se a instância suporta streaming WebSocket.',
+          troubleshooting: {
+            'non-101 status code': 'O servidor não retornou HTTP 101 (Switching Protocols). Possíveis causas: token inválido (401), sem permissão (403), URL incorreta (404), ou servidor não suporta WebSocket (500).',
+            'network error': 'Erro de rede. Verifique conectividade, firewall, ou se a instância está acessível.'
+          }
+        });
+      }
     };
 
     this.ws.onclose = (event) => {
       const reason = event.reason?.trim() || null;
       const afterError = this._lastErrorOccurred ? ' (após onerror)' : '';
+      const connectionDuration = this._connectionStartTime ? Date.now() - this._connectionStartTime : null;
       this._lastErrorOccurred = false;
       
       // Interpretar códigos de fechamento comuns
       let codeExplanation = '';
+      let suggestedAction = '';
+      
       switch (event.code) {
         case 1000:
           codeExplanation = ' (fechamento normal)';
+          suggestedAction = 'Conexão fechada normalmente pelo servidor.';
           break;
         case 1001:
           codeExplanation = ' (endpoint indo embora)';
+          suggestedAction = 'Servidor está encerrando. Reconexão automática será tentada.';
           break;
         case 1002:
           codeExplanation = ' (erro de protocolo)';
+          suggestedAction = 'Erro de protocolo WebSocket. Verifique se a instância suporta WebSocket.';
           break;
         case 1003:
           codeExplanation = ' (tipo de dado não suportado)';
+          suggestedAction = 'Tipo de dado não suportado. Verifique compatibilidade da instância.';
           break;
         case 1006:
           codeExplanation = ' (conexão fechada anormalmente - possível problema de autenticação ou rede)';
+          suggestedAction = 'Conexão fechada anormalmente. Possíveis causas: token inválido/expirado, URL incorreta, ou problema de rede. Verifique logs anteriores para mais detalhes.';
           break;
         case 1008:
           codeExplanation = ' (violação de política)';
+          suggestedAction = 'Violação de política do servidor. Verifique se o token tem permissões adequadas.';
           break;
         case 1011:
           codeExplanation = ' (erro interno do servidor)';
+          suggestedAction = 'Erro interno do servidor Mastodon. Pode ser temporário. Reconexão será tentada.';
           break;
         default:
           codeExplanation = ` (código desconhecido: ${event.code})`;
+          suggestedAction = 'Código de fechamento não reconhecido. Verifique documentação do WebSocket.';
       }
       
+      // Log detalhado com informações de diagnóstico
       logger.warn(`WebSocket fechado (Código: ${event.code}${codeExplanation}${reason ? `, reason: ${reason}` : ''})${afterError}. Tentando reconectar...`, {
         code: event.code,
         reason: reason || undefined,
         url: this._wsUrlRedacted,
         wasClean: event.wasClean,
+        connectionDurationMs: connectionDuration,
+        suggestedAction,
+        // Informações adicionais do evento
+        target: event?.target ? {
+          readyState: event.target.readyState,
+          protocol: event.target.protocol,
+          extensions: event.target.extensions
+        } : undefined
       });
+      
+      // Se foi fechado de forma não limpa e não houve erro prévio, pode ser problema de autenticação
+      if (!event.wasClean && event.code === 1006 && !afterError) {
+        logger.error('WebSocket fechado anormalmente sem erro prévio detectado', {
+          hint: 'Isso geralmente indica problema de autenticação. Verifique:',
+          checks: [
+            '1. Token de acesso está válido e não expirou?',
+            '2. Token tem permissões de leitura (read:statuses, read:notifications)?',
+            '3. URL do streaming está correta?',
+            '4. Instância Mastodon suporta streaming WebSocket?'
+          ],
+          url: this._wsUrlRedacted
+        });
+      }
+      
       this.scheduleReconnect();
     };
   }
