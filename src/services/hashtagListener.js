@@ -16,6 +16,7 @@ export class HashtagListener {
     this.ownAccountId = null;
     this.ownUsername = null;
     this.heartbeatInterval = null;
+    this.heartbeatTimeout = null;
     this.lastEventTime = null;
     this.eventCount = 0;
   }
@@ -495,11 +496,10 @@ export class HashtagListener {
         });
       }
       
+      // Limpar heartbeat quando a conexão for fechada
+      this.stopHeartbeat();
       this.scheduleReconnect();
     };
-    
-    // Limpar heartbeat se a conexão for fechada
-    this.stopHeartbeat();
   }
 
   /**
@@ -777,7 +777,7 @@ export class HashtagListener {
     }, 5 * 60 * 1000);
     
     // Primeira verificação após 1 minuto
-    setTimeout(() => {
+    this.heartbeatTimeout = setTimeout(() => {
       this.checkWebSocketStatus();
     }, 60 * 1000);
   }
@@ -789,6 +789,10 @@ export class HashtagListener {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
+    }
+    if (this.heartbeatTimeout) {
+      clearTimeout(this.heartbeatTimeout);
+      this.heartbeatTimeout = null;
     }
   }
 

@@ -329,6 +329,32 @@ npm run cron:setup
 npm run cron:test
 ```
 
+## 🔄 Atualização
+
+O sistema possui um script de atualização inteligente que permite baixar as últimas mudanças do GitHub, atualizar dependências e reiniciar o servidor sem precisar reiniciar a VM ou o container Docker manualmente.
+
+### Como funciona
+1. **Backup**: Salva o estado atual do repositório.
+2. **Atualização**: Faz o download do código mais recente (git fetch/reset).
+3. **Dependências**: Verifica se o `package.json` mudou e reinstala dependências se necessário (`npm ci`).
+4. **Reinício**: Reinicia o processo Node.js de forma segura (graceful shutdown).
+5. **Validação**: Verifica se o sistema subiu corretamente via endpoint de health check.
+6. **Rollback**: Se algo der errado e o servidor não subir, o script desfaz as alterações automaticamente.
+
+### Como usar
+
+Execute o script na raiz do projeto:
+
+```bash
+# Dar permissão de execução (apenas a primeira vez)
+chmod +x update-from-github.sh
+
+# Executar a atualização
+./update-from-github.sh
+```
+
+> **Nota para Docker/Portainer**: O script detecta automaticamente o container chamado `hashpanel` e executa a atualização dentro dele. Se você usa um nome de container diferente, edite a variável `CONTAINER_NAME` no início do script.
+
 ## 📁 Estrutura do Projeto
 
 ```

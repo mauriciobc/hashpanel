@@ -118,7 +118,6 @@ export class TootService {
    */
   truncateSummary(summaryLines, maxLength) {
     let result = '';
-    const noticeLength = TRUNCATION_NOTICE.length;
 
     for (const line of summaryLines) {
       const lineWithNewline = result ? `\n${line}` : line;

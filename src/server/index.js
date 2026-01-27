@@ -223,10 +223,12 @@ export class WebServer {
           };
         }
       } catch (error) {
-        logger.debug('Erro ao verificar status do WebSocket no health check', {
+        logger.debug('Error checking WebSocket status in health check', {
           error: error.message
         });
         health.services.websocket = 'unknown';
+        health.status = 'degraded';
+        health.websocket = { connected: false };
       }
 
       // Determine HTTP status code
