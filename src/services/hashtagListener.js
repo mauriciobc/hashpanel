@@ -88,8 +88,18 @@ export class HashtagListener {
     if (!baseUrl.startsWith('ws')) {
       baseUrl = baseUrl.replace(/^http/, 'ws');
     }
-    const wsUrl = `${baseUrl}/api/v1/streaming?stream=user&access_token=${config.mastodon.accessToken}`;
-    const wsUrlRedacted = wsUrl.replace(config.mastodon.accessToken, 'REDACTED');
+    
+    // Construir URL de forma segura, verificando se o token existe e é válido
+    const token = config.mastodon.accessToken;
+    const hasValidToken = token && typeof token === 'string' && token.length > 0;
+    const wsUrl = hasValidToken
+      ? `${baseUrl}/api/v1/streaming?stream=user&access_token=${token}`
+      : `${baseUrl}/api/v1/streaming?stream=user`;
+    
+    // Construir versão redacted de forma segura
+    const wsUrlRedacted = hasValidToken
+      ? wsUrl.replace(token, 'REDACTED')
+      : `${baseUrl}/api/v1/streaming?stream=user&access_token=REDACTED`;
 
     logger.debug(`Conectando ao WebSocket: ${wsUrlRedacted}`);
 
