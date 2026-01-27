@@ -56,15 +56,71 @@ export class HashtagListener {
     try {
       logger.info('Iniciando listener de mentions do bot');
 
+      // Verificar se as configurações estão disponíveis antes de fazer a requisição
+      const token = config.mastodon.accessToken;
+      const apiUrl = config.mastodon.url;
+      
+      logger.debug('Verificando configurações do Mastodon antes de conectar', {
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        tokenPreview: token ? `${token.substring(0, 8)}...` : 'não definido',
+        apiUrl,
+        environment: config.server.environment
+      });
+
+      if (!token || token.length === 0) {
+        throw new Error('ACCESS_TOKEN não está definido ou está vazio. Verifique as variáveis de ambiente no Docker.');
+      }
+
+      if (!apiUrl || apiUrl.length === 0) {
+        throw new Error('MASTODON_URL não está definido. Verifique as variáveis de ambiente no Docker.');
+      }
+
       // Obter o ID da própria conta para evitar responder a si mesmo
       const credentials = await mastodonService.makeAPIRequest('accounts/verify_credentials');
+      
+      // Validar se as credenciais foram retornadas corretamente
+      if (!credentials) {
+        throw new Error('Resposta de verify_credentials está vazia ou undefined');
+      }
+      
+      // Log da resposta completa para debug (sem dados sensíveis)
+      logger.debug('Resposta de verify_credentials recebida', {
+        hasId: !!credentials.id,
+        hasUsername: !!credentials.username,
+        hasAcct: !!credentials.acct,
+        keys: Object.keys(credentials).filter(k => !['note', 'avatar', 'header', 'source'].includes(k))
+      });
+      
+      // Verificar campos obrigatórios
+      if (!credentials.id) {
+        logger.error('Campo "id" não encontrado na resposta de verify_credentials', {
+          availableKeys: Object.keys(credentials),
+          responseSample: JSON.stringify(credentials).substring(0, 200)
+        });
+        throw new Error('Campo "id" não encontrado na resposta de verify_credentials. Verifique se o token de acesso é válido.');
+      }
+      
+      // Usar 'acct' como fallback se 'username' não estiver disponível
+      const username = credentials.username || credentials.acct || credentials.id?.toString();
+      if (!username) {
+        logger.error('Nem "username" nem "acct" encontrados na resposta de verify_credentials', {
+          availableKeys: Object.keys(credentials)
+        });
+        throw new Error('Campo "username" ou "acct" não encontrado na resposta de verify_credentials');
+      }
+      
       this.ownAccountId = credentials.id;
-      this.ownUsername = credentials.username;
-      logger.info(`Bot identificado como @${credentials.username} (ID: ${this.ownAccountId})`);
+      this.ownUsername = username.replace(/^@/, ''); // Remove @ se presente
+      logger.info(`Bot identificado como @${this.ownUsername} (ID: ${this.ownAccountId})`);
 
       await this.connect();
     } catch (error) {
-      logger.error('Falha ao iniciar HashtagListener', error);
+      logger.error('Falha ao iniciar HashtagListener', {
+        error: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       this.scheduleReconnect();
     }
   }
@@ -76,6 +132,12 @@ export class HashtagListener {
   async connect() {
     if (!global.WebSocket && !global.Websocket) {
       logger.error('WebSocket nativo não disponível. Use Node.js 21+ ou ative com --experimental-websocket no Node.js 18/20.');
+      return;
+    }
+
+    // Verificar se temos credenciais válidas antes de conectar
+    if (!this.ownAccountId || !this.ownUsername) {
+      logger.error('Não é possível conectar WebSocket: credenciais do bot não foram obtidas. Verifique o token de acesso.');
       return;
     }
 
@@ -92,16 +154,22 @@ export class HashtagListener {
     // Construir URL de forma segura, verificando se o token existe e é válido
     const token = config.mastodon.accessToken;
     const hasValidToken = token && typeof token === 'string' && token.length > 0;
-    const wsUrl = hasValidToken
-      ? `${baseUrl}/api/v1/streaming?stream=user&access_token=${token}`
-      : `${baseUrl}/api/v1/streaming?stream=user`;
+    
+    if (!hasValidToken) {
+      logger.error('Não é possível conectar WebSocket: token de acesso não encontrado ou inválido');
+      return;
+    }
+    
+    const wsUrl = `${baseUrl}/api/v1/streaming?stream=user&access_token=${token}`;
     
     // Construir versão redacted de forma segura
-    const wsUrlRedacted = hasValidToken
-      ? wsUrl.replace(token, 'REDACTED')
-      : wsUrl; // Quando não há token, usar a URL original (sem parâmetro access_token)
+    const wsUrlRedacted = wsUrl.replace(token, 'REDACTED');
 
-    logger.debug(`Conectando ao WebSocket: ${wsUrlRedacted}`);
+    logger.debug(`Conectando ao WebSocket: ${wsUrlRedacted}`, {
+      baseUrl,
+      hasToken: hasValidToken,
+      tokenLength: token?.length || 0
+    });
 
     const WS = global.WebSocket || global.Websocket;
     this.ws = new WS(wsUrl);
@@ -137,11 +205,18 @@ export class HashtagListener {
       this._lastErrorOccurred = true;
       const readyState = this.ws?.readyState ?? -1;
       const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      
+      // Extrair mais informações do erro se disponível
+      const errorMessage = event.message || event.error?.message || 'Erro desconhecido';
+      const errorCode = event.code || event.error?.code;
+      
       logger.error('Erro no WebSocket de notificações', {
         url: this._wsUrlRedacted,
         readyState: states[readyState] ?? readyState,
         eventType: event?.type,
-        hint: 'Detalhes geralmente vêm em onclose (código e reason). Verifique token, SSL e se a instância usa streaming em outro host.',
+        errorMessage,
+        errorCode,
+        hint: 'Códigos comuns: 1006 (conexão fechada anormalmente), 1002 (erro de protocolo), 1003 (dados inválidos). Verifique se o token é válido e se a instância suporta streaming WebSocket.',
       });
     };
 
@@ -149,10 +224,40 @@ export class HashtagListener {
       const reason = event.reason?.trim() || null;
       const afterError = this._lastErrorOccurred ? ' (após onerror)' : '';
       this._lastErrorOccurred = false;
-      logger.warn(`WebSocket fechado (Código: ${event.code}${reason ? `, reason: ${reason}` : ''})${afterError}. Tentando reconectar...`, {
+      
+      // Interpretar códigos de fechamento comuns
+      let codeExplanation = '';
+      switch (event.code) {
+        case 1000:
+          codeExplanation = ' (fechamento normal)';
+          break;
+        case 1001:
+          codeExplanation = ' (endpoint indo embora)';
+          break;
+        case 1002:
+          codeExplanation = ' (erro de protocolo)';
+          break;
+        case 1003:
+          codeExplanation = ' (tipo de dado não suportado)';
+          break;
+        case 1006:
+          codeExplanation = ' (conexão fechada anormalmente - possível problema de autenticação ou rede)';
+          break;
+        case 1008:
+          codeExplanation = ' (violação de política)';
+          break;
+        case 1011:
+          codeExplanation = ' (erro interno do servidor)';
+          break;
+        default:
+          codeExplanation = ` (código desconhecido: ${event.code})`;
+      }
+      
+      logger.warn(`WebSocket fechado (Código: ${event.code}${codeExplanation}${reason ? `, reason: ${reason}` : ''})${afterError}. Tentando reconectar...`, {
         code: event.code,
         reason: reason || undefined,
         url: this._wsUrlRedacted,
+        wasClean: event.wasClean,
       });
       this.scheduleReconnect();
     };

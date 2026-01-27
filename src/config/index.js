@@ -2,7 +2,10 @@ import { config } from 'dotenv';
 import { z } from 'zod';
 
 // Load environment variables once at module import
-config();
+// In Docker, variables come from docker-compose.yml environment section
+// dotenv.config() will load .env if it exists (local dev), but won't override
+// existing process.env variables (Docker environment variables)
+const dotenvResult = config();
 
 // Environment variable schema with validation
 const envSchema = z.object({
@@ -62,7 +65,37 @@ const envSchema = z.object({
 });
 
 // Parse and validate environment variables
-const parsedEnv = envSchema.parse(process.env);
+let parsedEnv;
+try {
+  parsedEnv = envSchema.parse(process.env);
+} catch (error) {
+  // Enhanced error logging for Docker debugging
+  if (error instanceof z.ZodError) {
+    const missingVars = error.errors
+      .filter(e => e.code === 'invalid_type' && e.received === 'undefined')
+      .map(e => e.path.join('.'));
+    
+    const invalidVars = error.errors
+      .filter(e => e.code !== 'invalid_type' || e.received !== 'undefined')
+      .map(e => ({ path: e.path.join('.'), message: e.message }));
+    
+    console.error('❌ Erro na validação de variáveis de ambiente:');
+    if (missingVars.length > 0) {
+      console.error('Variáveis ausentes (não definidas):', missingVars.join(', '));
+      console.error('💡 No Docker, certifique-se de que essas variáveis estão definidas no docker-compose.yml na seção "environment:"');
+    }
+    if (invalidVars.length > 0) {
+      console.error('Variáveis inválidas:', invalidVars.map(v => `${v.path}: ${v.message}`).join(', '));
+    }
+    console.error('\nVariáveis de ambiente disponíveis no process.env:');
+    console.error('MASTODON_URL:', process.env.MASTODON_URL ? '✅ definida' : '❌ ausente');
+    console.error('CLIENT_KEY:', process.env.CLIENT_KEY ? '✅ definida' : '❌ ausente');
+    console.error('CLIENT_SECRET:', process.env.CLIENT_SECRET ? '✅ definida' : '❌ ausente');
+    console.error('ACCESS_TOKEN:', process.env.ACCESS_TOKEN ? '✅ definida' : '❌ ausente');
+    console.error('\nArquivo .env carregado:', dotenvResult.parsed ? '✅ sim' : '❌ não (normal no Docker)');
+  }
+  throw error;
+}
 
 // Derive SERVER_PUBLIC_URL from PORT if not explicitly provided
 if (!parsedEnv.SERVER_PUBLIC_URL) {

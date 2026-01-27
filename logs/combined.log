@@ -16397,3 +16397,32 @@
 {"timestamp":"2026-01-27T12:38:04.347Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":1276,"endpoint":"accounts/verify_credentials","method":"get"}
 {"timestamp":"2026-01-27T12:38:04.349Z","level":"INFO","message":"Bot identificado como @hashpanel (ID: 115966708269245365)","service":"hashbot2","environment":"production"}
 {"timestamp":"2026-01-27T12:38:06.215Z","level":"INFO","message":"Conectado ao streaming de notificações do bot","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T13:26:09.899Z","level":"INFO","message":"Nova mention recebida de @mauriciobc","service":"hashbot2","environment":"production","id":"115967286859360514"}
+{"timestamp":"2026-01-27T13:26:09.899Z","level":"INFO","message":"Hashtag extraída da mention: #tercinema","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T13:26:09.900Z","level":"INFO","message":"Starting hashtag analysis for: tercinema","service":"hashbot2","environment":"production","options":{"maxPages":1}}
+{"timestamp":"2026-01-27T13:26:09.902Z","level":"INFO","message":"Starting to fetch all toots for hashtag: tercinema","service":"hashbot2","environment":"production","maxPages":1}
+{"timestamp":"2026-01-27T13:26:09.902Z","level":"INFO","message":"Fetching toots for hashtag: tercinema","service":"hashbot2","environment":"production","params":{"limit":40}}
+{"timestamp":"2026-01-27T13:26:10.753Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"production","method":"GET","url":"timelines/tag/tercinema","userId":null}
+{"timestamp":"2026-01-27T13:26:10.753Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":848,"endpoint":"timelines/tag/tercinema","method":"get"}
+{"timestamp":"2026-01-27T13:26:10.754Z","level":"INFO","message":"Successfully fetched 40 toots for hashtag: tercinema","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T13:26:10.754Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"production","event":"toots_fetched","hashtag":"tercinema","count":40}
+{"timestamp":"2026-01-27T13:26:10.754Z","level":"INFO","message":"Completed fetching toots for hashtag: tercinema","service":"hashbot2","environment":"production","totalToots":40,"pagesFetched":1}
+{"timestamp":"2026-01-27T13:26:10.754Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"production","event":"all_toots_fetched","hashtag":"tercinema","count":40,"pages":1}
+{"timestamp":"2026-01-27T13:26:11.265Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"production","method":"GET","url":"tags/tercinema","userId":null}
+{"timestamp":"2026-01-27T13:26:11.265Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":360,"endpoint":"tags/tercinema","method":"get"}
+{"timestamp":"2026-01-27T13:26:11.265Z","level":"INFO","message":"Fetched hashtag statistics for: tercinema","service":"hashbot2","environment":"production","following":false,"historyLength":7}
+{"timestamp":"2026-01-27T13:26:11.266Z","level":"INFO","message":"Starting to process 40 toots","service":"hashbot2","environment":"production","options":{"timezone":"America/Sao_Paulo","filterByDate":"2026-01-27"}}
+{"timestamp":"2026-01-27T13:26:11.272Z","level":"INFO","message":"Completed processing toots","service":"hashbot2","environment":"production","inputCount":40,"outputCount":21,"duration":5,"stats":{"totalProcessed":40,"validToots":40,"ignoredToots":2,"errors":0}}
+{"timestamp":"2026-01-27T13:26:11.272Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"toot_processing","duration":5,"inputCount":40,"outputCount":21}
+{"timestamp":"2026-01-27T13:26:11.272Z","level":"INFO","message":"Completed analysis for hashtag: tercinema","service":"hashbot2","environment":"production","totalToots":40,"filteredToots":21,"timeframe":"today","weeklyTotal":40}
+{"timestamp":"2026-01-27T13:26:11.272Z","level":"INFO","message":"Generating dashboard image report","service":"hashbot2","environment":"production","theme":"dark"}
+{"timestamp":"2026-01-27T13:26:11.368Z","level":"INFO","message":"Uploading media to Mastodon","service":"hashbot2","environment":"production","bufferSize":35073,"descriptionLength":213}
+{"timestamp":"2026-01-27T13:26:11.369Z","level":"INFO","message":"Uploading media via fetch (v2)","service":"hashbot2","environment":"production","url":"https://mastodon.social/api/v2/media"}
+{"timestamp":"2026-01-27T13:26:12.458Z","level":"INFO","message":"Successfully uploaded media via v2","service":"hashbot2","environment":"production","mediaId":"115967287090688193"}
+{"timestamp":"2026-01-27T13:26:12.458Z","level":"INFO","message":"Creating new toot","service":"hashbot2","environment":"production","statusLength":62,"visibility":"public"}
+{"timestamp":"2026-01-27T13:26:13.072Z","level":"INFO","message":"API Request","service":"hashbot2","environment":"production","method":"POST","url":"statuses","userId":null}
+{"timestamp":"2026-01-27T13:26:13.073Z","level":"INFO","message":"Performance","service":"hashbot2","environment":"production","operation":"mastodon_api_request","duration":612,"endpoint":"statuses","method":"post"}
+{"timestamp":"2026-01-27T13:26:13.073Z","level":"INFO","message":"Successfully created toot","service":"hashbot2","environment":"production","tootId":"115967287141235839","url":"https://mastodon.social/@hashpanel/115967287141235839"}
+{"timestamp":"2026-01-27T13:26:13.074Z","level":"INFO","message":"Business Event","service":"hashbot2","environment":"production","event":"toot_created","tootId":"115967287141235839","statusLength":62}
+{"timestamp":"2026-01-27T13:26:13.074Z","level":"INFO","message":"Resposta com relatório enviada para 115967286859360514 (hashtag: #tercinema)","service":"hashbot2","environment":"production"}
+{"timestamp":"2026-01-27T13:26:34.006Z","level":"INFO","message":"Received SIGINT, starting graceful shutdown...","service":"hashbot2","environment":"production"}
