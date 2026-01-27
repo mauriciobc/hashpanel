@@ -4,6 +4,7 @@ FROM node:20-alpine
 # Install build dependencies and cron
 # These are needed for:
 # - better-sqlite3 (native module compilation): python3, make, g++, build-base
+# - canvas (native graphics): cairo, pango, pixman, libjpeg, giflib, pkgconf
 # - cron daemon: dcron
 # - utilities: curl, git (for health checks and debugging)
 RUN apk add --no-cache \
@@ -16,6 +17,13 @@ RUN apk add --no-cache \
     g++ \
     build-base \
     dcron \
+    # Dependencies for node-canvas
+    pkgconf \
+    cairo-dev \
+    pango-dev \
+    libjpeg-turbo-dev \
+    giflib-dev \
+    pixman-dev \
     && ln -sf /usr/bin/python3 /usr/bin/python
 
 # Set working directory

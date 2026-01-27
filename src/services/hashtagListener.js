@@ -18,6 +18,38 @@ export class HashtagListener {
   }
 
   /**
+   * Descobre a URL base do streaming via API da instância (urls.streaming_api).
+   * Instâncias como mastodon.social usam host separado (streaming.mastodon.social);
+   * WebSocket não segue redirect 301, então precisamos conectar direto no host correto.
+   * @returns {Promise<string|null>} Base WebSocket (ex: wss://streaming.mastodon.social) ou null para fallback
+   */
+  async getStreamingBaseUrl() {
+    const base = config.mastodon.url.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
+    const instanceUrl = `${base}/api/v1/instance`;
+    try {
+      const res = await fetch(instanceUrl, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const url =
+        data?.urls?.streaming_api ??
+        data?.configuration?.urls?.streaming ??
+        null;
+      if (url && typeof url === 'string') {
+        const normalized = url.replace(/\/$/, '');
+        logger.debug('URL de streaming descoberta', { streamingBase: normalized });
+        return normalized;
+      }
+      return null;
+    } catch (error) {
+      logger.warn('Falha ao obter streaming_api da instância; usando fallback', {
+        instanceUrl,
+        error: error?.message,
+      });
+      return null;
+    }
+  }
+
+  /**
    * Inicia o listener para mentions do bot
    */
   async start() {
@@ -30,7 +62,7 @@ export class HashtagListener {
       this.ownUsername = credentials.username;
       logger.info(`Bot identificado como @${credentials.username} (ID: ${this.ownAccountId})`);
 
-      this.connect();
+      await this.connect();
     } catch (error) {
       logger.error('Falha ao iniciar HashtagListener', error);
       this.scheduleReconnect();
@@ -38,21 +70,32 @@ export class HashtagListener {
   }
 
   /**
-   * Estabelece conexão WebSocket para receber notificações
+   * Estabelece conexão WebSocket para receber notificações.
+   * Usa streaming_api da instância quando disponível (evita 301 → 1006 em mastodon.social).
    */
-  connect() {
+  async connect() {
     if (!global.WebSocket && !global.Websocket) {
       logger.error('WebSocket nativo não disponível. Use Node.js 21+ ou ative com --experimental-websocket no Node.js 18/20.');
       return;
     }
 
-    const baseUrl = config.mastodon.url.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '');
+    let baseUrl =
+      (await this.getStreamingBaseUrl()) ||
+      config.mastodon.url
+        .replace(/^http/, 'ws')
+        .replace(/\/api\/v1\/?$/, '')
+        .replace(/\/$/, '');
+    if (!baseUrl.startsWith('ws')) {
+      baseUrl = baseUrl.replace(/^http/, 'ws');
+    }
     const wsUrl = `${baseUrl}/api/v1/streaming?stream=user&access_token=${config.mastodon.accessToken}`;
+    const wsUrlRedacted = wsUrl.replace(config.mastodon.accessToken, 'REDACTED');
 
-    logger.debug(`Conectando ao WebSocket: ${wsUrl.replace(config.mastodon.accessToken, 'REDACTED')}`);
+    logger.debug(`Conectando ao WebSocket: ${wsUrlRedacted}`);
 
     const WS = global.WebSocket || global.Websocket;
     this.ws = new WS(wsUrl);
+    this._wsUrlRedacted = wsUrlRedacted;
 
     this.ws.onopen = () => {
       logger.info('Conectado ao streaming de notificações do bot');
@@ -80,12 +123,27 @@ export class HashtagListener {
       }
     };
 
-    this.ws.onerror = (error) => {
-      logger.error('Erro no WebSocket de notificações', error);
+    this.ws.onerror = (event) => {
+      this._lastErrorOccurred = true;
+      const readyState = this.ws?.readyState ?? -1;
+      const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      logger.error('Erro no WebSocket de notificações', {
+        url: this._wsUrlRedacted,
+        readyState: states[readyState] ?? readyState,
+        eventType: event?.type,
+        hint: 'Detalhes geralmente vêm em onclose (código e reason). Verifique token, SSL e se a instância usa streaming em outro host.',
+      });
     };
 
     this.ws.onclose = (event) => {
-      logger.warn(`WebSocket fechado (Código: ${event.code}). Tentando reconectar...`);
+      const reason = event.reason?.trim() || null;
+      const afterError = this._lastErrorOccurred ? ' (após onerror)' : '';
+      this._lastErrorOccurred = false;
+      logger.warn(`WebSocket fechado (Código: ${event.code}${reason ? `, reason: ${reason}` : ''})${afterError}. Tentando reconectar...`, {
+        code: event.code,
+        reason: reason || undefined,
+        url: this._wsUrlRedacted,
+      });
       this.scheduleReconnect();
     };
   }
