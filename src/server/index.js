@@ -131,6 +131,7 @@ export class WebServer {
         services: {
           mastodon: 'unknown',
           database: 'unknown',
+          websocket: 'unknown',
         },
         memory: {
           used: Math.round(process.memoryUsage().heapUsed / (1024 * 1024)),
@@ -198,6 +199,34 @@ export class WebServer {
         });
         health.services.database = 'unhealthy';
         health.status = 'degraded';
+      }
+
+      // Check WebSocket status
+      try {
+        const wsStatus = hashtagListener.getStatus();
+        if (wsStatus.connected) {
+          health.services.websocket = 'healthy';
+          health.websocket = {
+            connected: true,
+            readyState: wsStatus.readyState,
+            connectionDurationMs: wsStatus.connectionDurationMs,
+            eventCount: wsStatus.eventCount,
+            timeSinceLastEventMs: wsStatus.timeSinceLastEventMs
+          };
+        } else {
+          health.services.websocket = 'unhealthy';
+          health.status = 'degraded';
+          health.websocket = {
+            connected: false,
+            readyState: wsStatus.readyState,
+            reconnectAttempts: wsStatus.reconnectAttempts
+          };
+        }
+      } catch (error) {
+        logger.debug('Erro ao verificar status do WebSocket no health check', {
+          error: error.message
+        });
+        health.services.websocket = 'unknown';
       }
 
       // Determine HTTP status code

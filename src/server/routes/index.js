@@ -4,6 +4,7 @@ import { hashtagRoutes } from './hashtag.js';
 import { trendingRoutes } from './trending.js';
 import { tootRoutes } from './toot.js';
 import { mediaRoutes } from './media.js';
+import { websocketRoutes } from './websocket.js';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.get('/', (req, res) => {
       trending: '/api/trending',
       toot: '/api/toot',
       media: '/api/media',
+      websocket: '/api/websocket',
     },
     documentation: '/api/docs',
   });
@@ -30,5 +32,6 @@ router.use('/hashtag', hashtagRoutes);
 router.use('/trending', trendingRoutes);
 router.use('/toot', tootRoutes);
 router.use('/media', mediaRoutes);
+router.use('/websocket', websocketRoutes);
 
 export { router as apiRoutes };

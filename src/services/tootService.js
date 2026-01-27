@@ -1,11 +1,17 @@
 import { mastodonService } from './mastodon.js';
-import { dataProcessor } from './dataProcessor.js';
 import { imageGenerator } from './imageGenerator.js';
+import { hashtagService } from './hashtagService.js';
 import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
 import { BusinessError, ValidationError } from '../errors/index.js';
 import { generateTootLink } from '../utils/linkGenerator.js';
 import { getCurrentDateFormatted } from '../utils/timezone.js';
+import fs from 'fs/promises';
+
+// Constants
+const MAX_TOOT_LENGTH = 500;
+const RATE_LIMIT_MS = 60 * 60 * 1000; // 1 hour
+const TRUNCATION_NOTICE = '... (resumo truncado)';
 
 export class TootService {
   constructor() {
@@ -89,11 +95,10 @@ export class TootService {
 
       const summary = summaryLines.join('\n');
 
-      // Validate summary length
-      if (summary.length > 500) {
-        logger.warn(`Summary exceeds 500 characters: ${summary.length}`);
-        // Truncate if necessary
-        return this.truncateSummary(summaryLines, 500);
+      // Truncate if necessary
+      if (summary.length > MAX_TOOT_LENGTH) {
+        logger.warn(`Summary exceeds ${MAX_TOOT_LENGTH} characters: ${summary.length}`);
+        return this.truncateSummary(summaryLines, MAX_TOOT_LENGTH);
       }
 
       logger.info(`Generated summary for ${hashtag}`, {
@@ -112,39 +117,26 @@ export class TootService {
    * Truncate summary to fit within character limit
    */
   truncateSummary(summaryLines, maxLength) {
-    const truncatedLines = [];
-    let currentLength = 0;
+    let result = '';
+    const noticeLength = TRUNCATION_NOTICE.length;
 
     for (const line of summaryLines) {
-      if (currentLength + line.length + 1 > maxLength) {
+      const lineWithNewline = result ? `\n${line}` : line;
+      const wouldExceed = result.length + lineWithNewline.length > maxLength;
+
+      if (wouldExceed) {
+        // Try to add truncation notice
+        const noticeWithNewline = result ? `\n${TRUNCATION_NOTICE}` : TRUNCATION_NOTICE;
+        if (result.length + noticeWithNewline.length <= maxLength) {
+          result += noticeWithNewline;
+        }
         break;
       }
-      truncatedLines.push(line);
-      currentLength += line.length + 1;
+
+      result += lineWithNewline;
     }
 
-    // Add truncation notice if needed, ensuring it fits within maxLength
-    if (truncatedLines.length < summaryLines.length) {
-      const notice = '... (resumo truncado)';
-      // Include preceding newline if truncatedLines is not empty
-      const noticeLength =
-        truncatedLines.length > 0
-          ? notice.length + 1 // +1 for the newline before notice
-          : notice.length;
-
-      // Remove lines until notice fits
-      while (currentLength + noticeLength > maxLength && truncatedLines.length > 0) {
-        const lastLine = truncatedLines.pop();
-        currentLength -= lastLine.length + 1; // +1 for the newline
-      }
-
-      // Add notice if it fits
-      if (currentLength + noticeLength <= maxLength) {
-        truncatedLines.push(notice);
-      }
-    }
-
-    return truncatedLines.join('\n');
+    return result;
   }
 
   /**
@@ -165,7 +157,7 @@ export class TootService {
 
     try {
       // Validate summary before posting
-      this.validateSummary(summary);
+      this.validateContent(summary, { requireHashtag: true });
 
       // Post to Mastodon
       const result = await mastodonService.createToot(summary, {
@@ -193,34 +185,14 @@ export class TootService {
   }
 
   /**
-   * Validate summary text
+   * Validate toot content
+   * @param {string} content - Content to validate
+   * @param {Object} options - Validation options
+   * @param {boolean} options.requireHashtag - Whether to require at least one hashtag
    */
-  validateSummary(summary) {
-    if (typeof summary !== 'string') {
-      throw new ValidationError('Summary must be a string');
-    }
+  validateContent(content, options = {}) {
+    const { requireHashtag = false } = options;
 
-    if (summary.trim().length === 0) {
-      throw new ValidationError('Summary cannot be empty');
-    }
-
-    if (summary.length > 500) {
-      throw new ValidationError(
-        `Summary exceeds 500 character limit (${summary.length} characters)`
-      );
-    }
-
-    // Check for required content
-    if (!summary.includes('#')) {
-      throw new ValidationError('Summary must include at least one hashtag');
-    }
-  }
-
-  /**
-   * Validate custom toot content
-   * Validates content without requiring hashtags (unlike validateSummary)
-   */
-  validateCustomToot(content) {
     if (typeof content !== 'string') {
       throw new ValidationError('Content must be a string');
     }
@@ -229,10 +201,14 @@ export class TootService {
       throw new ValidationError('Content cannot be empty');
     }
 
-    if (content.length > 500) {
+    if (content.length > MAX_TOOT_LENGTH) {
       throw new ValidationError(
-        `Content exceeds 500 character limit (${content.length} characters)`
+        `Content exceeds ${MAX_TOOT_LENGTH} character limit (${content.length} characters)`
       );
+    }
+
+    if (requireHashtag && !content.includes('#')) {
+      throw new ValidationError('Content must include at least one hashtag');
     }
   }
 
@@ -265,7 +241,7 @@ export class TootService {
 
     try {
       // Validate content
-      this.validateCustomToot(content);
+      this.validateContent(content);
 
       // Create toot with custom options
       const result = await mastodonService.createToot(content, {
@@ -334,8 +310,6 @@ export class TootService {
       saveImagePath = null,
       theme = 'dark'
     } = options;
-    const { hashtagService } = await import('./hashtagService.js');
-    const fs = await import('fs/promises');
     
     logger.info('Starting daily image report process', { theme });
 
@@ -344,7 +318,7 @@ export class TootService {
       const dailyHashtag = hashtagService.getDailyHashtag({ timezone });
       const analysis = await hashtagService.analyzeHashtag(dailyHashtag, {
         timezone,
-        maxPages: 3 // Keep it quick
+        maxPages: 3
       });
 
       if (!analysis.hasTodayToots()) {
@@ -362,42 +336,47 @@ export class TootService {
         }
       };
 
-      // 3. Generate image with accessible alt text
-      const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats, { theme });
+      // 3. Generate image
+      const imageResult = await imageGenerator.generateDashboardImage(stats, { theme });
+      
+      if (!imageResult?.imageBuffer || !Buffer.isBuffer(imageResult.imageBuffer) || imageResult.imageBuffer.length === 0) {
+        throw new BusinessError('Failed to generate image: invalid or empty buffer');
+      }
+      
+      const { imageBuffer, altText } = imageResult;
 
-      // Save image locally if path provided or if upload is likely to fail
+      // 4. Save image locally if path provided
       if (saveImagePath) {
         await fs.writeFile(saveImagePath, imageBuffer);
         logger.info('Image saved locally', { path: saveImagePath });
       }
 
-      // 4. Upload image to Mastodon with accessible description
+      // 5. Upload image to Mastodon
       let mediaResult;
       try {
-        mediaResult = await mastodonService.uploadMedia(
-          imageBuffer,
-          altText
-        );
+        mediaResult = await mastodonService.uploadMedia(imageBuffer, altText);
+        
+        if (!mediaResult?.id) {
+          throw new BusinessError('Media upload failed: no ID returned');
+        }
       } catch (uploadError) {
-        // Save image on upload failure
+        // Save image on upload failure as fallback
         const sanitizedHashtag = dailyHashtag.replace(/[^a-zA-Z0-9_-]/g, '_');
         const fallbackPath = `./daily-report-${sanitizedHashtag}-${Date.now()}.png`;
         try {
           await fs.writeFile(fallbackPath, imageBuffer);
-          logger.warn('Upload failed, image saved locally for manual posting', { 
+          logger.warn('Upload failed, image saved locally', { 
             path: fallbackPath,
-            error: uploadError.message.substring(0, 200)
+            error: uploadError.message
           });
         } catch (saveError) {
-          logger.error('Failed to save image locally', { error: saveError.message });
+          logger.error('Failed to save fallback image', { error: saveError.message });
         }
         throw uploadError;
       }
 
-      // 5. Create toot text
-      const tootText = `#hashpanel #${dailyHashtag}\n\n📊 Relatório do dia: ${config.server.publicUrl}`;
-
       // 6. Post toot with media
+      const tootText = `#hashpanel #${dailyHashtag}\n\n📊 Relatório do dia: ${config.server.publicUrl}`;
       const postResult = await mastodonService.createToot(tootText, {
         media_ids: [mediaResult.id],
         language: 'pt',
@@ -420,7 +399,7 @@ export class TootService {
     } catch (error) {
       this.updatePostingStats(false);
       loggers.error('Failed to generate and post daily image report', error);
-      throw error;
+      throw error instanceof BusinessError ? error : new BusinessError(`Failed to generate daily report: ${error.message}`);
     }
   }
 
@@ -439,7 +418,7 @@ export class TootService {
         characterCount: summary.length,
         hashtagCount: (summary.match(/#/g) || []).length,
         lineCount: summary.split('\n').length,
-        isValid: summary.length <= 500,
+        isValid: summary.length <= MAX_TOOT_LENGTH,
       };
     } catch (error) {
       loggers.error(`Failed to preview summary for hashtag: ${hashtag}`, error);
@@ -495,22 +474,16 @@ export class TootService {
    * Check if posting is allowed (rate limiting, etc.)
    */
   canPost() {
-    // Add any posting restrictions here
-    // For example: rate limiting, time restrictions, etc.
-
-    const now = new Date();
     const lastPost = this.postingStats.lastPostTime;
 
-    // Example: don't post more than once per hour
     if (lastPost) {
-      const timeSinceLastPost = now - lastPost;
-      const oneHour = 60 * 60 * 1000;
+      const timeSinceLastPost = Date.now() - lastPost.getTime();
 
-      if (timeSinceLastPost < oneHour) {
+      if (timeSinceLastPost < RATE_LIMIT_MS) {
         return {
           allowed: false,
-          reason: 'Rate limit: Only one post per hour allowed',
-          nextAllowedTime: new Date(lastPost.getTime() + oneHour),
+          reason: `Rate limit: Only one post per ${RATE_LIMIT_MS / (60 * 1000)} minutes allowed`,
+          nextAllowedTime: new Date(lastPost.getTime() + RATE_LIMIT_MS),
         };
       }
     }

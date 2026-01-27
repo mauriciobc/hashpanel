@@ -15,6 +15,9 @@ export class HashtagListener {
     this.reconnectDelay = 5000; // 5 segundos
     this.ownAccountId = null;
     this.ownUsername = null;
+    this.heartbeatInterval = null;
+    this.lastEventTime = null;
+    this.eventCount = 0;
   }
 
   /**
@@ -272,15 +275,26 @@ export class HashtagListener {
         url: this._wsUrlRedacted
       });
       this.reconnectAttempts = 0;
+      this.lastEventTime = Date.now();
+      this.eventCount = 0;
+      
+      // Iniciar heartbeat para monitoramento periódico
+      this.startHeartbeat();
     };
 
     this.ws.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
+        const now = Date.now();
+        const timeSinceLastEvent = this.lastEventTime ? now - this.lastEventTime : null;
+        this.lastEventTime = now;
+        this.eventCount++;
         
         // Log de debug para ver qualquer evento que chegue
         logger.debug(`Evento recebido no streaming: ${data.event}`, { 
-          stream: 'user'
+          stream: 'user',
+          eventCount: this.eventCount,
+          timeSinceLastEventMs: timeSinceLastEvent
         });
 
         // Processar notificações (mentions)
@@ -483,6 +497,9 @@ export class HashtagListener {
       
       this.scheduleReconnect();
     };
+    
+    // Limpar heartbeat se a conexão for fechada
+    this.stopHeartbeat();
   }
 
   /**
@@ -576,10 +593,36 @@ export class HashtagListener {
       // 4. Gerar análise da hashtag
       const analysis = await hashtagService.analyzeHashtag(targetHashtag, { maxPages: 1 });
       
-      const todayCount = analysis.getTodayCount();
+      // Validar se a análise retornou um objeto válido
+      if (!analysis) {
+        logger.error(`Análise retornou null/undefined para hashtag: #${targetHashtag}`, {
+          mentionId: status.id
+        });
+        throw new Error('Análise da hashtag falhou: resultado inválido');
+      }
       
-      // Se não houver dados suficientes
-      if (todayCount === 0) {
+      const todayCount = analysis.getTodayCount();
+      const uniqueUsers = analysis.getUniqueUserCount();
+      const weeklyTotal = analysis.getWeeklyTotal();
+      
+      // Log detalhado dos dados coletados para debug
+      logger.debug(`Dados coletados para #${targetHashtag}`, {
+        todayCount,
+        uniqueUsers,
+        weeklyTotal,
+        mentionId: status.id
+      });
+      
+      // Validação robusta: verificar se há dados válidos
+      // Não enviar se todos os valores forem zero ou inválidos
+      if (todayCount === 0 && uniqueUsers === 0 && weeklyTotal === 0) {
+        logger.warn(`Todos os dados estão zerados para #${targetHashtag}`, {
+          todayCount,
+          uniqueUsers,
+          weeklyTotal,
+          mentionId: status.id
+        });
+        
         const noDataText = `@${status.account.username} Não encontrei dados recentes para #${targetHashtag}. 😔\n\nTalvez essa hashtag não tenha sido usada hoje, ou não há posts públicos disponíveis.`;
         
         await mastodonService.createToot(noDataText, {
@@ -596,19 +639,74 @@ export class HashtagListener {
         hashtag: targetHashtag,
         summary: {
           tootCount: todayCount,
-          uniqueUsers: analysis.getUniqueUserCount(),
-          weeklyTotal: analysis.getWeeklyTotal()
+          uniqueUsers: uniqueUsers,
+          weeklyTotal: weeklyTotal
         }
       };
 
+      // Validar se os dados estão completos antes de gerar imagem
+      if (!stats.hashtag || typeof stats.summary.tootCount !== 'number' || 
+          typeof stats.summary.uniqueUsers !== 'number' || 
+          typeof stats.summary.weeklyTotal !== 'number') {
+        logger.error(`Dados incompletos para geração de imagem`, {
+          stats,
+          mentionId: status.id
+        });
+        throw new Error('Dados incompletos para geração de imagem');
+      }
+
       // 6. Gerar imagem do dashboard com descrição acessível
-      const { imageBuffer, altText } = await imageGenerator.generateDashboardImage(stats);
+      const imageResult = await imageGenerator.generateDashboardImage(stats);
+      
+      // Validar se a imagem foi gerada corretamente
+      if (!imageResult || !imageResult.imageBuffer) {
+        logger.error(`Falha ao gerar imagem: resultado inválido`, {
+          hasImageResult: !!imageResult,
+          hasImageBuffer: !!(imageResult?.imageBuffer),
+          mentionId: status.id
+        });
+        throw new Error('Falha ao gerar imagem: buffer não gerado');
+      }
+      
+      const { imageBuffer, altText } = imageResult;
+      
+      // Validar se o buffer da imagem não está vazio
+      if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
+        logger.error(`Buffer de imagem vazio ou inválido`, {
+          isBuffer: Buffer.isBuffer(imageBuffer),
+          bufferLength: imageBuffer?.length || 0,
+          mentionId: status.id
+        });
+        throw new Error('Falha ao gerar imagem: buffer vazio');
+      }
+      
+      logger.debug(`Imagem gerada com sucesso`, {
+        bufferSize: imageBuffer.length,
+        altTextLength: altText?.length || 0,
+        mentionId: status.id
+      });
 
       // 7. Upload da mídia com descrição ALT acessível
       const media = await mastodonService.uploadMedia(
         imageBuffer, 
         altText
       );
+
+      // Validar se o upload foi bem-sucedido e retornou um ID válido
+      if (!media || !media.id) {
+        logger.error(`Upload de mídia falhou: resposta inválida`, {
+          hasMedia: !!media,
+          hasMediaId: !!(media?.id),
+          mediaResponse: media,
+          mentionId: status.id
+        });
+        throw new Error('Falha no upload de mídia: ID não retornado');
+      }
+      
+      logger.debug(`Mídia enviada com sucesso`, {
+        mediaId: media.id,
+        mentionId: status.id
+      });
 
       // 8. Enviar resposta com imagem
       const replyText = `@${status.account.username} Aqui está o resumo para #${targetHashtag}! 📊\n\n#hashpanel`;
@@ -619,7 +717,14 @@ export class HashtagListener {
         visibility: status.visibility
       });
 
-      logger.info(`Resposta com relatório enviada para ${status.id} (hashtag: #${targetHashtag})`);
+      logger.info(`Resposta com relatório enviada para ${status.id} (hashtag: #${targetHashtag})`, {
+        mediaId: media.id,
+        stats: {
+          tootCount: todayCount,
+          uniqueUsers: uniqueUsers,
+          weeklyTotal: weeklyTotal
+        }
+      });
     } catch (error) {
       logger.error(`Erro ao responder mention ${status.id}`, error);
       
@@ -660,9 +765,126 @@ export class HashtagListener {
   }
 
   /**
+   * Inicia heartbeat periódico para monitorar status do WebSocket
+   */
+  startHeartbeat() {
+    // Limpar intervalo anterior se existir
+    this.stopHeartbeat();
+    
+    // Verificar status a cada 5 minutos
+    this.heartbeatInterval = setInterval(() => {
+      this.checkWebSocketStatus();
+    }, 5 * 60 * 1000);
+    
+    // Primeira verificação após 1 minuto
+    setTimeout(() => {
+      this.checkWebSocketStatus();
+    }, 60 * 1000);
+  }
+
+  /**
+   * Para o heartbeat
+   */
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  /**
+   * Verifica e loga o status atual do WebSocket
+   */
+  checkWebSocketStatus() {
+    if (!this.ws) {
+      logger.warn('Status do WebSocket: Não há conexão ativa', {
+        hasConnection: false
+      });
+      return;
+    }
+
+    const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+    const readyState = this.ws.readyState;
+    const stateName = states[readyState] ?? `UNKNOWN(${readyState})`;
+    
+    const connectionDuration = this._connectionStartTime 
+      ? Date.now() - this._connectionStartTime 
+      : null;
+    
+    const timeSinceLastEvent = this.lastEventTime 
+      ? Date.now() - this.lastEventTime 
+      : null;
+
+    const status = {
+      readyState: stateName,
+      readyStateCode: readyState,
+      isOpen: readyState === 1, // WebSocket.OPEN
+      url: this._wsUrlRedacted,
+      connectionDurationMs: connectionDuration,
+      eventCount: this.eventCount,
+      timeSinceLastEventMs: timeSinceLastEvent,
+      reconnectAttempts: this.reconnectAttempts
+    };
+
+    if (readyState === 1) {
+      // Conexão aberta
+      logger.info('Status do WebSocket: CONECTADO', status);
+      
+      // Avisar se não recebeu eventos há muito tempo (mais de 10 minutos)
+      if (timeSinceLastEvent && timeSinceLastEvent > 10 * 60 * 1000) {
+        logger.warn('WebSocket conectado mas sem eventos há muito tempo', {
+          ...status,
+          warning: 'Pode indicar que o servidor não está enviando eventos ou há problema na conexão'
+        });
+      }
+    } else if (readyState === 0) {
+      // CONNECTING
+      logger.debug('Status do WebSocket: CONECTANDO', status);
+    } else if (readyState === 2) {
+      // CLOSING
+      logger.warn('Status do WebSocket: FECHANDO', status);
+    } else {
+      // CLOSED ou desconhecido
+      logger.error('Status do WebSocket: DESCONECTADO', status);
+    }
+  }
+
+  /**
+   * Retorna o status atual do WebSocket para uso externo
+   */
+  getStatus() {
+    if (!this.ws) {
+      return {
+        connected: false,
+        readyState: 'NONE',
+        readyStateCode: -1
+      };
+    }
+
+    const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+    const readyState = this.ws.readyState;
+    
+    return {
+      connected: readyState === 1,
+      readyState: states[readyState] ?? `UNKNOWN(${readyState})`,
+      readyStateCode: readyState,
+      connectionDurationMs: this._connectionStartTime 
+        ? Date.now() - this._connectionStartTime 
+        : null,
+      eventCount: this.eventCount,
+      timeSinceLastEventMs: this.lastEventTime 
+        ? Date.now() - this.lastEventTime 
+        : null,
+      reconnectAttempts: this.reconnectAttempts,
+      url: this._wsUrlRedacted
+    };
+  }
+
+  /**
    * Fecha a conexão
    */
   stop() {
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
