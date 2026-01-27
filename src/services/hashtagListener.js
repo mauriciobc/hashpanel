@@ -134,6 +134,47 @@ export class HashtagListener {
   }
 
   /**
+   * Verifica a acessibilidade da URL do WebSocket fazendo uma requisição HTTP de teste
+   * Isso ajuda a diagnosticar problemas de autenticação ou URL incorreta antes de tentar WebSocket
+   */
+  async testWebSocketUrl(wsUrl, token) {
+    try {
+      // Converter URL WebSocket para HTTP para teste
+      const httpUrl = wsUrl
+        .replace(/^wss:\/\//, 'https://')
+        .replace(/^ws:\/\//, 'http://')
+        .split('?')[0]; // Remover query string para teste básico
+      
+      logger.debug('Testando acessibilidade da URL do streaming', { 
+        httpUrl: httpUrl.replace(token, 'REDACTED'),
+        hasToken: !!token
+      });
+
+      // Fazer requisição HEAD para verificar se a URL está acessível
+      const response = await fetch(httpUrl, {
+        method: 'HEAD',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'HashPanel/1.0'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      };
+    } catch (error) {
+      logger.debug('Erro ao testar URL do streaming (pode ser normal se não suportar HTTP)', {
+        error: error.message,
+        name: error.name
+      });
+      return null;
+    }
+  }
+
+  /**
    * Estabelece conexão WebSocket para receber notificações.
    * Usa streaming_api da instância quando disponível (evita 301 → 1006 em mastodon.social).
    */
@@ -179,12 +220,57 @@ export class HashtagListener {
       tokenLength: token?.length || 0
     });
 
+    // Testar a URL antes de conectar (diagnóstico)
+    const urlTest = await this.testWebSocketUrl(wsUrl, token);
+    if (urlTest) {
+      logger.debug('Resultado do teste de acessibilidade da URL', {
+        status: urlTest.status,
+        statusText: urlTest.statusText,
+        hasContentType: !!urlTest.headers['content-type']
+      });
+      
+      // Se retornar 401 ou 403, o problema é de autenticação
+      if (urlTest.status === 401) {
+        logger.error('Erro de autenticação: token inválido ou expirado (HTTP 401)', {
+          url: wsUrlRedacted
+        });
+      } else if (urlTest.status === 403) {
+        logger.error('Acesso negado: token sem permissões adequadas (HTTP 403)', {
+          url: wsUrlRedacted
+        });
+      } else if (urlTest.status === 404) {
+        logger.error('URL não encontrada: endpoint de streaming não existe (HTTP 404)', {
+          url: wsUrlRedacted,
+          hint: 'Verifique se a instância Mastodon suporta streaming API'
+        });
+      }
+    }
+
     const WS = global.WebSocket || global.Websocket;
-    this.ws = new WS(wsUrl);
+    
+    // Armazenar informações para diagnóstico
+    this._connectionStartTime = Date.now();
     this._wsUrlRedacted = wsUrlRedacted;
+    
+    try {
+      this.ws = new WS(wsUrl);
+    } catch (error) {
+      logger.error('Erro ao criar instância WebSocket', {
+        error: error.message,
+        name: error.name,
+        stack: error.stack,
+        url: wsUrlRedacted
+      });
+      this.scheduleReconnect();
+      return;
+    }
 
     this.ws.onopen = () => {
-      logger.info('Conectado ao streaming de notificações do bot');
+      const connectionTime = Date.now() - this._connectionStartTime;
+      logger.info('Conectado ao streaming de notificações do bot', {
+        connectionTimeMs: connectionTime,
+        url: this._wsUrlRedacted
+      });
       this.reconnectAttempts = 0;
     };
 
@@ -218,13 +304,35 @@ export class HashtagListener {
       const errorMessage = event.message || event.error?.message || 'Erro desconhecido';
       const errorCode = event.code || event.error?.code;
       
-      logger.error('Erro no WebSocket de notificações', {
+      // Tentar extrair informações adicionais do objeto de erro
+      const errorDetails = {
         url: this._wsUrlRedacted,
         readyState: states[readyState] ?? readyState,
         eventType: event?.type,
         errorMessage,
         errorCode,
+        // Informações adicionais que podem estar disponíveis
+        target: event?.target ? {
+          url: event.target.url?.replace(token, 'REDACTED'),
+          readyState: event.target.readyState,
+          protocol: event.target.protocol,
+          extensions: event.target.extensions
+        } : undefined,
+        // Informações do erro original se disponível
+        error: event?.error ? {
+          message: event.error.message,
+          code: event.error.code,
+          name: event.error.name
+        } : undefined
+      };
+      
+      logger.error('Erro no WebSocket de notificações', {
+        ...errorDetails,
         hint: 'Códigos comuns: 1006 (conexão fechada anormalmente), 1002 (erro de protocolo), 1003 (dados inválidos). Verifique se o token é válido e se a instância suporta streaming WebSocket.',
+        troubleshooting: {
+          'non-101 status code': 'O servidor não retornou HTTP 101 (Switching Protocols). Possíveis causas: token inválido (401), sem permissão (403), URL incorreta (404), ou servidor não suporta WebSocket (500).',
+          'network error': 'Erro de rede. Verifique conectividade, firewall, ou se a instância está acessível.'
+        }
       });
     };
 
