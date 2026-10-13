@@ -184,7 +184,7 @@ export class HashtagListener {
    */
   async connect() {
     if (!global.WebSocket && !global.Websocket) {
-      logger.error('WebSocket nativo não disponível. Use Node.js 21+ ou ative com --experimental-websocket no Node.js 18/20.');
+      logger.error('WebSocket nativo não disponível. Use Node.js 22+.');
       return;
     }
 

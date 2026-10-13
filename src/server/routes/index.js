@@ -22,7 +22,6 @@ router.get('/', (req, res) => {
       media: '/api/media',
       websocket: '/api/websocket',
     },
-    documentation: '/api/docs',
   });
 });
 
