@@ -42,7 +42,7 @@ O HashPanel é uma aplicação Node.js que:
 
 ## 📦 Requisitos
 
-- Node.js 18+ 
+- Node.js 22+ (usa `fetch` e `WebSocket` nativos)
 - npm ou yarn
 - Conta no Mastodon com token de acesso
 - (Opcional) Servidor web (Caddy, Nginx) para produção
@@ -96,6 +96,25 @@ PREFERRED_TIMEZONE=America/Sao_Paulo
 
 # Trust Proxy (opcional, padrão: 1)
 TRUST_PROXY=1
+
+# Performance (opcional)
+API_TIMEOUT_MS=30000
+RATE_LIMIT_DELAY_MS=1000
+MAX_API_PAGES=20
+TOOTS_PER_PAGE=40
+
+# Cache (opcional)
+CACHE_TTL_SECONDS=300
+ENABLE_CACHE=true
+
+# Health check (opcional, padrão: 2500ms)
+HEALTHCHECK_TIMEOUT_MS=2500
+
+# Media Proxy (opcional)
+# Domínios permitidos para o proxy de imagens (separados por vírgula)
+MEDIA_PROXY_ALLOWLIST=cdn.mastodon.social,media.mastodon.social
+MEDIA_PROXY_CACHE_MAX_MB=50
+MEDIA_PROXY_CACHE_MAX_ENTRIES=200
 
 # Telemetry (opcional, desabilitada por padrão)
 # TELEMETRY_ENDPOINT=https://your-telemetry-server.com/ingest/your-token
@@ -200,7 +219,7 @@ O bot responderá automaticamente com:
 
 O bot inicia automaticamente quando o servidor é iniciado. Para desabilitar, remova a inicialização em `src/server/index.js`.
 
-**Requisitos**: Node.js 21+ ou Node.js 18/20 com `--experimental-websocket`
+**Requisitos**: Node.js 22+ (WebSocket nativo)
 
 ## 🎨 Geração de Imagens de Dashboard
 
@@ -451,31 +470,49 @@ hashpanel/
 ## 📡 API Endpoints
 
 ### Health Check
-- `GET /health` - Status de saúde do sistema (Mastodon API, Database, memória)
+- `GET /health` - Status de saúde do sistema (Mastodon API, Database, WebSocket, memória)
 
-### Dashboard
-- `GET /api/dashboard-data` - Dados consolidados do dashboard
-- `GET /api/hashtag-stats` - Estatísticas da hashtag atual
-- `GET /api/top-toots` - Posts mais relevantes
-- `GET /api/trending-tags` - Hashtags em alta
-- `GET /api/dashboard/telemetry` - Estatísticas de telemetria (timezones, etc.)
+### API
+- `GET /api` - Informações da API e lista de grupos de rotas
 
-### Hashtags
+### Dashboard (`/api/dashboard`)
+- `GET /api/dashboard/stats` - Estatísticas consolidadas do dia
+- `GET /api/dashboard/summary` - Resumo rápido da hashtag atual
+- `GET /api/dashboard/timeline` - Série temporal dos últimos dias
+- `GET /api/dashboard/performance` - Métricas de performance do sistema
+- `GET /api/dashboard/alerts` - Alertas e avisos
+- `GET /api/dashboard/telemetry` - Estatísticas de telemetria de timezones
+
+### Hashtags (`/api/hashtag`)
+- `GET /api/hashtag/current` - Hashtag atual do dia
+- `GET /api/hashtag/daily` - Hashtag diária calculada
 - `GET /api/hashtag/:hashtag/stats` - Estatísticas de uma hashtag
-- `GET /api/hashtag/:hashtag/history` - Histórico de uso
-- `GET /api/hashtag/:hashtag/toots` - Posts da hashtag
+- `GET /api/hashtag/:hashtag/timeline` - Linha do tempo da hashtag
+- `GET /api/hashtag/:hashtag/analysis` - Análise completa da hashtag
+- `GET /api/hashtag/:hashtag/users` - Usuários mais ativos
+- `GET /api/hashtag/history/weekly` - Histórico semanal (todas as hashtags)
+- `GET /api/hashtag/:hashtag/history/weekly` - Histórico semanal de uma hashtag
 
-### Posts
-- `GET /api/toot/:id` - Detalhes de um post
-- `GET /api/toot-embed/:id` - Embed de um post
+### Trending (`/api/trending`)
+- `GET /api/trending` - Hashtags em alta
+- `GET /api/trending/summary` - Resumo das tendências
+- `GET /api/trending/compare` - Comparação entre tags
+- `GET /api/trending/:tag` - Detalhes de uma tag em alta
+
+### Posts (`/api/toot`)
+- `GET /api/toot/history` - Histórico de posts publicados
+- `GET /api/toot/stats` - Estatísticas de publicação
 - `POST /api/toot/validate` - Valida conteúdo antes de publicar
+- `POST /api/toot/generate` - Gera o relatório (sem publicar)
+- `POST /api/toot/post` - Publica um post
+- `POST /api/toot/daily` - Publica o relatório diário
+- `POST /api/toot/daily-image` - Publica o relatório diário com imagem
 
-### Mídia
+### Mídia (`/api/media`)
 - `GET /api/media/proxy` - Proxy de imagens (evita CORS, query param: `url`)
 
-### Trending
-- `GET /api/trending` - Hashtags trending
-- `GET /api/trending/tags` - Lista de tags em alta
+### WebSocket (`/api/websocket`)
+- `GET /api/websocket/status` - Status da conexão do listener de mentions
 
 ## 🔧 Configuração Avançada
 
@@ -550,8 +587,7 @@ npm run collect:history
 - Verifique se o bot está rodando: `npm run status`
 - Confirme que o `ACCESS_TOKEN` tem permissões de leitura e escrita
 - Verifique os logs: `npm run logs`
-- Para Node.js 18/20, use `--experimental-websocket` flag
-- Node.js 21+ tem suporte nativo a WebSocket
+- O bot requer Node.js 22+ (WebSocket nativo)
 
 ### Problemas com Geração de Imagens
 
