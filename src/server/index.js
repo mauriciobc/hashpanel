@@ -13,11 +13,16 @@ import { mastodonService } from '../services/mastodon.js';
 import { hashtagListener } from '../services/hashtagListener.js';
 import { getDatabase } from '../database/index.js';
 
+// Cache the Mastodon health probe so frequent /health requests (e.g. Docker
+// healthchecks every 30s) don't hit the Mastodon API on every call.
+const HEALTH_PROBE_CACHE_TTL_MS = 30 * 1000;
+
 export class WebServer {
   constructor() {
     this.app = express();
     this.server = null;
     this.isStarted = false;
+    this._mastodonHealth = null;
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -112,6 +117,34 @@ export class WebServer {
   }
 
   /**
+   * Probe Mastodon connectivity, cached briefly so that frequent /health
+   * requests don't hit the API on every call.
+   * @returns {Promise<boolean>} True when the API responds within the timeout
+   */
+  probeMastodonHealth = async () => {
+    const now = Date.now();
+    if (this._mastodonHealth && now < this._mastodonHealth.expiresAt) {
+      return this._mastodonHealth.ok;
+    }
+
+    let ok;
+    try {
+      await withTimeout(
+        mastodonService.getTrendingTags(1),
+        config.health.timeoutMs,
+        'Mastodon health check timeout'
+      );
+      ok = true;
+    } catch (error) {
+      logger.debug('Mastodon health check failed', { error: error.message });
+      ok = false;
+    }
+
+    this._mastodonHealth = { ok, expiresAt: now + HEALTH_PROBE_CACHE_TTL_MS };
+    return ok;
+  };
+
+  /**
    * Health check endpoint
    */
   healthCheck = async (req, res) => {
@@ -133,17 +166,10 @@ export class WebServer {
         },
       };
 
-      // Test Mastodon connectivity
-      try {
-        // Quick API call to test connectivity
-        await withTimeout(
-          mastodonService.getTrendingTags(1),
-          config.health.timeoutMs,
-          'Mastodon health check timeout'
-        );
+      // Test Mastodon connectivity (cached; see probeMastodonHealth)
+      if (await this.probeMastodonHealth()) {
         health.services.mastodon = 'healthy';
-      } catch (error) {
-        logger.debug('Mastodon health check failed', { error: error.message });
+      } else {
         health.services.mastodon = 'unhealthy';
         health.status = 'degraded';
       }
