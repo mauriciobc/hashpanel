@@ -437,6 +437,7 @@
     function showLoading() {
       document.getElementById('loading').classList.add('active');
       document.getElementById('error').classList.remove('active');
+      setStatusDot('loading');
       const refreshBtn = document.getElementById('refreshBtn');
       refreshBtn.classList.add('loading');
       refreshBtn.disabled = true;
@@ -467,7 +468,25 @@
       document.getElementById('errorMessage').textContent = message;
       document.getElementById('error').classList.add('active');
       document.getElementById('loading').classList.remove('active');
+      setStatusDot('error');
       hideLoading();
+    }
+
+    // Status dot reflects the real data state (loading / fresh / stale / error)
+    function setStatusDot(state) {
+      const dot = document.getElementById('statusDot');
+      if (dot) dot.dataset.state = state;
+    }
+
+    // Map low-level fetch failures to plain pt-BR guidance
+    function friendlyFetchError(error) {
+      if (error instanceof DOMException && error.name === 'TypeError') {
+        return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
+      }
+      if (error && error.message === 'Failed to fetch') {
+        return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
+      }
+      return error?.message || 'Erro inesperado ao carregar dados';
     }
 
     // Format numbers with locale
@@ -1014,12 +1033,13 @@
     function renderKPICards(stats) {
       const { hashtag, summary } = stats;
       const bentoGrid = document.getElementById('bentoGrid');
-      
+
       // Remove existing KPI cards if any
       const existingKPIs = bentoGrid.querySelectorAll('.kpi-card');
       existingKPIs.forEach(card => card.remove());
-      
-      // Create KPI cards and insert them at the beginning of the grid
+
+      // Create KPI cards and insert them at the beginning of the grid,
+      // preserving the authored order (hashtag first) via a single fragment
       const kpiCards = [
         {
           class: 'primary',
@@ -1042,19 +1062,21 @@
           content: `<div class="kpi-value">${formatNumber(summary.weeklyTotal)}</div><div class="kpi-label">Total da Semana</div>`
         }
       ];
-      
+
+      const kpiFragment = document.createDocumentFragment();
       kpiCards.forEach((kpi, index) => {
         const card = document.createElement('div');
         card.className = `kpi-card ${kpi.class}`;
         card.style.animationDelay = `${(index + 1) * 0.1}s`;
         card.innerHTML = `
           <div>
-            <div class="kpi-icon">${kpi.icon}</div>
+            <div class="kpi-icon" aria-hidden="true">${kpi.icon}</div>
             ${kpi.content}
           </div>
         `;
-        bentoGrid.insertBefore(card, bentoGrid.firstChild);
+        kpiFragment.appendChild(card);
       });
+      bentoGrid.insertBefore(kpiFragment, bentoGrid.firstChild);
     }
 
     // Render top toots
@@ -1064,7 +1086,7 @@
       if (!topToots || topToots.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-icon" aria-hidden="true">📭</div>
             <p>Nenhum post encontrado hoje.</p>
           </div>
         `;
@@ -1079,12 +1101,11 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Autor</th>
-                <th>Seguidores</th>
-                <th>⭐ Favoritos</th>
-                <th>🔄 Boosts</th>
-                <th>Relevância</th>
-                <th>Link</th>
+                <th scope="col">Autor</th>
+                <th scope="col">Favoritos</th>
+                <th scope="col">Boosts</th>
+                <th scope="col">Relevância</th>
+                <th scope="col">Link</th>
               </tr>
             </thead>
             <tbody>
@@ -1093,7 +1114,7 @@
                 if (toot.link) {
                   // Map media with all possible URL fields
                   const mediaData = (toot.media || []).map(m => {
-                    const url = m.url || m.preview_url || m.remote_url || m.preview_remote_url || 
+                    const url = m.url || m.preview_url || m.remote_url || m.preview_remote_url ||
                                (m.meta && m.meta.original && m.meta.original.url) ||
                                (m.meta && m.meta.small && m.meta.small.url);
                     return {
@@ -1103,7 +1124,7 @@
                       meta: m.meta
                     };
                   }).filter(m => m.url);
-                  
+
                   // Store full toot data in cache to avoid data-attribute corruption
                   const tootId = `toot-${toot.id || index}-${Date.now()}`;
                   window.tootDataCache[tootId] = {
@@ -1116,19 +1137,19 @@
                     followers: toot.followers || 0,
                     media: mediaData
                   };
-                  
-                  console.log('Cached toot data:', tootId, window.tootDataCache[tootId]);
-                  
-                  buttonHTML = `<button data-toot-id="${tootId}" onclick="openModalFromCache(this.dataset.tootId)" class="btn-link" style="background: none; border: none; cursor: pointer;">Ver <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>`;
+
+                  buttonHTML = `<button data-toot-id="${tootId}" onclick="openModalFromCache(this.dataset.tootId)" class="btn-link" style="background: none; border: none; cursor: pointer;">Ver <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span class="sr-only">toot de ${sanitizeHTML(toot.author)}</span></button>`;
                 }
                 return `
                 <tr>
-                  <td><strong>@${sanitizeHTML(toot.author)}</strong></td>
-                  <td>${formatNumber(toot.followers)}</td>
-                  <td>${formatNumber(toot.favorites)}</td>
-                  <td>${formatNumber(toot.boosts)}</td>
-                  <td><span class="relevance-badge">${toot.relevance}</span></td>
-                  <td>${buttonHTML}</td>
+                  <td data-label="Autor">
+                    <strong>@${sanitizeHTML(toot.author)}</strong>
+                    <small style="display: block; color: var(--text-secondary); font-weight: 400;">${formatNumber(toot.followers)} seguidores</small>
+                  </td>
+                  <td data-label="Favoritos"><span class="td-value">${formatNumber(toot.favorites)}</span></td>
+                  <td data-label="Boosts"><span class="td-value">${formatNumber(toot.boosts)}</span></td>
+                  <td data-label="Relevância"><span class="td-value"><span class="relevance-badge">${toot.relevance}</span></span></td>
+                  <td data-label="Link"><span class="td-value">${buttonHTML}</span></td>
                 </tr>
               `;
               }).join('')}
@@ -1173,18 +1194,19 @@
           console.log(`Rendering cached stats for selected hashtag: ${normalizedHashtag}`);
           renderKPICards(cachedStats);
           renderTopToots(cachedStats.topToots || []);
-          
+
           // Background fetch trending tags to keep view consistent
           const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`);
           if (trendingRes.ok) {
             const { tags: trendingTags } = await trendingRes.json();
             renderTrendingTags(trendingTags, hashtag);
           }
-          
+
           updateActivePill(normalizedHashtag);
-          
+          setStatusDot('stale');
+
           const now = new Date();
-          document.getElementById('lastUpdated').textContent = 
+          document.getElementById('lastUpdated').textContent =
             `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
           
           const backBtn = document.getElementById('backToDailyBtn');
@@ -1244,16 +1266,17 @@
  
         // Update last updated time and show/hide back button
         const now = new Date();
-        document.getElementById('lastUpdated').textContent = 
+        document.getElementById('lastUpdated').textContent =
           `Última atualização: ${now.toLocaleString('pt-BR')}`;
-        
+        setStatusDot('fresh');
+
         const backBtn = document.getElementById('backToDailyBtn');
         backBtn.style.display = isDailyHashtag ? 'none' : 'inline-flex';
- 
+
         hideLoading();
       } catch (error) {
         console.error('Error loading hashtag data:', error);
-        showError(error.message || 'Erro inesperado ao carregar dados');
+        showError(friendlyFetchError(error));
       }
     }
 
@@ -1285,11 +1308,11 @@
 
       trendingTags.slice(0, 10).forEach((tag, index) => {
         const trend = trendConfig[tag.trendDirection] || trendConfig['stable'];
-        const trendLabel = tag.trendDirection === 'rising' ? 'Subindo' : 
+        const trendLabel = tag.trendDirection === 'rising' ? 'Subindo' :
                           tag.trendDirection === 'falling' ? 'Caindo' : 'Estável';
-        
+
         const isCurrent = normalizedCurrentHashtag && tag.name.toLowerCase() === normalizedCurrentHashtag.toLowerCase();
-        
+
         const row = document.createElement('tr');
         row.style.animationDelay = `${index * 0.05}s`;
         row.style.cursor = isCurrent ? 'default' : 'pointer';
@@ -1298,32 +1321,36 @@
           row.setAttribute('title', `Clique para ver dados de #${tag.name}`);
         }
         row.innerHTML = `
-          <td>
-            <strong>
-              ${isCurrent ? 
-                `<span style="color: #667eea;">#${sanitizeHTML(tag.name)} <small style="color: var(--text-secondary); font-weight: 400;">(atual)</small></span>` :
-                `<a href="javascript:void(0)" onclick="loadHashtagData('${tag.name}')" style="color: var(--text-primary); text-decoration: none; transition: color var(--transition-fast); cursor: pointer;" 
-                   onmouseover="this.style.color='#667eea'" 
-                   onmouseout="this.style.color='var(--text-primary)'">
-                  #${sanitizeHTML(tag.name)}
-                  <small style="color: var(--text-secondary); margin-left: 0.5rem; font-weight: 400;">👆</small>
-                </a>`
-              }
-            </strong>
+          <td data-label="Nome">
+            <span class="td-value" style="text-align: left;">
+              <strong>
+                ${isCurrent ?
+                  `<span style="color: #667eea;">#${sanitizeHTML(tag.name)} <small style="color: var(--text-secondary); font-weight: 400;">(atual)</small></span>` :
+                  `<button type="button" class="tag-link-btn" data-hashtag="${sanitizeHTML(tag.name)}" aria-label="Ver dados de #${sanitizeHTML(tag.name)}">#${sanitizeHTML(tag.name)}</button>`
+                }
+              </strong>
+            </span>
           </td>
-          <td>${formatNumber(tag.currentUses)}</td>
-          <td>${formatNumber(tag.accounts)}</td>
-          <td>
-            <span class="trend-badge ${trend.class}">
-              ${trend.emoji} ${trendLabel}
+          <td data-label="Usos Hoje"><span class="td-value">${formatNumber(tag.currentUses)}</span></td>
+          <td data-label="Contas"><span class="td-value">${formatNumber(tag.accounts)}</span></td>
+          <td data-label="Tendência">
+            <span class="td-value" style="text-align: right;">
+              <span class="trend-badge ${trend.class}">
+                <span aria-hidden="true">${trend.emoji}</span> ${trendLabel}
+              </span>
             </span>
           </td>
         `;
-        
+
         if (!isCurrent) {
+          const linkBtn = row.querySelector('.tag-link-btn');
+          linkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadHashtagData(tag.name);
+          });
           row.addEventListener('click', () => loadHashtagData(tag.name));
         }
-        
+
         tbody.appendChild(row);
       });
     }
@@ -1374,30 +1401,36 @@
         
         // Render pills only for today's hashtags
         hashtags.forEach((hashtag, index) => {
-          const pill = document.createElement('div');
+          const pill = document.createElement('button');
+          pill.type = 'button';
           pill.className = 'hashtag-pill';
-          
+          pill.dataset.hashtag = hashtag;
+          pill.setAttribute('aria-pressed', 'false');
+
           // Mark first hashtag as active by default
           if (index === 0) {
             pill.classList.add('active');
+            pill.setAttribute('aria-pressed', 'true');
             currentSelectedHashtag = hashtag;
           }
-          
+
           pill.innerHTML = `
-            <span class="pill-indicator"></span>
+            <span class="pill-indicator" aria-hidden="true"></span>
             <span>#${hashtag}</span>
           `;
-          
+
           // Add click handler
           pill.addEventListener('click', () => {
             // Remove active class from all pills
             document.querySelectorAll('.hashtag-pill').forEach(p => {
               if (!p.classList.contains('loading')) {
                 p.classList.remove('active');
+                p.setAttribute('aria-pressed', 'false');
               }
             });
             // Add active class to clicked pill
             pill.classList.add('active');
+            pill.setAttribute('aria-pressed', 'true');
             // Load data for selected hashtag
             currentSelectedHashtag = hashtag;
             loadHashtagData(hashtag);
@@ -1420,25 +1453,25 @@
     function updateActivePill(hashtag) {
       const pills = document.querySelectorAll('.hashtag-pill');
       const normalizedHashtag = normalizeHashtag(hashtag);
-      
+
       pills.forEach(pill => {
         // Skip loading pills
         if (pill.classList.contains('loading')) return;
-        
-        const pillText = pill.textContent.trim();
-        // Extract hashtag from pill text (format: #hashtag DayName)
-        const pillHashtagMatch = pillText.match(/#(\w+)/);
-        const pillHashtag = pillHashtagMatch ? pillHashtagMatch[1] : null;
-        
+
+        // Compare against the pill's own dataset (works with accented hashtags)
+        const pillHashtag = pill.dataset.hashtag;
+
         if (pillHashtag && pillHashtag.toLowerCase() === normalizedHashtag.toLowerCase()) {
           // Remove active class from all pills
           pills.forEach(p => {
             if (!p.classList.contains('loading')) {
               p.classList.remove('active');
+              p.setAttribute('aria-pressed', 'false');
             }
           });
           // Add active class to matching pill
           pill.classList.add('active');
+          pill.setAttribute('aria-pressed', 'true');
           currentSelectedHashtag = hashtag;
         }
       });
@@ -1478,11 +1511,12 @@
           renderTopToots(cachedStats.topToots || []);
           renderTrendingTags(trendingTags, hashtag);
           updateActivePill(hashtag);
-          
+          setStatusDot('stale');
+
           const now = new Date();
-          document.getElementById('lastUpdated').textContent = 
+          document.getElementById('lastUpdated').textContent =
             `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
-          
+
           hideLoading();
         }
 
@@ -1520,9 +1554,10 @@
 
         // Update last updated time and hide back button
         const now = new Date();
-        document.getElementById('lastUpdated').textContent = 
+        document.getElementById('lastUpdated').textContent =
           `Última atualização: ${now.toLocaleString('pt-BR')}`;
-        
+        setStatusDot('fresh');
+
         document.getElementById('backToDailyBtn').style.display = 'none';
 
         hideLoading();
@@ -1531,9 +1566,9 @@
         if (error.name === 'AbortError') {
           return; // Silently ignore aborted requests
         }
-        
+
         console.error('Error loading data:', error);
-        showError(error.message || 'Erro inesperado ao carregar dados');
+        showError(friendlyFetchError(error));
       } finally {
         isLoadingData = false;
       }

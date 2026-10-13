@@ -1,5 +1,48 @@
-import { createCanvas } from 'canvas';
+import { createCanvas, registerFont } from 'canvas';
 import { logger } from '../utils/logger.js';
+import fs from 'fs';
+
+const FONT_PATHS = [
+  '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+  '/usr/share/fonts/TTF/DejaVuSans.ttf',
+  '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+];
+
+let fontsRegistered = false;
+let fontsFoundCount = 0;
+
+function registerFontsOnce() {
+  if (fontsRegistered) return;
+
+  for (const fontPath of FONT_PATHS) {
+    try {
+      if (fs.existsSync(fontPath)) {
+        const isBold = fontPath.includes('Bold');
+        registerFont(fontPath, {
+          family: 'DejaVu Sans',
+          weight: isBold ? 'bold' : 'normal'
+        });
+        fontsFoundCount++;
+        logger.info(`Registered font: ${fontPath}`);
+      }
+    } catch (err) {
+      logger.warn(`Failed to register font ${fontPath}: ${err.message}`);
+    }
+  }
+
+  if (fontsFoundCount === 0) {
+    // Without a registered font, node-canvas falls back to a system font that may
+    // lack accented glyphs (observed as "PARTICIPANTES ?NICOS" on minimal hosts).
+    logger.warn('No DejaVu font file was found for the report image; accented text may render incorrectly on this host.');
+  }
+
+  fontsRegistered = true;
+}
+
+registerFontsOnce();
 
 /**
  * Service to generate dashboard images using canvas
@@ -8,7 +51,8 @@ export class ImageGeneratorService {
   constructor() {
     this.width = 800;
     this.height = 800;
-    
+    this.fontFamily = 'DejaVu Sans, sans-serif';
+
     // Theme definitions
     this.themes = {
       dark: {
@@ -50,7 +94,7 @@ export class ImageGeneratorService {
     const weeklyTotal = stats.summary?.weeklyTotal || 0;
     const uniqueUsers = stats.summary?.uniqueUsers || 0;
     const tootCount = stats.summary?.tootCount || 0;
-    
+
     const parts = [
       `Dashboard HashPanel para #${hashtag}.`,
       'Dados organizados em 4 cards:',
@@ -107,7 +151,7 @@ export class ImageGeneratorService {
       {
         title: 'TOTAL DA SEMANA',
         value: stats.summary?.weeklyTotal || 0,
-        icon: '📊',
+        icon: 'bars',
         color: cardColors.peach,
         x: margin,
         y: margin
@@ -115,7 +159,7 @@ export class ImageGeneratorService {
       {
         title: 'PARTICIPANTES ÚNICOS',
         value: stats.summary?.uniqueUsers || 0,
-        icon: '👥',
+        icon: 'people',
         color: cardColors.teal,
         x: margin + cardWidth + spacing,
         y: margin
@@ -123,7 +167,7 @@ export class ImageGeneratorService {
       {
         title: 'POSTS HOJE',
         value: stats.summary?.tootCount || 0,
-        icon: '📝',
+        icon: 'pen',
         color: cardColors.sky,
         x: margin,
         y: margin + cardHeight + spacing
@@ -131,7 +175,7 @@ export class ImageGeneratorService {
       {
         title: 'HASHTAG ATUAL',
         value: `#${stats.hashtag || 'desconhecida'}`,
-        icon: '#',
+        icon: 'hash',
         color: cardColors.mauve,
         x: margin + cardWidth + spacing,
         y: margin + cardHeight + spacing,
@@ -159,7 +203,7 @@ export class ImageGeneratorService {
    */
   _drawCard(ctx, card, width, height, colors) {
     const radius = 24;
-    
+
     // Draw card background (rounded rectangle)
     ctx.beginPath();
     ctx.moveTo(card.x + radius, card.y);
@@ -173,7 +217,7 @@ export class ImageGeneratorService {
     ctx.quadraticCurveTo(card.x, card.y, card.x + radius, card.y);
     ctx.closePath();
     ctx.fillStyle = colors.cardColor;
-    
+
     // Add subtle shadow for light theme (must be set BEFORE fill)
     if (colors.backgroundColor === '#f5f5f5') {
       ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
@@ -181,49 +225,147 @@ export class ImageGeneratorService {
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 2;
     }
-    
+
     ctx.fill();
-    
+
     // Reset shadow immediately after fill
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    // Icon Circle
-    const iconX = card.x + 40;
-    const iconY = card.y + 40;
+    // Icon Circle (top-left)
+    const iconCenterX = card.x + 75;
+    const iconCenterY = card.y + 75;
     const iconRadius = 35;
-    
+
     ctx.beginPath();
-    ctx.arc(iconX + iconRadius, iconY + iconRadius, iconRadius, 0, Math.PI * 2);
+    ctx.arc(iconCenterX, iconCenterY, iconRadius, 0, Math.PI * 2);
     ctx.fillStyle = card.color + '33'; // 20% opacity
     ctx.fill();
 
-    // Draw Icon/Text for Icon
-    ctx.fillStyle = card.color;
-    ctx.font = 'bold 32px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(card.icon, iconX + iconRadius, iconY + iconRadius);
+    // Authored vector icon (no emoji: DejaVu has no emoji glyphs and they render
+    // as broken shapes in the PNG)
+    ctx.save();
+    this._drawIcon(ctx, card.icon, iconCenterX, iconCenterY, card.color);
+    ctx.restore();
 
     // Value
     ctx.fillStyle = card.isHashtag ? card.color : colors.textColor;
-    ctx.font = card.isHashtag ? 'bold 36px Arial' : 'bold 56px Arial';
+    ctx.font = card.isHashtag
+      ? `bold 36px ${this.fontFamily}`
+      : `bold 56px ${this.fontFamily}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    
-    // Handle long hashtags
-    let valueText = String(card.value);
-    if (card.isHashtag && valueText.length > 15) {
-        valueText = valueText.substring(0, 12) + '...';
-    }
-    ctx.fillText(valueText, card.x + 40, card.y + 130);
 
-    // Title
+    // Fit the value: shrink first, then truncate with an ellipsis
+    let valueText = String(card.value);
+    const maxValueWidth = width - 80;
+    let valueFontSize = card.isHashtag ? 36 : 56;
+    while (
+      ctx.measureText(valueText).width > maxValueWidth &&
+      valueFontSize > (card.isHashtag ? 24 : 36)
+    ) {
+      valueFontSize -= 4;
+      ctx.font = card.isHashtag
+        ? `bold ${valueFontSize}px ${this.fontFamily}`
+        : `bold ${valueFontSize}px ${this.fontFamily}`;
+    }
+    if (ctx.measureText(valueText).width > maxValueWidth) {
+      while (valueText.length > 1 && ctx.measureText(valueText + '...').width > maxValueWidth) {
+        valueText = valueText.slice(0, -1);
+      }
+      valueText += '...';
+    }
+    ctx.fillText(valueText, card.x + 40, card.y + 170);
+
+    // Title (anchored to the card's bottom edge — consistent rhythm, no dead zone)
     ctx.fillStyle = colors.subTextColor;
-    ctx.font = 'bold 18px Arial';
-    ctx.fillText(card.title, card.x + 40, card.y + 210);
+    ctx.font = `bold 18px ${this.fontFamily}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(card.title, card.x + 40, card.y + height - 40);
+  }
+
+  /**
+   * Draw a vector icon centered at (cx, cy)
+   * @private
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {string} type - bars | people | pen | hash
+   * @param {number} cx
+   * @param {number} cy
+   * @param {string} color
+   */
+  _drawIcon(ctx, type, cx, cy, color) {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    switch (type) {
+      case 'bars': {
+        // Three ascending bars, bottom-aligned
+        const barWidth = 8;
+        const gap = 6;
+        const heights = [16, 26, 36];
+        const totalWidth = barWidth * 3 + gap * 2;
+        let bx = cx - totalWidth / 2;
+        heights.forEach(h => {
+          ctx.beginPath();
+          ctx.roundRect(bx, cy + 18 - h, barWidth, h, 3);
+          ctx.fill();
+          bx += barWidth + gap;
+        });
+        break;
+      }
+      case 'people': {
+        // Two figures: head + dome-shaped shoulders, back one slightly higher
+        const drawPerson = (px, py, r) => {
+          ctx.beginPath();
+          ctx.arc(px, py, r * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(px, py + r * 1.5, r, Math.PI, 0);
+          ctx.closePath();
+          ctx.fill();
+        };
+        drawPerson(cx - 9, cy - 6, 11);
+        drawPerson(cx + 9, cy - 9, 10);
+        break;
+      }
+      case 'pen': {
+        // Diagonal pen: shaft + tip
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-Math.PI / 4);
+        ctx.beginPath();
+        ctx.roundRect(-14, -6, 22, 12, 4);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(8, -6);
+        ctx.lineTo(17, 0);
+        ctx.lineTo(8, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-20, 8);
+        ctx.lineTo(-14, 8);
+        ctx.stroke();
+        ctx.restore();
+        break;
+      }
+      case 'hash': {
+        // Text glyph: the hashtag symbol itself
+        ctx.font = `bold 34px ${this.fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('#', cx, cy + 2);
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
