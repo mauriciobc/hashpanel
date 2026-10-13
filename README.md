@@ -422,7 +422,10 @@ hashpanel/
 │       ├── linkGenerator.js
 │       └── logger.js
 ├── public/               # Arquivos estáticos (frontend)
-│   └── index.html
+│   ├── index.html        # Marcação
+│   ├── styles.css        # Estilos
+│   └── js/
+│       └── app.js        # Lógica do dashboard
 ├── scripts/              # Scripts auxiliares (cron, utilitários, diagnósticos)
 │   ├── cron-collect-history.sh
 │   ├── setup-cron.sh
