@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hashpanel:
     build:
@@ -7,6 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: hashpanel
     restart: unless-stopped
+    # Run a tiny init (tini) as PID 1 so signals/child processes are handled properly
+    init: true
+    # Prevent privilege escalation inside the container
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "3000:3000"
     # Load .env file from host (required - will fail if missing)
