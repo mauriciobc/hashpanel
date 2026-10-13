@@ -43,8 +43,8 @@ export const errorHandler = (error, req, res, _next) => {
         message: 'Validation failed',
         code: 'VALIDATION_ERROR',
         details: {
-          fields: error.errors.map((err) => ({
-            field: err.path.join('.'),
+          fields: (error.issues ?? error.errors ?? []).map((err) => ({
+            field: (err.path || []).join('.'),
             message: err.message,
             code: err.code,
           })),
