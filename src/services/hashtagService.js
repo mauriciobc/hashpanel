@@ -2,7 +2,6 @@ import { mastodonService } from './mastodon.js';
 import { dataProcessor } from './dataProcessor.js';
 import { logger, loggers } from '../utils/logger.js';
 import { appConfig as config } from '../config/index.js';
-import { sendTelemetry } from '../utils/telemetry.js';
 import { BusinessError, NotFoundError } from '../errors/index.js';
 import { HASHTAGS, getFirstHashtagForDay } from '../constants/index.js';
 import { parseAndValidateTimezone } from '../utils/timezone.js';
@@ -189,12 +188,6 @@ export class HashtagService {
    * Returns { tags, totalCount } where totalCount is the real total from the API
    */
   async getTrendingTags(limit = 10, offset = 0) {
-    sendTelemetry({
-      location: 'src/services/hashtagService.js:182',
-      message: 'getTrendingTags entry',
-      data: { limit, offset },
-      hypothesisId: 'A',
-    });
     const cacheKey = 'trending_tags_all';
     const totalCountCacheKey = 'trending_tags_total';
 
@@ -205,36 +198,12 @@ export class HashtagService {
     // If we don't have cached data, fetch all tags (up to API max of 100) to get total
     if (totalCount === undefined || allTags === undefined) {
       try {
-        sendTelemetry({
-          location: 'src/services/hashtagService.js:194',
-          message: 'Before getTrendingTags call',
-          data: { limit: 100 },
-          hypothesisId: 'A',
-        });
         // Fetch maximum allowed (100) to determine total count
         const promise = mastodonService.getTrendingTags(100, 0);
-        sendTelemetry({
-          location: 'src/services/hashtagService.js:198',
-          message: 'Promise created for getTrendingTags',
-          data: { hasPromise: !!promise },
-          hypothesisId: 'B',
-        });
         // Add catch to prevent unhandled rejection
-        promise.catch((err) => {
-          sendTelemetry({
-            location: 'src/services/hashtagService.js:201',
-            message: 'getTrendingTags promise catch',
-            data: { error: err?.message, code: err?.code, name: err?.name },
-            hypothesisId: 'B',
-          });
+        promise.catch(() => {
         });
         allTags = await promise;
-        sendTelemetry({
-          location: 'src/services/hashtagService.js:206',
-          message: 'getTrendingTags succeeded',
-          data: { tagsCount: allTags?.length },
-          hypothesisId: 'A',
-        });
         totalCount = allTags.length;
 
         // Cache both the tags and total count
@@ -243,17 +212,6 @@ export class HashtagService {
 
         logger.debug('Fetched and cached trending tags for total count', { totalCount });
       } catch (error) {
-        sendTelemetry({
-          location: 'src/services/hashtagService.js:216',
-          message: 'getTrendingTags error caught',
-          data: {
-            error: error.message,
-            code: error.code,
-            name: error.name,
-            isAggregate: error.name === 'AggregateError',
-          },
-          hypothesisId: 'A',
-        });
         loggers.error('Failed to fetch trending tags for total count', error);
         // If we can't get total, return empty and let caller handle fallback
         return { tags: [], totalCount: null };

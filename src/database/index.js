@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { logger } from '../utils/logger.js';
 import { runMigrations } from './migrations.js';
-import { sendTelemetry } from '../utils/telemetry.js';
 
 /**
  * Database service for SQLite
@@ -34,12 +33,6 @@ export class DatabaseService {
    * @private
    */
   _initializeConnection() {
-    sendTelemetry({
-      location: 'src/database/index.js:40',
-      message: 'Before database initialization',
-      data: { dbPath: this.dbPath },
-      hypothesisId: 'C',
-    });
     this.db = new Database(this.dbPath);
 
     // Enable WAL mode for better concurrency
@@ -48,12 +41,6 @@ export class DatabaseService {
     // Enable foreign keys
     this.db.pragma('foreign_keys = ON');
 
-    sendTelemetry({
-      location: 'src/database/index.js:49',
-      message: 'Database initialization completed',
-      data: { dbPath: this.dbPath },
-      hypothesisId: 'C',
-    });
     logger.info('Database connection established', { path: this.dbPath });
   }
 
