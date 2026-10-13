@@ -648,7 +648,7 @@ export class HashtagListener {
       if (!stats.hashtag || typeof stats.summary.tootCount !== 'number' || 
           typeof stats.summary.uniqueUsers !== 'number' || 
           typeof stats.summary.weeklyTotal !== 'number') {
-        logger.error(`Dados incompletos para geração de imagem`, {
+        logger.error('Dados incompletos para geração de imagem', {
           stats,
           mentionId: status.id
         });
@@ -660,7 +660,7 @@ export class HashtagListener {
       
       // Validar se a imagem foi gerada corretamente
       if (!imageResult || !imageResult.imageBuffer) {
-        logger.error(`Falha ao gerar imagem: resultado inválido`, {
+        logger.error('Falha ao gerar imagem: resultado inválido', {
           hasImageResult: !!imageResult,
           hasImageBuffer: !!(imageResult?.imageBuffer),
           mentionId: status.id
@@ -672,7 +672,7 @@ export class HashtagListener {
       
       // Validar se o buffer da imagem não está vazio
       if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
-        logger.error(`Buffer de imagem vazio ou inválido`, {
+        logger.error('Buffer de imagem vazio ou inválido', {
           isBuffer: Buffer.isBuffer(imageBuffer),
           bufferLength: imageBuffer?.length || 0,
           mentionId: status.id
@@ -680,7 +680,7 @@ export class HashtagListener {
         throw new Error('Falha ao gerar imagem: buffer vazio');
       }
       
-      logger.debug(`Imagem gerada com sucesso`, {
+      logger.debug('Imagem gerada com sucesso', {
         bufferSize: imageBuffer.length,
         altTextLength: altText?.length || 0,
         mentionId: status.id
@@ -694,7 +694,7 @@ export class HashtagListener {
 
       // Validar se o upload foi bem-sucedido e retornou um ID válido
       if (!media || !media.id) {
-        logger.error(`Upload de mídia falhou: resposta inválida`, {
+        logger.error('Upload de mídia falhou: resposta inválida', {
           hasMedia: !!media,
           hasMediaId: !!(media?.id),
           mediaResponse: media,
@@ -703,7 +703,7 @@ export class HashtagListener {
         throw new Error('Falha no upload de mídia: ID não retornado');
       }
       
-      logger.debug(`Mídia enviada com sucesso`, {
+      logger.debug('Mídia enviada com sucesso', {
         mediaId: media.id,
         mentionId: status.id
       });

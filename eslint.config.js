@@ -26,10 +26,17 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": "warn",
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "semi": ["error", "always"],
       "quotes": ["error", "single"],
+    },
+  },
+  {
+    // The CLI is a terminal user interface: console output is expected.
+    files: ["src/cli/**/*.js"],
+    rules: {
+      "no-console": "off",
     },
   },
 ];

@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .env
 data/
 *.db
@@ -6,7 +6,9 @@ data/
 *.db-wal
 *.md
 !README.md
+!docs/**/*.md
 logs/
 .cursor/debug.log
 *.pid
 *.log
+coverage/

@@ -83,7 +83,7 @@ router.get(
       try {
         const nodeFetch = await import('node-fetch');
         fetchFunction = nodeFetch.default;
-      } catch (error) {
+      } catch {
         throw new ValidationError(
           'Image proxy not available. Please install node-fetch or use Node.js 18+'
         );
@@ -100,7 +100,7 @@ router.get(
     let imageUrl;
     try {
       imageUrl = decodeURIComponent(url);
-    } catch (error) {
+    } catch {
       throw new ValidationError('Invalid URL encoding');
     }
 

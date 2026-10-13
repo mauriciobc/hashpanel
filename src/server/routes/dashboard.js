@@ -5,7 +5,7 @@ import telemetryService from '../../services/telemetryService.js';
 import { ValidationError } from '../../errors/index.js';
 import { logger } from '../../utils/logger.js';
 import { appConfig as config } from '../../config/index.js';
-import { validateDaysParameter, validateTimezoneParameter } from '../../utils/validators.js';
+import { validateDaysParameter } from '../../utils/validators.js';
 
 const router = Router();
 // Using singleton instance from service
@@ -17,7 +17,7 @@ const router = Router();
 router.get(
   '/stats',
   asyncHandler(async (req, res) => {
-    const { timeframe = 'today', timezone: clientTimezone } = req.query;
+    const { timeframe = 'today' } = req.query;
 
     // Validate timeframe parameter type
     if (Array.isArray(timeframe)) {
@@ -46,9 +46,6 @@ router.get(
         timeframe
       );
     }
-
-    // Validate timezone parameter
-    const validatedTimezone = validateTimezoneParameter(clientTimezone);
 
     logger.info('Dashboard stats requested', { timeframe: normalizedTimeframe });
 
@@ -110,11 +107,6 @@ router.get(
 router.get(
   '/summary',
   asyncHandler(async (req, res) => {
-    const { timezone: clientTimezone } = req.query;
-
-    // Validate timezone parameter
-    const validatedTimezone = validateTimezoneParameter(clientTimezone);
-
     // Get daily hashtag using server timezone for consistency
     const instanceTimezone = config.server.timezone;
     const dailyHashtag = hashtagService.getDailyHashtag({ timezone: instanceTimezone });
@@ -162,9 +154,7 @@ router.get(
 router.get(
   '/timeline',
   asyncHandler(async (req, res) => {
-    const { timezone: clientTimezone } = req.query;
     const days = validateDaysParameter(req.query.days, 7, 1, 365);
-    const validatedTimezone = validateTimezoneParameter(clientTimezone);
 
     logger.info('Dashboard timeline requested', { days });
 
@@ -261,7 +251,6 @@ router.get(
       }
 
       // Check daily hashtag activity using server timezone
-      const { timezone: clientTimezone } = req.query;
       const instanceTimezone = config.server.timezone;
       const dailyHashtag = hashtagService.getDailyHashtag({ timezone: instanceTimezone });
       const analysis = await hashtagService.analyzeHashtag(dailyHashtag, {
