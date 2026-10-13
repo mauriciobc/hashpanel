@@ -1,7 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { logger } from '../utils/logger.js';
-import { appConfig as config } from '../config/index.js';
-import { RateLimitError } from '../errors/index.js';
 
 // Basic rate limiting configuration
 // Increased from 100 to 200 requests per 15 minutes for better UX
@@ -179,7 +177,7 @@ const rateLimitStore = new Map();
 
 // Cleanup interval to prevent memory leaks
 // Using .unref() so the interval doesn't keep the process alive when no other work exists
-const cleanupInterval = setInterval(
+setInterval(
   () => {
     const now = Date.now();
     for (const [key, entry] of rateLimitStore.entries()) {

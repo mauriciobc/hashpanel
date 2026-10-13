@@ -1,15 +1,9 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import fs from 'fs';
-import { appConfig as config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { runMigrations } from './migrations.js';
 import { sendTelemetry } from '../utils/telemetry.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /**
  * Database service for SQLite

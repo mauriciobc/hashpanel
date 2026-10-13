@@ -1,4 +1,4 @@
-import { createCanvas, registerFont } from 'canvas';
+import { createCanvas } from 'canvas';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -53,7 +53,7 @@ export class ImageGeneratorService {
     
     const parts = [
       `Dashboard HashPanel para #${hashtag}.`,
-      `Dados organizados em 4 cards:`,
+      'Dados organizados em 4 cards:',
       `Card 1: Total da semana - ${weeklyTotal} ${weeklyTotal === 1 ? 'post' : 'posts'}.`,
       `Card 2: Participantes únicos - ${uniqueUsers} ${uniqueUsers === 1 ? 'usuário' : 'usuários'}.`,
       `Card 3: Posts hoje - ${tootCount} ${tootCount === 1 ? 'post' : 'posts'}.`,

@@ -1,4 +1,3 @@
-import { appConfig as config } from '../config/index.js';
 import { logger } from './logger.js';
 
 /**
