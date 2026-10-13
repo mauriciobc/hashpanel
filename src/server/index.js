@@ -115,12 +115,6 @@ export class WebServer {
    * Health check endpoint
    */
   healthCheck = async (req, res) => {
-    sendTelemetry({
-      location: 'src/server/index.js:92',
-      message: 'Healthcheck started',
-      data: { uptime: process.uptime() },
-      hypothesisId: 'B',
-    });
     try {
       const health = {
         status: 'healthy',
@@ -140,12 +134,6 @@ export class WebServer {
       };
 
       // Test Mastodon connectivity
-      sendTelemetry({
-        location: 'src/server/index.js:111',
-        message: 'Before Mastodon API test',
-        data: {},
-        hypothesisId: 'B',
-      });
       try {
         // Quick API call to test connectivity
         await withTimeout(
@@ -153,50 +141,22 @@ export class WebServer {
           config.health.timeoutMs,
           'Mastodon health check timeout'
         );
-        sendTelemetry({
-          location: 'src/server/index.js:114',
-          message: 'Mastodon API test succeeded',
-          data: {},
-          hypothesisId: 'B',
-        });
         health.services.mastodon = 'healthy';
       } catch (error) {
-        sendTelemetry({
-          location: 'src/server/index.js:117',
-          message: 'Mastodon API test failed',
-          data: { error: error.message, code: error.code, timeoutMs: config.health.timeoutMs },
-          hypothesisId: 'B',
-        });
+        logger.debug('Mastodon health check failed', { error: error.message });
         health.services.mastodon = 'unhealthy';
         health.status = 'degraded';
       }
 
       // Test database connectivity
-      sendTelemetry({
-        location: 'src/server/index.js:121',
-        message: 'Before database health check',
-        data: {},
-        hypothesisId: 'C',
-      });
       try {
         const dbHealth = getDatabase().healthCheck();
-        sendTelemetry({
-          location: 'src/server/index.js:123',
-          message: 'Database health check succeeded',
-          data: { status: dbHealth.status },
-          hypothesisId: 'C',
-        });
         health.services.database = dbHealth.status;
         if (dbHealth.status !== 'healthy') {
           health.status = 'degraded';
         }
       } catch (error) {
-        sendTelemetry({
-          location: 'src/server/index.js:128',
-          message: 'Database health check failed',
-          data: { error: error.message, code: error.code },
-          hypothesisId: 'C',
-        });
+        logger.debug('Database health check failed', { error: error.message });
         health.services.database = 'unhealthy';
         health.status = 'degraded';
       }
@@ -300,20 +260,8 @@ export class WebServer {
     validateCorsConfig();
 
     return new Promise((resolve, reject) => {
-      sendTelemetry({
-        location: 'src/server/index.js:183',
-        message: 'Before server.listen',
-        data: { host: config.server.host, port: config.server.port },
-        hypothesisId: 'A',
-      });
       try {
         this.server = this.app.listen(config.server.port, config.server.host, () => {
-          sendTelemetry({
-            location: 'src/server/index.js:186',
-            message: 'Server listen callback executed',
-            data: { host: config.server.host, port: config.server.port },
-            hypothesisId: 'A',
-          });
           this.isStarted = true;
 
           logger.info('Web server started successfully', {
@@ -330,6 +278,13 @@ export class WebServer {
             environment: config.server.environment,
           });
 
+          // Telemetria opt-in: só é enviada se TELEMETRY_ENDPOINT estiver configurado
+          sendTelemetry({
+            event: 'server_started',
+            environment: config.server.environment,
+            nodeVersion: process.version,
+          });
+
           // Inicia o listener de hashtag em background
           hashtagListener.start().catch(err => {
             logger.error('Falha ao iniciar HashtagListener em background', err);
@@ -339,12 +294,6 @@ export class WebServer {
         });
 
         this.server.on('error', (error) => {
-          sendTelemetry({
-            location: 'src/server/index.js:205',
-            message: 'Server error event',
-            data: { error: error.message, code: error.code },
-            hypothesisId: 'A',
-          });
           logger.error('Server startup failed', error);
           reject(error);
         });
@@ -572,21 +521,9 @@ async function handleShutdownSignal(signal) {
   }
 }
 
-function handleNetworkTimeoutNotice(source, error, hypothesisId, extraData = {}) {
-  sendTelemetry({
-    location: `src/server/index.js:${source}`,
-    message: `Network timeout detected in ${source}`,
-    data: {
-      code: error.code,
-      name: error.name,
-      isAggregate: error.name === 'AggregateError',
-      errorsCount: error.errors?.length,
-      ...extraData,
-    },
-    hypothesisId,
-  });
+function handleNetworkTimeoutNotice(source, error) {
   logger.debug(
-    'Network timeout error from connection retry (non-fatal) - server continues running',
+    `Network timeout error in ${source} (non-fatal) - server continues running`,
     {
       code: error.code,
       name: error.name,
@@ -599,26 +536,12 @@ function handleNetworkTimeoutNotice(source, error, hypothesisId, extraData = {})
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  sendTelemetry({
-    location: 'src/server/index.js:442',
-    message: 'Uncaught exception handler',
-    data: {
-      error: error.message,
-      code: error.code,
-      name: error.name,
-      isAggregate: error.name === 'AggregateError',
-      errorsCount: error.errors?.length,
-      stack: error.stack?.substring(0, 200),
-    },
-    hypothesisId: 'C',
-  });
-
   // Don't shutdown for network timeout errors - these are often transient
   // ETIMEDOUT errors from network operations should not crash the server
   // These errors typically occur from connection retries or keep-alive connections
   // that fail after the main request has already completed successfully
   if (isNetworkTimeoutError(error)) {
-    handleNetworkTimeoutNotice('uncaughtException', error, 'C');
+    handleNetworkTimeoutNotice('uncaughtException', error);
     return; // Continue running instead of shutting down
   }
 
@@ -638,19 +561,6 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  sendTelemetry({
-    location: 'src/server/index.js:476',
-    message: 'Unhandled promise rejection',
-    data: {
-      reason: reason?.message || String(reason),
-      code: reason?.code,
-      name: reason?.name,
-      isAggregate: reason?.name === 'AggregateError',
-      errorsCount: reason?.errors?.length,
-    },
-    hypothesisId: 'B',
-  });
-
   // Extract error information safely
   // If reason is an Error object, use it directly; otherwise create errorInfo from it
   const error = reason instanceof Error ? reason : { message: String(reason) };
@@ -672,9 +582,7 @@ process.on('unhandledRejection', (reason, promise) => {
   // These errors typically occur from connection retries or keep-alive connections
   // that fail after the main request has already completed successfully
   if (isNetworkTimeoutError(error)) {
-    handleNetworkTimeoutNotice('unhandledRejection', errorInfo, 'B', {
-      note: 'This error typically occurs when Node.js tries multiple connection attempts and all timeout. The main request likely completed successfully.',
-    });
+    handleNetworkTimeoutNotice('unhandledRejection', errorInfo);
     return; // Continue running instead of shutting down
   }
 

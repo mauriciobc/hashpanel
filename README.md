@@ -97,8 +97,9 @@ PREFERRED_TIMEZONE=America/Sao_Paulo
 # Trust Proxy (opcional, padrão: 1)
 TRUST_PROXY=1
 
-# Telemetry (opcional)
+# Telemetry (opcional, desabilitada por padrão)
 # TELEMETRY_ENDPOINT=https://your-telemetry-server.com/ingest/your-token
+# DISABLE_TELEMETRY=true
 ```
 
 ### Como Obter o Access Token

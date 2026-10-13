@@ -2,16 +2,9 @@ import Mastodon from 'mastodon-api';
 import { appConfig as config } from '../config/index.js';
 import { logger, loggers } from '../utils/logger.js';
 import { APIError, RateLimitError, NotFoundError } from '../errors/index.js';
-import { sendTelemetry } from '../utils/telemetry.js';
 
 export class MastodonService {
   constructor() {
-    sendTelemetry({
-      location: 'src/services/mastodon.js:constructor',
-      message: 'MastodonService constructor entry',
-      data: { timeout: config.mastodon.timeout, url: config.mastodon.url },
-      hypothesisId: 'D',
-    });
     try {
       // Create client with timeout configuration
       // Note: The mastodon-api library uses this timeout for HTTP requests
@@ -39,16 +32,6 @@ export class MastodonService {
                 Array.isArray(error.errors) &&
                 error.errors.some((err) => err?.code === 'ETIMEDOUT')))
           ) {
-            sendTelemetry({
-              location: 'src/services/mastodon.js:network_error',
-              message: 'Network error handler caught timeout',
-              data: {
-                code: error.code,
-                name: error.name,
-                isAggregate: error.name === 'AggregateError',
-              },
-              hypothesisId: 'E',
-            });
             // Log but don't throw - let the global handler deal with it
             // This prevents the error from becoming uncaught
             logger.debug('Network timeout error intercepted (likely from connection retry)', {
@@ -59,23 +42,11 @@ export class MastodonService {
           }
         };
       }
-      sendTelemetry({
-        location: 'src/services/mastodon.js:constructor',
-        message: 'Mastodon client created',
-        data: { hasClient: !!this.client },
-        hypothesisId: 'D',
-      });
 
       // Wrap client methods to catch any errors that might occur outside of explicit requests
       // This prevents AggregateError from becoming uncaught exceptions
       this._wrapClientMethods();
     } catch (error) {
-      sendTelemetry({
-        location: 'src/services/mastodon.js:constructor_error',
-        message: 'Mastodon client creation error',
-        data: { error: error.message, code: error.code },
-        hypothesisId: 'D',
-      });
       throw error;
     }
 
@@ -116,18 +87,6 @@ export class MastodonService {
             // If result is a promise, ensure it has error handling
             if (result && typeof result.then === 'function') {
               return result.catch((error) => {
-                sendTelemetry({
-                  location: 'src/services/mastodon.js:wrapped_method_error',
-                  message: 'Wrapped client method error',
-                  data: {
-                    method,
-                    error: error?.message,
-                    code: error?.code,
-                    name: error?.name,
-                    isAggregate: error?.name === 'AggregateError',
-                  },
-                  hypothesisId: 'E',
-                });
                 // Re-throw to be handled by makeAPIRequest
                 throw error;
               });
@@ -135,12 +94,6 @@ export class MastodonService {
 
             return result;
           } catch (syncError) {
-            sendTelemetry({
-              location: 'src/services/mastodon.js:wrapped_method_sync_error',
-              message: 'Wrapped client method sync error',
-              data: { method, error: syncError?.message, code: syncError?.code },
-              hypothesisId: 'E',
-            });
             throw syncError;
           }
         };
@@ -240,12 +193,6 @@ export class MastodonService {
    * @returns {Promise} Response data
    */
   async makeAPIRequest(endpoint, params = {}, method = 'get') {
-    sendTelemetry({
-      location: 'src/services/mastodon.js:makeAPIRequest',
-      message: 'makeAPIRequest entry',
-      data: { endpoint, method },
-      hypothesisId: 'A',
-    });
     await this.applyRateLimit();
 
     try {
@@ -258,14 +205,8 @@ export class MastodonService {
 
       const startTime = Date.now();
 
-      const response = await this._executeRequest(clientMethod, endpoint, params, method);
+      const response = await this._executeRequest(clientMethod, endpoint, params);
       const duration = Date.now() - startTime;
-      sendTelemetry({
-        location: 'src/services/mastodon.js:makeAPIRequest_after',
-        message: 'After client method call',
-        data: { endpoint, method, duration },
-        hypothesisId: 'A',
-      });
 
       if (!response || !response.data) {
         throw new APIError(`Invalid response from ${endpoint}`, null, { endpoint, params, method });
@@ -279,21 +220,6 @@ export class MastodonService {
 
       return response.data;
     } catch (error) {
-      sendTelemetry({
-        location: 'src/services/mastodon.js:makeAPIRequest_error',
-        message: 'API request error caught',
-        data: {
-          endpoint,
-          method,
-          error: error.message,
-          code: error.code,
-          name: error.name,
-          isAggregate: error.name === 'AggregateError',
-          errorsCount: error.errors?.length,
-          stack: error.stack?.substring(0, 100),
-        },
-        hypothesisId: 'A',
-      });
       loggers.error(`API request failed for ${endpoint}`, error, { params, method });
 
       // Handle AggregateError specifically - extract the first meaningful error
@@ -303,16 +229,6 @@ export class MastodonService {
         Array.isArray(error.errors) &&
         error.errors.length > 0
       ) {
-        sendTelemetry({
-          location: 'src/services/mastodon.js:makeAPIRequest_aggregate_error',
-          message: 'AggregateError detected, extracting first error',
-          data: {
-            errorsCount: error.errors.length,
-            firstError: error.errors[0]?.code,
-            firstErrorName: error.errors[0]?.name,
-          },
-          hypothesisId: 'A',
-        });
         // Use the first error from the aggregate, or the aggregate itself if no errors array
         actualError = error.errors[0] || error;
       }
@@ -353,19 +269,6 @@ export class MastodonService {
           error.errors.some((err) => err?.code === 'ETIMEDOUT'));
 
       if (isTimeout) {
-        sendTelemetry({
-          location: 'src/services/mastodon.js:makeAPIRequest_timeout',
-          message: 'Timeout error detected in catch',
-          data: {
-            endpoint,
-            method,
-            code: actualError.code || error.code,
-            name: error.name,
-            isAggregate: error.name === 'AggregateError',
-            errorsCount: error.errors?.length,
-          },
-          hypothesisId: 'A',
-        });
         // Wrap the error but preserve the original error details
         const timeoutError = new APIError(
           `Request timeout for ${endpoint}: ${actualError.message || error.message}`,
@@ -386,46 +289,13 @@ export class MastodonService {
     }
   }
 
-  _executeRequest(clientMethod, endpoint, params, method) {
-    sendTelemetry({
-      location: 'src/services/mastodon.js:_executeRequest',
-      message: 'Before client method call',
-      data: { endpoint, method },
-      hypothesisId: 'A',
-    });
-
+  _executeRequest(clientMethod, endpoint, params) {
     try {
       const requestPromise = clientMethod.call(this.client, endpoint, params);
       return Promise.resolve(requestPromise).catch((error) => {
-        sendTelemetry({
-          location: 'src/services/mastodon.js:_executeRequest_rejected',
-          message: 'Request promise rejected',
-          data: {
-            endpoint,
-            method,
-            error: error?.message,
-            code: error?.code,
-            name: error?.name,
-            isAggregate: error?.name === 'AggregateError',
-            errorsCount: error?.errors?.length,
-          },
-          hypothesisId: 'B',
-        });
         throw error;
       });
     } catch (syncError) {
-      sendTelemetry({
-        location: 'src/services/mastodon.js:_executeRequest_sync_error',
-        message: 'Synchronous error in client method call',
-        data: {
-          endpoint,
-          method,
-          error: syncError?.message,
-          code: syncError?.code,
-          name: syncError?.name,
-        },
-        hypothesisId: 'C',
-      });
       return Promise.reject(syncError);
     }
   }
@@ -566,43 +436,14 @@ export class MastodonService {
    * Get trending tags
    */
   async getTrendingTags(limit = 10, offset = 0) {
-    sendTelemetry({
-      location: 'src/services/mastodon.js:getTrendingTags',
-      message: 'getTrendingTags entry',
-      data: { limit, offset },
-      hypothesisId: 'A',
-    });
     try {
       const params = { limit: Math.min(limit, 100), offset };
-      sendTelemetry({
-        location: 'src/services/mastodon.js:getTrendingTags',
-        message: 'Before makeAPIRequest for trends/tags',
-        data: { params },
-        hypothesisId: 'A',
-      });
       const tags = await this.makeAPIRequest('trends/tags', params);
-      sendTelemetry({
-        location: 'src/services/mastodon.js:getTrendingTags',
-        message: 'getTrendingTags succeeded',
-        data: { tagsCount: tags?.length },
-        hypothesisId: 'A',
-      });
 
       logger.info(`Fetched ${tags.length} trending tags`, { limit, offset });
 
       return tags;
     } catch (error) {
-      sendTelemetry({
-        location: 'src/services/mastodon.js:getTrendingTags',
-        message: 'getTrendingTags error',
-        data: {
-          error: error.message,
-          code: error.code,
-          name: error.name,
-          isAggregate: error.name === 'AggregateError',
-        },
-        hypothesisId: 'A',
-      });
       loggers.error('Failed to fetch trending tags', error, { limit, offset });
       throw error;
     }
