@@ -99,5 +99,26 @@ describe('HashtagListener', () => {
       expect(result).toEqual(['tag123']);
       expect(result).not.toContain('123');
     });
+
+    it('deve ignorar hashtags apenas com dígitos e underscore', () => {
+      const content = '<p>#_123 #12_34 #a1 #1a</p>';
+      const result = listener.extractHashtags(content);
+
+      expect(result).toEqual(['a1', '1a']);
+    });
+
+    it('deve aceitar hashtag de uma única letra', () => {
+      const content = '<p>#a</p>';
+      const result = listener.extractHashtags(content);
+
+      expect(result).toEqual(['a']);
+    });
+
+    it('deve retornar vazio para # sozinho', () => {
+      const content = '<p>#  sozinho</p>';
+      const result = listener.extractHashtags(content);
+
+      expect(result).toEqual([]);
+    });
   });
 });
