@@ -17,7 +17,7 @@ SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
 CRON_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 
 # Use the Alpine-compatible cron script
-CRON_SCRIPT="/app/scripts/cron-collect-history-alpine.sh"
+CRON_SCRIPT="/app/scripts/cron-collect-history.sh"
 
 # Make sure the script is executable
 if [ -f "$CRON_SCRIPT" ]; then

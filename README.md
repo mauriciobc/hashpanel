@@ -314,10 +314,13 @@ npm test -- tests/unit/services/imageGenerator.test.js
 npm run collect:history
 
 # Status do sistema
-npm start status
+npm run status
 
 # Análise de dados
-npm start analyze
+npm run analyze
+
+# Gerar/publicar o relatório diário
+npm run report
 
 # Migrar banco de dados
 npm run db:migrate
@@ -396,6 +399,7 @@ hashpanel/
 │   │   ├── errorHandler.js
 │   │   └── rateLimiter.js
 │   ├── server/           # Servidor web Express
+│   │   ├── main.js       # Entry point do servidor
 │   │   ├── index.js
 │   │   └── routes/       # Rotas da API
 │   │       ├── dashboard.js
@@ -419,13 +423,16 @@ hashpanel/
 │       └── logger.js
 ├── public/               # Arquivos estáticos (frontend)
 │   └── index.html
-├── scripts/              # Scripts auxiliares
+├── scripts/              # Scripts auxiliares (cron, utilitários, diagnósticos)
 │   ├── cron-collect-history.sh
-│   └── setup-cron.sh
+│   ├── setup-cron.sh
+│   ├── clear-database.js
+│   ├── create-test-data.js
+│   ├── diagnose-collection.js
+│   └── test-weekly-history.js
 ├── data/                 # Banco de dados SQLite (gitignored)
 ├── logs/                 # Logs da aplicação (gitignored)
 ├── cli.js               # Entry point CLI
-├── server-new.js        # Entry point servidor
 ├── package.json
 └── .env                 # Variáveis de ambiente (não commitar!)
 ```
@@ -439,8 +446,10 @@ hashpanel/
 - `npm run dev:watch` - Watch em toda pasta `src`
 
 ### Produção
-- `npm start` - Inicia CLI principal
-- `npm run server` - Inicia servidor web
+- `npm start` - Inicia o servidor web
+- `npm run server` - Inicia o servidor web
+- `npm run cli` - Executa a CLI sem argumentos
+- `npm run report` - Gera/publica o relatório diário
 - `npm run status` - Mostra status do sistema
 - `npm run analyze` - Análise de dados
 

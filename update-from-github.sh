@@ -70,7 +70,7 @@ log "Commit anterior salvo para possível rollback: $OLD_COMMIT"
 log "Reiniciando o processo Node.js dentro do container (Graceful)..."
 
 # Encontrar o PID do servidor Node
-NODE_PID=$(docker exec "$CONTAINER_NAME" pgrep -f 'node.*server-new.js' | head -n 1)
+NODE_PID=$(docker exec "$CONTAINER_NAME" pgrep -f 'node.*src/server/main.js' | head -n 1)
 
 if [ -n "$NODE_PID" ]; then
     log "Enviando SIGTERM para o PID $NODE_PID..."

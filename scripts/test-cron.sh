@@ -78,8 +78,8 @@ fi
 
 # 6. Verificar scripts Alpine
 printf "\n${BLUE}6. Verificando scripts Alpine...${NC}\n"
-COLLECT_SCRIPT="/app/scripts/cron-collect-history-alpine.sh"
-SETUP_SCRIPT="/app/scripts/setup-cron-alpine.sh"
+COLLECT_SCRIPT="/app/scripts/cron-collect-history.sh"
+SETUP_SCRIPT="/app/scripts/setup-cron.sh"
 
 if [ -f "$COLLECT_SCRIPT" ]; then
   if [ -x "$COLLECT_SCRIPT" ]; then
@@ -105,17 +105,17 @@ fi
 printf "\n${BLUE}7. Validando sintaxe dos scripts...${NC}\n"
 if [ -f "$COLLECT_SCRIPT" ]; then
   if sh -n "$COLLECT_SCRIPT" 2>/dev/null; then
-    printf "   ${GREEN}✅ cron-collect-history-alpine.sh: sintaxe OK${NC}\n"
+    printf "   ${GREEN}✅ cron-collect-history.sh: sintaxe OK${NC}\n"
   else
-    printf "   ${RED}❌ cron-collect-history-alpine.sh: erro de sintaxe${NC}\n"
+    printf "   ${RED}❌ cron-collect-history.sh: erro de sintaxe${NC}\n"
   fi
 fi
 
 if [ -f "$SETUP_SCRIPT" ]; then
   if sh -n "$SETUP_SCRIPT" 2>/dev/null; then
-    printf "   ${GREEN}✅ setup-cron-alpine.sh: sintaxe OK${NC}\n"
+    printf "   ${GREEN}✅ setup-cron.sh: sintaxe OK${NC}\n"
   else
-    printf "   ${RED}❌ setup-cron-alpine.sh: erro de sintaxe${NC}\n"
+    printf "   ${RED}❌ setup-cron.sh: erro de sintaxe${NC}\n"
   fi
 fi
 
