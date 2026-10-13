@@ -516,7 +516,7 @@ export class HashtagListener {
     
     while ((match = spanRegex.exec(content)) !== null) {
       const hashtag = match[1].toLowerCase();
-      if (hashtag !== 'hashpanel' && hashtag !== 'bot') {
+      if (this._isValidHashtag(hashtag)) {
         hashtags.push(hashtag);
       }
     }
@@ -532,12 +532,26 @@ export class HashtagListener {
     
     while ((match = hashtagRegex.exec(textContent)) !== null) {
       const hashtag = match[1].toLowerCase();
-      if (hashtag !== 'hashpanel' && hashtag !== 'bot') {
+      if (this._isValidHashtag(hashtag)) {
         hashtags.push(hashtag);
       }
     }
     
     return hashtags;
+  }
+
+  /**
+   * Verifica se uma hashtag é utilizável.
+   * Rejeita hashtags puramente numéricas (ex.: #123), que não são hashtags
+   * válidas, e as hashtags reservadas do próprio bot.
+   * @param {string} hashtag - Hashtag em minúsculas, sem o '#'
+   * @returns {boolean} True se a hashtag deve ser considerada
+   */
+  _isValidHashtag(hashtag) {
+    if (!hashtag || !/[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]/.test(hashtag)) {
+      return false;
+    }
+    return hashtag !== 'hashpanel' && hashtag !== 'bot';
   }
 
   /**
