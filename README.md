@@ -523,6 +523,26 @@ hashpanel/
 ### WebSocket (`/api/websocket`)
 - `GET /api/websocket/status` - Status da conexão do listener de mentions
 
+## 🐳 Deploy com Docker
+
+Dois arquivos Compose são suportados, ambos construindo a imagem a partir do `Dockerfile`
+(não há clone de código em tempo de execução):
+
+- `docker-compose.yml` — deploy direto (publica a porta `3000`).
+- `docker-compose.portainer.yml` — Portainer com um proxy reverso Caddy na frente.
+
+```bash
+# Subir a aplicação
+docker compose up -d --build
+
+# Ver logs
+docker compose logs -f
+```
+
+> **Nota**: A variante antiga `docker-compose.portainer.simple.yml` (que clonava o código
+> no boot, rodava como root e usava `CORS_ORIGIN=*`) foi removida por motivos de segurança
+> e reprodutibilidade.
+
 ## 🔧 Configuração Avançada
 
 ### CORS em Produção

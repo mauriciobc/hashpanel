@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hashpanel:
     # Build image from Dockerfile instead of using base image
@@ -10,6 +8,11 @@ services:
     # image: your-registry/hashpanel:latest
     container_name: hashpanel
     restart: always
+    # Run a tiny init (tini) as PID 1 so signals/child processes are handled properly
+    init: true
+    # Prevent privilege escalation inside the container
+    security_opt:
+      - no-new-privileges:true
     # Volumes only for persistent data, not application code
     volumes:
       - hashpanel_data:/app/data
