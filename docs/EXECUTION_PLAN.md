@@ -361,3 +361,43 @@ Phase checklists:
 - No secrets or generated artifacts added to git (`git status` clean of `logs/`, `*.db`, `.env`).
 - README/docs updated for anything user-visible.
 - One focused PR, revertible in isolation.
+
+---
+
+## 5. Implementation status
+
+### Done — first batch (WS-1, WS-2, WS-3, WS-7)
+
+Branches are **stacked** (each based on the previous), so PRs should target the previous
+branch, not `main`:
+
+| Workstream | Branch | Commit |
+|---|---|---|
+| plans | `docs/accuracy` (base) | `docs: add codebase improvement and execution plans` |
+| WS-1 lint/hygiene | `fix/lint-hygiene` | `chore: green lint, untrack build artifacts, harden gitignore` |
+| WS-2 hashtag bug | `fix/hashtag-extraction` | `fix: reject numeric-only hashtags in mention extraction` |
+| WS-3 telemetry | `feat/telemetry-optin` | `feat(telemetry): make telemetry opt-in and config-driven` |
+| WS-7 docs | `docs/accuracy` | `docs: fix API/endpoint and environment documentation accuracy` |
+
+Verification at the tip: `eslint src` → 0 problems; `npm test` → 102/102 passing.
+
+### Discovered during implementation (affects later workstreams)
+
+- **Config requires real env vars at import time** (`src/config/index.js` validates
+  `MASTODON_URL`/`CLIENT_KEY`/`CLIENT_SECRET`/`ACCESS_TOKEN` eagerly). `npm test` therefore only
+  runs with a populated `.env`. **WS-8 (CI) and WS-9 must** either inject dummy env vars in the
+  workflow or make config lazy/mockable. This is a prerequisite for CI.
+- **Zod v4 API bug** — `src/config/index.js:75` reads `error.errors`, but Zod v4 exposes
+  `error.issues`. On invalid config the enhanced diagnostic throws
+  `TypeError: Cannot read properties of undefined (reading 'filter')`, masking the real
+  validation error (this is exactly what happened when running tests without `.env`). **Not yet
+  fixed** — small, self-contained fix; candidate for a follow-up commit before WS-8.
+- **`.github/copilot-instructions.md` is not tracked** (git-ignored as `*.md` and never committed).
+  If it should be versioned, force-add it and extend the `.gitignore` exception.
+
+### Notes
+
+- The worktree has a symlinked `node_modules` and a copied `.env` — both local-only and ignored.
+- WS-4/WS-5 must stay consistent (compose references the entrypoint/`CMD`). WS-10 (frontend) is
+  best done after WS-8/WS-9 land.
+
