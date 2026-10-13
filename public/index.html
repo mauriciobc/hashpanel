@@ -21,7 +21,7 @@
         <div>
           <h1>Hashpanel</h1>
           <p>Dashboard de monitoramento de hashtags do Mastodon</p>
-          <a rel="me noopener noreferrer" href="https://mastodon.social/@hashpanel" target="_blank" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; display: inline-block; transition: color var(--transition-base);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Mastodon</a>
+          <a rel="me noopener noreferrer" href="https://mastodon.social/@hashpanel" target="_blank" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; transition: color var(--transition-base);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" title="Perfil do Hashpanel no Mastodon (abre em nova aba)" aria-label="Perfil do Hashpanel no Mastodon (abre em nova aba)">Mastodon <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
         </div>
         <nav style="display: flex; gap: 0.5rem;">
           <button id="navDashboard" class="nav-btn active" onclick="showView('dashboard')" style="background: var(--primary-gradient); border: none; color: white; padding: 0.6rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Dashboard</button>
@@ -35,9 +35,9 @@
       <!-- Status Bar -->
       <div class="status-bar">
         <div class="status-info">
-          <span class="status-dot"></span>
-          <span id="lastUpdated">Última atualização: --</span>
-          <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: var(--secondary-gradient); border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
+          <span class="status-dot" id="statusDot" data-state="loading" aria-hidden="true"></span>
+          <span id="lastUpdated" role="status" aria-live="polite">Última atualização: --</span>
+          <button id="backToDailyBtn" onclick="loadData()" style="display: none; border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
             ← Voltar para hashtag diária
           </button>
           <!-- Rate Limit Indicator -->
@@ -58,8 +58,8 @@
       <div class="daily-hashtags-card" id="dailyHashtagsCard">
         <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
           <div class="daily-hashtags-header">
-            <div class="daily-hashtags-icon">📅</div>
-            <h3>Hashtags Diárias</h3>
+            <div class="daily-hashtags-icon" aria-hidden="true">📅</div>
+            <h2>Hashtags Diárias</h2>
           </div>
           <div class="daily-hashtags-pills" id="dailyHashtagsPills">
             <div class="hashtag-pill loading">Carregando...</div>
@@ -89,6 +89,7 @@
 
     <!-- Dashboard View -->
     <div id="dashboardView">
+      <h2 class="sr-only">Painel do dia</h2>
       <!-- Bento Grid Container -->
       <div class="bento-grid" id="bentoGrid">
       <!-- KPI Cards will be inserted here by JavaScript -->
@@ -101,7 +102,7 @@
         </div>
         <div id="topTootsContent">
           <div class="empty-state">
-            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-icon" aria-hidden="true">📝</div>
             <p>Carregando top posts...</p>
           </div>
         </div>
@@ -138,6 +139,7 @@
 
     <!-- Weekly History View -->
     <div id="historyView" style="display: none;">
+      <h2 class="sr-only">Histórico semanal</h2>
       <div class="content-card" style="margin-bottom: 1.5rem;">
         <div class="card-header">
           <div class="card-header-icon">📊</div>
@@ -152,7 +154,7 @@
           </div>
           <div style="flex: 1; min-width: 250px;">
             <label for="hashtagSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtags:</label>
-            <select id="hashtagSelect" multiple onchange="handleHashtagSelectChange()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 250px; min-height: 150px; width: 100%;">
+            <select id="hashtagSelect" multiple onchange="handleHashtagSelectChange()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 250px; min-height: 110px; width: 100%;">
               <!-- Populated by JavaScript -->
             </select>
             <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
@@ -226,7 +228,7 @@
             <h4 id="usesChartTitle">Evolução Semanal - Total de Usos</h4>
           </div>
           <div style="padding: 1.5rem; position: relative; height: 300px;">
-            <canvas id="weeklyUsesChart"></canvas>
+            <canvas id="weeklyUsesChart" role="img" aria-label="Gráfico de evolução semanal do total de usos da hashtag"></canvas>
           </div>
         </div>
         <div class="content-card">
@@ -235,7 +237,7 @@
             <h4 id="accountsChartTitle">Evolução Semanal - Contas Únicas</h4>
           </div>
           <div style="padding: 1.5rem; position: relative; height: 300px;">
-            <canvas id="weeklyAccountsChart"></canvas>
+            <canvas id="weeklyAccountsChart" role="img" aria-label="Gráfico de evolução semanal de contas únicas da hashtag"></canvas>
           </div>
         </div>
       </div>

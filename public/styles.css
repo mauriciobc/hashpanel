@@ -365,7 +365,7 @@
       flex-shrink: 0;
     }
 
-    .daily-hashtags-header h3 {
+    .daily-hashtags-header h2 {
       font-size: clamp(0.85rem, 1.5vw, 0.95rem);
       font-weight: 600;
       color: var(--text-primary);
@@ -477,7 +477,6 @@
       overflow: visible; /* Changed from hidden to allow glow */
       transition: all var(--transition-base);
       animation: fadeInUp 0.6s ease backwards;
-      cursor: pointer;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -534,7 +533,6 @@
     }
 
     .kpi-card:hover {
-      transform: translateY(-8px);
       background: var(--bg-card-hover);
       border-color: transparent;
     }
@@ -701,7 +699,7 @@
     .content-card.top-toots .table-wrapper .table {
       width: 100%;
       max-width: 100%;
-      table-layout: fixed;
+      table-layout: auto;
     }
 
     .content-card.top-toots .table-wrapper .table th,
@@ -785,7 +783,7 @@
     .content-card .table {
       width: 100%;
       max-width: 100%;
-      table-layout: fixed;
+      table-layout: auto;
       border-collapse: separate;
       border-spacing: 0;
       background: transparent;
@@ -829,32 +827,13 @@
       white-space: nowrap;
     }
 
-    /* Column width distribution for Top Performers table */
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(1),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(1) {
-      width: 20%;
+    /* Column rhythm for Top Performers table (auto layout; data-labels drive mobile cards) */
+    .content-card.top-toots .table-wrapper .table thead th,
+    .content-card.top-toots .table-wrapper .table tbody td {
+      white-space: nowrap;
     }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(2),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(2) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(3),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(3) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(4),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(4) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(5),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(5) {
-      width: 16%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(6),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(6) {
-      width: 28%;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+    .content-card.top-toots .table-wrapper .table td:first-child {
+      min-width: 12rem;
     }
 
     /* Column width distribution for Trending Tags table */
@@ -955,9 +934,9 @@
       padding: 0.4rem 0.9rem;
       border-radius: var(--radius-md);
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
-      font-weight: 600;
+      font-weight: 700;
       background: var(--success-gradient);
-      color: white;
+      color: #0f1424; /* dark text on the bright cyan gradient: white was 2.42:1 */
       box-shadow: var(--shadow-sm);
     }
 
@@ -1722,4 +1701,190 @@
     .toot-content pre code {
       background: none;
       padding: 0;
+    }
+
+    /* ============ Craft pass: states, a11y, responsive data cards ============ */
+
+    /* Screen-reader-only helper */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Visible focus for keyboard users (browser surfaces carry the design) */
+    :focus-visible {
+      outline: 2px solid #8b9cff;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    /* Text selection themed from the palette */
+    ::selection {
+      background: rgba(102, 126, 234, 0.55);
+      color: #ffffff;
+    }
+
+    /* Tabular numerals for all counters and data tables */
+    .kpi-value,
+    .kpi-hashtag,
+    .content-card .table-wrapper .table td {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Honest status dot: state comes from the data layer, not a hardwired color */
+    .status-dot {
+      transition: background var(--transition-base), box-shadow var(--transition-base);
+    }
+    .status-dot[data-state="fresh"] {
+      background: #43e97b;
+      box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+      animation: pulse 2s infinite;
+    }
+    .status-dot[data-state="stale"] {
+      background: #fa709a;
+      box-shadow: none;
+      animation: none;
+    }
+    .status-dot[data-state="error"] {
+      background: #ff6b6b;
+      box-shadow: none;
+      animation: none;
+    }
+    .status-dot[data-state="loading"] {
+      background: #a0aec0;
+      box-shadow: none;
+      animation: pulse 1.2s infinite;
+    }
+
+    /* Contrast overlays: keep the identity gradients, restore AA on white text
+       (0.35 black over the gradient start puts runtime contrast ≈5.4:1) */
+    .error-btn {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), var(--danger-gradient);
+    }
+    #backToDailyBtn {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), var(--secondary-gradient);
+    }
+
+    /* Button reset for pills rendered as real <button> elements */
+    button.hashtag-pill {
+      font-family: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    /* Trending tag name button (replaces inline-onclick anchor) */
+    button.tag-link-btn {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      transition: color var(--transition-fast);
+    }
+
+    button.tag-link-btn:hover {
+      color: #667eea;
+    }
+
+    /* Respect reduced-motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* ============ Mobile: dashboard tables become card lists ============ */
+    @media (max-width: 768px) {
+      /* Stack the brand block above the view nav instead of squeezing both */
+      .dashboard-header > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      /* Top Performers + Tags em Alta: one card per row */
+      .content-card .table-wrapper .table tbody td[data-label] {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        border-bottom: none;
+        white-space: normal;
+        overflow: visible;
+      }
+      .content-card .table-wrapper .table tbody td[data-label]::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex: 0 0 auto;
+        max-width: 45%;
+      }
+      .content-card .table-wrapper .table tbody td[data-label] .td-value {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: right;
+        word-break: normal;
+        overflow-wrap: anywhere;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"] .td-value {
+        text-align: left;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding-bottom: 0.75rem;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"]::before {
+        order: -1;
+      }
+      .content-card .table-wrapper .table tbody tr {
+        display: block;
+        background: transparent !important;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.75rem 0;
+      }
+      /* Auto layout wins on mobile cards: drop the desktop width hints */
+      #bentoGrid .content-card.trending-tags .table-wrapper .table thead th,
+      #bentoGrid .content-card.trending-tags .table-wrapper .table tbody td[data-label] {
+        width: auto;
+      }
+      .content-card .table-wrapper .table tbody tr:last-child {
+        border-bottom: none;
+      }
+      .content-card .table-wrapper .table thead {
+        display: none;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Ações"] {
+        padding-top: 0.25rem;
+      }
+      /* Weekly history: long data table scrolls horizontally instead */
+      .content-card .table-wrapper .table {
+        min-width: 560px;
+      }
+      #bentoGrid .content-card .table-wrapper .table {
+        display: block;
+        min-width: 0;
+      }
+      #bentoGrid .content-card .table-wrapper .table tbody {
+        display: block;
+      }
     }
