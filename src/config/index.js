@@ -71,12 +71,15 @@ try {
 } catch (error) {
   // Enhanced error logging for Docker debugging
   if (error instanceof z.ZodError) {
-    const missingVars = error.errors
-      .filter(e => e.code === 'invalid_type' && e.received === 'undefined')
+    // Zod v4 exposes `issues` (v3 used `errors`); fall back for compatibility
+    const issues = error.issues ?? error.errors ?? [];
+    // In Zod v4 a missing required value yields invalid_type without `received`
+    const missingVars = issues
+      .filter(e => e.code === 'invalid_type' && e.received === undefined)
       .map(e => e.path.join('.'));
     
-    const invalidVars = error.errors
-      .filter(e => e.code !== 'invalid_type' || e.received !== 'undefined')
+    const invalidVars = issues
+      .filter(e => e.code !== 'invalid_type' || e.received !== undefined)
       .map(e => ({ path: e.path.join('.'), message: e.message }));
     
     console.error('❌ Erro na validação de variáveis de ambiente:');
