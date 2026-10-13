@@ -8,12 +8,12 @@
  *   node diagnose-collection.js [hashtag]
  */
 
-import { mastodonService } from './src/services/mastodon.js';
-import { historyCollector } from './src/services/historyCollector.js';
-import { HASHTAGS, getHashtagsForDay } from './src/constants/index.js';
-import { logger } from './src/utils/logger.js';
+import { mastodonService } from '../src/services/mastodon.js';
+import { historyCollector } from '../src/services/historyCollector.js';
+import { HASHTAGS, getHashtagsForDay } from '../src/constants/index.js';
+import { logger } from '../src/utils/logger.js';
 import moment from 'moment-timezone';
-import { appConfig as config } from './src/config/index.js';
+import { appConfig as config } from '../src/config/index.js';
 
 const colors = {
   reset: '\x1b[0m',

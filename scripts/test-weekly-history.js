@@ -12,13 +12,13 @@
  *   node test-weekly-history.js --collect  # Força coleta de dados
  */
 
-import { getDatabase } from './src/database/index.js';
-import { databaseService } from './src/services/databaseService.js';
-import { historyCollector } from './src/services/historyCollector.js';
-import { HASHTAGS, getHashtagsForDay } from './src/constants/index.js';
-import { logger } from './src/utils/logger.js';
+import { getDatabase } from '../src/database/index.js';
+import { databaseService } from '../src/services/databaseService.js';
+import { historyCollector } from '../src/services/historyCollector.js';
+import { HASHTAGS, getHashtagsForDay } from '../src/constants/index.js';
+import { logger } from '../src/utils/logger.js';
 import moment from 'moment-timezone';
-import { appConfig as config } from './src/config/index.js';
+import { appConfig as config } from '../src/config/index.js';
 
 // Cores para output no terminal
 const colors = {

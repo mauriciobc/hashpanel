@@ -7,12 +7,12 @@
  *   node create-test-data.js
  */
 
-import { getDatabase } from './src/database/index.js';
-import { databaseService } from './src/services/databaseService.js';
-import { getISOWeek } from './src/database/migrations.js';
-import { HASHTAGS, getHashtagsForDay } from './src/constants/index.js';
+import { getDatabase } from '../src/database/index.js';
+import { databaseService } from '../src/services/databaseService.js';
+import { getISOWeek } from '../src/database/migrations.js';
+import { HASHTAGS, getHashtagsForDay } from '../src/constants/index.js';
 import moment from 'moment-timezone';
-import { appConfig as config } from './src/config/index.js';
+import { appConfig as config } from '../src/config/index.js';
 
 // Cores para output
 const colors = {

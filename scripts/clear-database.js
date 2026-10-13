@@ -6,8 +6,8 @@
  *   node clear-database.js --confirm    # Confirma e prossegue com a limpeza
  */
 
-import { getDatabase } from './src/database/index.js';
-import { logger } from './src/utils/logger.js';
+import { getDatabase } from '../src/database/index.js';
+import { logger } from '../src/utils/logger.js';
 
 async function main() {
   const args = process.argv.slice(2);
