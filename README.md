@@ -486,6 +486,7 @@ hashpanel/
 
 ### API
 - `GET /api` - Informações da API e lista de grupos de rotas
+- `GET /api/docs` - Especificação OpenAPI 3 (JSON)
 
 ### Dashboard (`/api/dashboard`)
 - `GET /api/dashboard/stats` - Estatísticas consolidadas do dia

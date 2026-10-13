@@ -1,0 +1,206 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HashPanel API",
+    "version": "1.0.0",
+    "description": "Mastodon hashtag monitoring and analytics API."
+  },
+  "servers": [{ "url": "/" }],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Dashboard" },
+    { "name": "Hashtag" },
+    { "name": "Trending" },
+    { "name": "Toot" },
+    { "name": "Media" },
+    { "name": "WebSocket" }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "System health (Mastodon, database, WebSocket, memory)",
+        "responses": {
+          "200": { "description": "Healthy" },
+          "503": { "description": "Degraded or unhealthy" }
+        }
+      }
+    },
+    "/api": {
+      "get": {
+        "summary": "API information and route groups",
+        "responses": { "200": { "description": "API metadata" } }
+      }
+    },
+    "/api/docs": {
+      "get": {
+        "summary": "This OpenAPI document",
+        "responses": { "200": { "description": "OpenAPI 3 spec" } }
+      }
+    },
+    "/api/dashboard/stats": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Consolidated statistics for the current day",
+        "parameters": [
+          { "name": "timeframe", "in": "query", "schema": { "type": "string", "enum": ["today", "week", "month", "all"] } }
+        ],
+        "responses": { "200": { "description": "Dashboard statistics" } }
+      }
+    },
+    "/api/dashboard/summary": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Quick summary of the current hashtag",
+        "responses": { "200": { "description": "Summary" } }
+      }
+    },
+    "/api/dashboard/timeline": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Timeline of the last N days",
+        "parameters": [{ "name": "days", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 365, "default": 7 } }],
+        "responses": { "200": { "description": "Timeline" } }
+      }
+    },
+    "/api/dashboard/performance": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "System performance metrics",
+        "responses": { "200": { "description": "Performance metrics" } }
+      }
+    },
+    "/api/dashboard/alerts": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "System alerts and warnings",
+        "responses": { "200": { "description": "Alerts" } }
+      }
+    },
+    "/api/dashboard/telemetry": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Timezone usage telemetry",
+        "responses": { "200": { "description": "Telemetry statistics" } }
+      }
+    },
+    "/api/hashtag/current": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Hashtag for the current day",
+        "responses": { "200": { "description": "Current hashtag" } }
+      }
+    },
+    "/api/hashtag/daily": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Daily hashtag (computed)",
+        "responses": { "200": { "description": "Daily hashtag" } }
+      }
+    },
+    "/api/hashtag/{hashtag}/stats": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Statistics for a hashtag",
+        "parameters": [{ "name": "hashtag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Statistics" } }
+      }
+    },
+    "/api/hashtag/{hashtag}/timeline": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Timeline for a hashtag",
+        "parameters": [{ "name": "hashtag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Timeline" } }
+      }
+    },
+    "/api/hashtag/{hashtag}/analysis": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Full analysis for a hashtag",
+        "parameters": [{ "name": "hashtag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Analysis" } }
+      }
+    },
+    "/api/hashtag/{hashtag}/users": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Most active users for a hashtag",
+        "parameters": [{ "name": "hashtag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Active users" } }
+      }
+    },
+    "/api/hashtag/history/weekly": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Weekly history for all hashtags",
+        "responses": { "200": { "description": "Weekly history" } }
+      }
+    },
+    "/api/hashtag/{hashtag}/history/weekly": {
+      "get": {
+        "tags": ["Hashtag"],
+        "summary": "Weekly history for one hashtag",
+        "parameters": [{ "name": "hashtag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Weekly history" } }
+      }
+    },
+    "/api/trending": {
+      "get": {
+        "tags": ["Trending"],
+        "summary": "Trending tags",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
+        ],
+        "responses": { "200": { "description": "Trending tags" } }
+      }
+    },
+    "/api/trending/summary": {
+      "get": { "tags": ["Trending"], "summary": "Trending summary", "responses": { "200": { "description": "Summary" } } }
+    },
+    "/api/trending/compare": {
+      "get": { "tags": ["Trending"], "summary": "Compare trending tags", "responses": { "200": { "description": "Comparison" } } }
+    },
+    "/api/trending/{tag}": {
+      "get": {
+        "tags": ["Trending"],
+        "summary": "Details for one trending tag",
+        "parameters": [{ "name": "tag", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Tag details" } }
+      }
+    },
+    "/api/toot/history": {
+      "get": { "tags": ["Toot"], "summary": "Published posts history", "responses": { "200": { "description": "History" } } }
+    },
+    "/api/toot/stats": {
+      "get": { "tags": ["Toot"], "summary": "Publication statistics", "responses": { "200": { "description": "Statistics" } } }
+    },
+    "/api/toot/validate": {
+      "post": { "tags": ["Toot"], "summary": "Validate content before posting", "responses": { "200": { "description": "Validation result" }, "400": { "description": "Invalid content" } } }
+    },
+    "/api/toot/generate": {
+      "post": { "tags": ["Toot"], "summary": "Generate the report without publishing", "responses": { "200": { "description": "Generated report" } } }
+    },
+    "/api/toot/post": {
+      "post": { "tags": ["Toot"], "summary": "Publish a post", "responses": { "200": { "description": "Created post" } } }
+    },
+    "/api/toot/daily": {
+      "post": { "tags": ["Toot"], "summary": "Publish the daily report", "responses": { "200": { "description": "Published" } } }
+    },
+    "/api/toot/daily-image": {
+      "post": { "tags": ["Toot"], "summary": "Publish the daily report with an image", "responses": { "200": { "description": "Published" } } }
+    },
+    "/api/media/proxy": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Proxy an image to avoid CORS",
+        "parameters": [{ "name": "url", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Proxied image" }, "400": { "description": "Invalid URL" } }
+      }
+    },
+    "/api/websocket/status": {
+      "get": { "tags": ["WebSocket"], "summary": "Mention listener connection status", "responses": { "200": { "description": "Status" } } }
+    }
+  }
+}

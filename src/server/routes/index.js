@@ -5,6 +5,7 @@ import { trendingRoutes } from './trending.js';
 import { tootRoutes } from './toot.js';
 import { mediaRoutes } from './media.js';
 import { websocketRoutes } from './websocket.js';
+import { docsRoutes } from './docs.js';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.get('/', (req, res) => {
       media: '/api/media',
       websocket: '/api/websocket',
     },
+    documentation: '/api/docs',
   });
 });
 
@@ -32,5 +34,6 @@ router.use('/trending', trendingRoutes);
 router.use('/toot', tootRoutes);
 router.use('/media', mediaRoutes);
 router.use('/websocket', websocketRoutes);
+router.use('/docs', docsRoutes);
 
 export { router as apiRoutes };

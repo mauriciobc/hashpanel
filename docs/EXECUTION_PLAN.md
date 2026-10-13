@@ -401,3 +401,23 @@ Verification at the tip: `eslint src` → 0 problems; `npm test` → 102/102 pas
 - WS-4/WS-5 must stay consistent (compose references the entrypoint/`CMD`). WS-10 (frontend) is
   best done after WS-8/WS-9 land.
 
+### Done — remaining workstreams
+
+| Workstream | Branch | Commit summary |
+|---|---|---|
+| config fix | `fix/config-error-handling` | Zod v4 `error.issues` in the config diagnostic |
+| WS-6 health | `perf/healthcheck-cache` | cache the Mastodon health probe (30s) |
+| WS-5 entrypoint/scripts | `chore/entrypoint-scripts` | `src/server/main.js`, `npm start` = server, merged cron scripts, moved dev utilities |
+| WS-4 docker | `chore/docker-hardening` | removed clone-at-boot compose, dropped obsolete `version:`, added `init`/`no-new-privileges` |
+| WS-8 CI | `ci/github-actions` | GitHub Actions (lint + test + coverage), dummy env vars, coverage floor |
+| WS-9 tests | `test/integration` | Express middleware + route integration tests; fixed Zod v4 in `errorHandler` |
+| WS-10 frontend | `refactor/frontend-split` | split `index.html` (5173→305 lines) into `styles.css` + `js/app.js` |
+| WS-12 docs | `docs/openapi` | OpenAPI 3 spec served at `/api/docs` |
+| WS-11 deps | `docs/openapi` | `docs/DEPENDENCY_REVIEW.md` (spike results; migrations intentionally left as follow-ups) |
+
+Final baseline at the tip: `eslint src` → 0 problems; `npm test` → 113/113; coverage ~44%
+(thresholds enforced). CI was validated locally with no `.env` and dummy env vars.
+
+Still open by design: the actual `canvas`→`@napi-rs/canvas` and `moment`→`luxon` **migrations**
+(WS-11) — they need image-output / date-boundary verification and should be separate PRs.
+
