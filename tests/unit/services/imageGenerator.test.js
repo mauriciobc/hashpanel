@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createCanvas, loadImage } from 'canvas';
-import { ImageGeneratorService } from '../../../src/services/imageGenerator.js';
+import {
+  ImageGeneratorService,
+  isDashboardFontRegistered
+} from '../../../src/services/imageGenerator.js';
 
 describe('ImageGeneratorService', () => {
   const service = new ImageGeneratorService();
@@ -123,6 +126,10 @@ describe('ImageGeneratorService', () => {
   });
 
   describe('generateDashboardImage', () => {
+    it('deve registrar fonte DejaVu embutida para renderizar texto no PNG', () => {
+      expect(isDashboardFontRegistered()).toBe(true);
+    });
+
     it('deve retornar objeto com imageBuffer e altText', async () => {
       const stats = {
         hashtag: 'teste',
