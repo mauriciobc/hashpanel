@@ -476,17 +476,8 @@
       grid-row: 1;
     }
 
-    /* Vidro-cristal: superfície sólida e fosca. O brilho vem do
-       ::before/::after do Magic Card, só no hover. */
-    .kpi-card:hover {
-      background-color: rgba(255, 255, 255, 0.07);
-      border-color: transparent;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.42),
-        0 0 0 1px var(--glow-rim),
-        0 10px 25px rgba(0, 0, 0, 0.2),
-        0 24px 56px -18px var(--glow-ambient);
-    }
+    /* O hover do cartão (superfície, luz e borda viva) é definido mais
+       abaixo, junto das pseudo-camadas da borda viva. */
 
     /* Tratamento do cartão (polish aceito — live a1700431 + steer 7ae11ea1) */
     .kpi-card {
@@ -508,6 +499,7 @@
          do cartão. Com `top`, elas escapam para trás e a borda viva
          aparece só na borda. */
       top: -2px;
+      background-color: var(--surface-fill-hover);
       border-color: transparent;
       /* A luz que transborda: três camadas — um núcleo vivo junto à borda,
          um halo largo e difuso, e a sombra preta que reassenta o cartão.
@@ -1842,18 +1834,13 @@
       color: var(--accent-text);
     }
 
-    /* O hover é um degrau: a borda acende em acento, o fundo sobe um tom.
-       Nenhum halo, nenhum arco giratório — a cor marca o alvo, não o decora. */
-    .kpi-card:hover,
-    .content-card:hover,
+    /* O hover dos cartões é definido junto ao cartão (ver .kpi-card:hover e
+       .content-card:hover). Aqui ficam só as superfícies menores, que não
+       têm a borda viva. */
     .status-bar:hover,
     .daily-hashtags-card:hover {
+      background: var(--surface-fill-hover);
       border-color: var(--accent-line);
-    }
-
-    .kpi-card:hover {
-      background-color: var(--surface-fill-hover);
-      transform: translateY(-1px);
     }
 
     @media (prefers-reduced-motion: reduce) {

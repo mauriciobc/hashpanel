@@ -1,65 +1,313 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T00:00:00Z",
+  "generatedAt": "2026-10-20T00:00:00Z",
   "title": "Design System: Hashpanel",
   "extensions": {
     "colorMeta": {
-      "indigo-neon": { "role": "primary", "displayName": "Indigo-Neon", "canonical": "#667eea", "tonalRamp": ["#1a1c4e", "#2a2f6b", "#3a4288", "#4a55a5", "#667eea", "#8fa4f2", "#b5c1f7", "#e0e7ff"] },
-      "violeta-noite": { "role": "primary", "displayName": "Violeta-Noite", "canonical": "#764ba2", "tonalRamp": ["#2b1537", "#3d2050", "#4f2a66", "#5f367d", "#764ba2", "#9b74bd", "#bd9dd5", "#e3d3ec"] },
-      "magenta-neon": { "role": "secondary", "displayName": "Magenta-Neon", "canonical": "#f093fb", "tonalRamp": ["#4d1266", "#6b1d8c", "#8a26ae", "#a830cf", "#f093fb", "#f5b5fd", "#fad4fe", "#fef1fe"] },
-      "coral-quente": { "role": "secondary", "displayName": "Coral-Quente", "canonical": "#f5576c", "tonalRamp": ["#5c1020", "#7f1a2e", "#a0233c", "#c42d4b", "#f5576c", "#f88a98", "#fbb5be", "#fee2e7"] },
-      "ceu-eletrico": { "role": "secondary", "displayName": "Céu-Elétrico", "canonical": "#4facfe", "tonalRamp": ["#0f3a6b", "#16528f", "#1d6ab4", "#2b86d8", "#4facfe", "#7fc6ff", "#aadaff", "#dff0ff"] },
-      "ciano-brilho": { "role": "secondary", "displayName": "Ciano-Brilho", "canonical": "#00f2fe", "tonalRamp": ["#00444a", "#006068", "#007d87", "#0099a5", "#00f2fe", "#5ff8fe", "#9bfbfe", "#dffdfe"] },
-      "rosa-laser": { "role": "secondary", "displayName": "Rosa-Laser", "canonical": "#fa709a", "tonalRamp": ["#5c1130", "#7d1944", "#9e2158", "#c02b6e", "#fa709a", "#fb9bb9", "#fdc6d8", "#feeff5"] },
-      "amarelo-sol": { "role": "secondary", "displayName": "Amarelo-Sol", "canonical": "#fee140", "tonalRamp": ["#5c4a00", "#7f6a00", "#a28b00", "#c5ae00", "#fee140", "#fee97e", "#ffefab", "#fff8db"] },
-      "vermelho-alerta": { "role": "secondary", "displayName": "Vermelho-Alerta", "canonical": "#ff6b6b", "tonalRamp": ["#5c1111", "#7f1c1c", "#a02525", "#c23030", "#ff6b6b", "#ff9292", "#ffb8b8", "#ffe1e1"] },
-      "verde-status": { "role": "secondary", "displayName": "Verde-Status", "canonical": "#43e97b", "tonalRamp": ["#0e4a1e", "#16652a", "#1e8036", "#2fa34a", "#43e97b", "#7bf2a5", "#b0f8cb", "#e4fdf0"] },
-      "ciano-menta": { "role": "secondary", "displayName": "Ciano-Menta", "canonical": "#38f9d7", "tonalRamp": ["#0b5145", "#10705f", "#168f7a", "#1fae95", "#38f9d7", "#78fcea", "#aefef3", "#e3fef9"] },
-      "indigo-hover": { "role": "primary", "displayName": "Indigo-Hover", "canonical": "#8b9cff", "tonalRamp": ["#23263e", "#2e3350", "#3a4062", "#474e74", "#8b9cff", "#a9b4ff", "#c6cdff", "#e6e9ff"] },
-      "glifo-vidro": { "role": "neutral", "displayName": "Glifo-Vidro", "canonical": "#ccd6f6" },
-      "cid-indigo": { "role": "neutral", "displayName": "Cid-Indigo", "canonical": "#a9b7de" },
-      "tinta-tabela": { "role": "neutral", "displayName": "Tinta-Tabela", "canonical": "#0f1424" },
-      "verde-hover": { "role": "secondary", "displayName": "Verde-Hover", "canonical": "#5bff99" },
-      "rosa-hover": { "role": "secondary", "displayName": "Rosa-Hover", "canonical": "#ffb3ff" },
-      "amarelo-grafico": { "role": "secondary", "displayName": "Amarelo-Grafico", "canonical": "rgb(243, 202, 64)", "purpose": "Traço de dataset do Chart.js — nunca texto." },
-      "escuro-modal": { "role": "neutral", "displayName": "Escuro-Modal", "canonical": "rgba(0, 0, 0, 0.8)" },
-      "meia-noite": { "role": "neutral", "displayName": "Meia-Noite", "canonical": "#0f0c29", "tonalRamp": ["#0f0c29", "#1a1538", "#282248", "#38305c", "#4a4074", "#615695", "#7d73b3", "#a49ccc"] },
-      "vidro-fundo": { "role": "neutral", "displayName": "Vidro-Fundo", "canonical": "rgba(255, 255, 255, 0.08)" },
-      "branco": { "role": "neutral", "displayName": "Branco", "canonical": "#ffffff" },
-      "cinza-nevoa": { "role": "neutral", "displayName": "Cinza-Névoa", "canonical": "#a0aec0", "tonalRamp": ["#1a1f26", "#2b333d", "#3c4754", "#4d5b6b", "#5f7082", "#7e91a3", "#a0aec0", "#cfd8e1"] }
+      "preto-base": {
+        "role": "neutral",
+        "displayName": "Preto-Base",
+        "canonical": "#000000",
+        "purpose": "Fundo da página. Absoluto, sem gradiente, sem aurora."
+      },
+      "superficie-cartao": {
+        "role": "neutral",
+        "displayName": "Superfície-Cartão",
+        "canonical": "#0b0b0e",
+        "tonalRamp": [
+          "#000000",
+          "#0b0b0e",
+          "#131318",
+          "#1c1c22",
+          "#26262e",
+          "#33333d",
+          "#42424e",
+          "#545463"
+        ],
+        "purpose": "Cartões, barra de status e modal. Um degrau acima do preto."
+      },
+      "superficie-hover": {
+        "role": "neutral",
+        "displayName": "Superfície-Hover",
+        "canonical": "#131318",
+        "purpose": "Fundo do cartão no hover."
+      },
+      "superficie-borda": {
+        "role": "neutral",
+        "displayName": "Superfície-Borda",
+        "canonical": "rgba(255, 255, 255, 0.09)",
+        "purpose": "Borda padrão de 1px das superfícies."
+      },
+      "borda-forte": {
+        "role": "neutral",
+        "displayName": "Borda-Forte",
+        "canonical": "rgba(255, 255, 255, 0.16)",
+        "purpose": "Borda de elementos interativos em repouso."
+      },
+      "acento-base": {
+        "role": "primary",
+        "displayName": "Acento-Base",
+        "canonical": "#6d8cff",
+        "tonalRamp": [
+          "#151b33",
+          "#1e2749",
+          "#2a3766",
+          "#3a4a86",
+          "#4a5fa8",
+          "#6d8cff",
+          "#9db2ff",
+          "#cdd8ff"
+        ],
+        "purpose": "A única cor de acento. Marca a hashtag do dia, o pill ativo e o anel do hover."
+      },
+      "acento-soft": {
+        "role": "primary",
+        "displayName": "Acento-Soft",
+        "canonical": "rgba(109, 140, 255, 0.14)",
+        "purpose": "Fundo do pill ativo e do badge de relevância."
+      },
+      "acento-line": {
+        "role": "primary",
+        "displayName": "Acento-Linha",
+        "canonical": "rgba(109, 140, 255, 0.32)",
+        "purpose": "Borda de acento."
+      },
+      "acento-texto": {
+        "role": "primary",
+        "displayName": "Acento-Texto",
+        "canonical": "#9db2ff",
+        "purpose": "Texto em acento — a hashtag do dia e o badge de relevância."
+      },
+      "brilho-a": {
+        "role": "primary",
+        "displayName": "Brilho-A",
+        "canonical": "#8fb0ff",
+        "purpose": "Primeira parada do gradiente da borda viva."
+      },
+      "brilho-b": {
+        "role": "primary",
+        "displayName": "Brilho-B",
+        "canonical": "#b48cff",
+        "purpose": "Segunda parada do gradiente da borda viva."
+      },
+      "brilho-c": {
+        "role": "primary",
+        "displayName": "Brilho-C",
+        "canonical": "#4de3ff",
+        "purpose": "Terceira parada do gradiente da borda viva. O contraste entre as paradas é o que dá a impressão de luz girando."
+      },
+      "positivo": {
+        "role": "secondary",
+        "displayName": "Positivo",
+        "canonical": "#3ecf8e",
+        "purpose": "Estado de tendência em alta."
+      },
+      "negativo": {
+        "role": "secondary",
+        "displayName": "Negativo",
+        "canonical": "#f2555a",
+        "purpose": "Estado de tendência em baixa."
+      },
+      "atencao": {
+        "role": "secondary",
+        "displayName": "Atenção",
+        "canonical": "#e0b341",
+        "purpose": "Aviso."
+      },
+      "branco": {
+        "role": "neutral",
+        "displayName": "Branco",
+        "canonical": "#f5f5f7",
+        "purpose": "Texto primário e numerais KPI. Puro, sem gradiente."
+      },
+      "cinza-nevoa": {
+        "role": "neutral",
+        "displayName": "Cinza-Névoa",
+        "canonical": "#a1a1aa",
+        "tonalRamp": [
+          "#1a1a1e",
+          "#2a2a30",
+          "#3c3c44",
+          "#4e4e58",
+          "#61616d",
+          "#7e7e8a",
+          "#a1a1aa",
+          "#c7c7d0"
+        ],
+        "purpose": "Texto secundário e rótulos de controle."
+      },
+      "cinza-apagado": {
+        "role": "neutral",
+        "displayName": "Cinza-Apagado",
+        "canonical": "#6b6b76",
+        "purpose": "Labels, cabeçalhos de tabela e glifos de ícone."
+      },
+      "cinza-tenue": {
+        "role": "neutral",
+        "displayName": "Cinza-Tênue",
+        "canonical": "#45454e",
+        "purpose": "Estado mais distante da escala."
+      },
+      "indigo-neon": {
+        "role": "primary",
+        "displayName": "Indigo-Neon",
+        "canonical": "#667eea",
+        "purpose": "Reservado aos gradientes legados de marca. Não é a cor de destaque do painel."
+      },
+      "violeta-noite": {
+        "role": "primary",
+        "displayName": "Violeta-Noite",
+        "canonical": "#764ba2",
+        "purpose": "Segunda ponta dos gradientes legados de marca."
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "h1 do dashboard, pintado com o gradiente de identidade." },
-      "value": { "displayName": "Value", "purpose": "Numerais KPI e hashtags — os letreiros do painel." },
-      "title": { "displayName": "Title", "purpose": "Títulos de cartão de conteúdo." },
-      "body": { "displayName": "Body", "purpose": "Leitura corrida; nunca recebe gradiente." },
-      "label": { "displayName": "Label", "purpose": "Labels KPI e cabeçalhos de tabela em UPPERCASE." },
-      "micro": { "displayName": "Micro", "purpose": "Badges e micro-textos das tabelas." },
-      "pill": { "displayName": "Pill", "purpose": "Pills de hashtag da barra diária." },
-      "caption": { "displayName": "Caption", "purpose": "Parágrafo do cabeçalho do dashboard." },
-      "icon": { "displayName": "Icon", "purpose": "Glifo nos chips de vidro (não é leitura corrida)." },
-      "code": { "displayName": "Code", "purpose": "Código em toots — Fira Code/Monaco/mono." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "h1 do dashboard. Branco puro, peso 800 — estrutura, não destaque."
+      },
+      "value": {
+        "displayName": "Value",
+        "purpose": "Numerais KPI. Branco puro com tabular-nums, para alinhar em coluna."
+      },
+      "hashtag": {
+        "displayName": "Hashtag",
+        "purpose": "A hashtag do dia. Único número em acento — é o assunto."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de cartão de conteúdo."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Leitura corrida; nunca recebe cor nem gradiente."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Labels KPI e cabeçalhos de tabela em UPPERCASE, tracking 0.08–0.09em."
+      },
+      "pill": {
+        "displayName": "Pill",
+        "purpose": "Pills de hashtag da barra diária."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Parágrafo do cabeçalho do dashboard."
+      },
+      "icon": {
+        "displayName": "Icon",
+        "purpose": "Glifo dentro do chip de 32px (não é leitura corrida)."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Código em toots — Fira Code/Monaco/mono."
+      }
     },
     "shadows": [
-      { "name": "shadow-sm", "value": "0 2px 4px rgba(0, 0, 0, 0.1)", "purpose": "Repouso de elementos pequenos." },
-      { "name": "shadow-md", "value": "0 4px 6px rgba(0, 0, 0, 0.1)", "purpose": "Botões em repouso; combinada com glow." },
-      { "name": "shadow-lg", "value": "0 10px 25px rgba(0, 0, 0, 0.2)", "purpose": "Hover de botões e cartões." },
-      { "name": "shadow-xl", "value": "0 20px 40px rgba(0, 0, 0, 0.3)", "purpose": "Modais e sobreposições." },
-      { "name": "shadow-glow", "value": "0 0 0 1px rgba(143, 164, 242, 0.28), 0 24px 56px -18px rgba(102, 126, 234, 0.1)", "purpose": "Sussurro de neon — aro de 1px + ambience larga de baixo alpha; sempre com sombra preta." },
-      { "name": "glow-rim", "value": "rgba(143, 164, 242, 0.5)", "purpose": "Aro luminoso no hover (0.28 em repouso pelo token)." },
-      { "name": "glow-ambient", "value": "rgba(102, 126, 234, 0.14)", "purpose": "Ambience externa de falloff longo; nunca sob texto." }
+      {
+        "name": "surface",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.6)",
+        "purpose": "Repouso de toda superfície."
+      },
+      {
+        "name": "surface-hover",
+        "value": "0 0 10px 0 rgba(143, 176, 255, 0.85), 0 0 26px 4px rgba(109, 140, 255, 0.55), 0 0 60px 10px rgba(109, 140, 255, 0.28), 0 18px 50px -20px rgba(0, 0, 0, 0.85)",
+        "purpose": "A luz do hover: núcleo vivo junto à borda, halo largo e difuso, e a sombra preta que reassenta o cartão."
+      },
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.4)",
+        "purpose": "Elementos pequenos em repouso."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 2px 6px rgba(0, 0, 0, 0.45)",
+        "purpose": "Botões em repouso."
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 8px 24px rgba(0, 0, 0, 0.5)",
+        "purpose": "Hover de botões."
+      },
+      {
+        "name": "shadow-xl",
+        "value": "0 20px 50px rgba(0, 0, 0, 0.6)",
+        "purpose": "Modais e sobreposições."
+      },
+      {
+        "name": "shadow-glow",
+        "value": "0 0 0 1px var(--accent-line)",
+        "purpose": "Anel de acento de 1px."
+      },
+      {
+        "name": "glow-rim",
+        "value": "rgba(109, 140, 255, 0.45)",
+        "purpose": "Aro luminoso no hover."
+      },
+      {
+        "name": "glow-ambient",
+        "value": "rgba(109, 140, 255, 0.1)",
+        "purpose": "Ambience externa de falloff longo; nunca sob texto."
+      }
     ],
     "motion": [
-      { "name": "transition-fast", "value": "0.15s ease", "purpose": "Estado de linha de tabela e micro-feedbacks." },
-      { "name": "transition-base", "value": "0.3s ease", "purpose": "Hover, transform e transições padrão." },
-      { "name": "transition-slow", "value": "0.5s ease", "purpose": "Entradas de página em cascata." },
-      { "name": "rotate-glow", "value": "10s linear infinite", "purpose": "Anel conic neon em deriva lenta ≥10s — sussurro, não estroboscópio." }
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Curva padrão: acelera no início, desacelera devagar no fim."
+      },
+      {
+        "name": "transition-fast",
+        "value": "0.2s var(--ease-out)",
+        "purpose": "Micro-feedbacks de estado."
+      },
+      {
+        "name": "transition-base",
+        "value": "0.3s var(--ease-out)",
+        "purpose": "Hover e transições padrão."
+      },
+      {
+        "name": "transition-slow",
+        "value": "0.6s var(--ease-out)",
+        "purpose": "Entradas de página em cascata."
+      },
+      {
+        "name": "card-spin",
+        "value": "2.5s linear infinite",
+        "purpose": "Gradiente da borda viva girando. Com prefers-reduced-motion vira um anel estático."
+      },
+      {
+        "name": "rise-in",
+        "value": "0.6s var(--ease-out)",
+        "purpose": "Entrada com respiro: sobe e a escala abre um pouquinho."
+      },
+      {
+        "name": "rotate-property",
+        "value": "@property --rotate { syntax: \"<angle>\"; initial-value: 132deg; inherits: false; }",
+        "purpose": "O ângulo que gira o gradiente da borda viva. Declarado como propriedade para poder ser interpolado — sem isso o navegador salta entre 0deg e 360deg em vez de girar."
+      }
     ],
     "breakpoints": [
-      { "name": "xs", "value": "576px" },
-      { "name": "sm", "value": "768px" },
-      { "name": "md", "value": "992px" },
-      { "name": "xl", "value": "1400px" }
+      {
+        "name": "xs",
+        "value": "576px"
+      },
+      {
+        "name": "sm",
+        "value": "768px"
+      },
+      {
+        "name": "md",
+        "value": "992px"
+      },
+      {
+        "name": "lg",
+        "value": "1200px"
+      },
+      {
+        "name": "xl",
+        "value": "1400px"
+      }
     ]
   },
   "components": [
@@ -67,73 +315,73 @@
       "name": "Botão Primário",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Ação principal: gradiente de identidade, texto branco, elevação no hover.",
+      "description": "Ação principal: fundo de acento sólido, texto quase-preto. O contorno acende no hover.",
       "html": "<button class=\"ds-btn-primary\">Atualizar</button>",
-      "css": ".ds-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 0.5rem 1.25rem; border-radius: 12px; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Inter, sans-serif; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 0 20px rgba(102,126,234,0.3); } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:focus-visible { outline: 2px solid #8fa4f2; outline-offset: 2px; }"
+      "css": ".ds-btn-primary { background: var(--accent); border: none; color: #05060a; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: transform 0.2s var(--ease-out), color 0.2s var(--ease-out), border-color 0.2s var(--ease-out); display: inline-flex; align-items: center; gap: 0.5rem; font-family: Inter, sans-serif; } .ds-btn-primary:hover { border-color: var(--accent-line); } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 4px var(--accent-soft); }"
     },
     {
       "name": "Botão Secundário",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Ação neutra sobre vidro translúcido com borda translúcida.",
-      "html": "<button class=\"ds-btn-secondary\">Fechar</button>",
-      "css": ".ds-btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #ffffff; padding: 0.625rem 1.25rem; border-radius: 12px; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; font-family: Inter, sans-serif; } .ds-btn-secondary:hover { background: rgba(255,255,255,0.15); } .ds-btn-secondary:focus-visible { outline: 2px solid #8fa4f2; outline-offset: 2px; }"
+      "description": "Ação neutra: fundo transparente, borda de 1px, texto em cinza-nevoa.",
+      "html": "<button class=\"ds-btn-secondary\">Histórico</button>",
+      "css": ".ds-btn-secondary { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: color 0.2s var(--ease-out), border-color 0.2s var(--ease-out); font-family: Inter, sans-serif; } .ds-btn-secondary:hover { color: var(--text-primary); border-color: var(--accent-line); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 4px var(--accent-soft); }"
     },
     {
-      "name": "Pill de Hashtag Ativa",
-      "kind": "chip",
-      "refersTo": "hashtag-pill-active",
-      "description": "Cápsula full-round com gradiente de identidade e indicador.",
-      "html": "<button class=\"ds-pill-active\" aria-pressed=\"true\"><span class=\"ds-pill-dot\"></span>#tercinema</button>",
-      "css": ".ds-pill-active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 0.4rem 0.85rem; border-radius: 24px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 0 20px rgba(102,126,234,0.3); font-family: Inter, sans-serif; } .ds-pill-active:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 0 20px rgba(102,126,234,0.3); } .ds-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 1; }"
-    },
-    {
-      "name": "Cartão de Vidro (KPI)",
+      "name": "Cartão",
       "kind": "card",
-      "refersTo": "glass-card",
-      "description": "Superfície de vidro translúcido com ícone de gradiente por categoria.",
-      "html": "<div class=\"ds-glass-card\"><div class=\"ds-kpi-icon\" role=\"img\" aria-label=\"Posts\">📊</div><div class=\"ds-kpi-label\">Posts hoje</div><div class=\"ds-kpi-value\">42</div></div>",
-      "css": ".ds-glass-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1.5rem; transition: all 0.3s ease; font-family: Inter, sans-serif; color: #fff; display: flex; flex-direction: column; justify-content: space-between; } .ds-glass-card:hover { background: rgba(255,255,255,0.13); border-color: transparent; transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 20px rgba(102,126,234,0.3); } .ds-kpi-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 0.75rem; } .ds-kpi-label { color: #a0aec0; font-size: 0.9rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.4; } .ds-kpi-value { font-size: 2.25rem; font-weight: 800; line-height: 1; background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.5rem; }"
+      "refersTo": "surface-card",
+      "description": "Superfície sólida um degrau acima do preto. No hover, a borda viva acende e a luz transborda — a cor fica só na borda, o interior permanece preto.",
+      "html": "<article class=\"ds-card\"><h3>Painel do dia</h3><p>Conteúdo</p></article>",
+      "css": ".ds-card { position: relative; overflow: visible; background: var(--surface-fill); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--surface-shadow); transition: box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out), top 0.3s var(--ease-out); } .ds-card::before { content: \"\"; position: absolute; inset: -2px; z-index: -1; border-radius: inherit; padding: 2px; background-image: linear-gradient(var(--rotate), var(--glow-a), var(--glow-b) 45%, var(--glow-c)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; opacity: 0; transition: opacity 0.3s var(--ease-out); pointer-events: none; } .ds-card::after { content: \"\"; position: absolute; inset: -2px; z-index: -1; border-radius: inherit; padding: 2px; background-image: linear-gradient(var(--rotate), var(--glow-a), var(--glow-b) 45%, var(--glow-c)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; filter: blur(14px) saturate(140%); opacity: 0; transition: opacity 0.3s var(--ease-out); pointer-events: none; } .ds-card:hover { top: -2px; border-color: transparent; box-shadow: 0 0 10px 0 rgba(143,176,255,0.85), 0 0 26px 4px rgba(109,140,255,0.55), 0 0 60px 10px rgba(109,140,255,0.28), 0 18px 50px -20px rgba(0,0,0,0.85); } .ds-card:hover::before, .ds-card:hover::after { opacity: 1; animation: card-spin 2.5s linear infinite; }"
     },
     {
-      "name": "Cabeçalho com Título de Letreiro",
-      "kind": "custom",
-      "refersTo": "glass-card",
-      "description": "Ícone em quadrado de gradiente + título bold; assinatura dos cartões de conteúdo.",
-      "html": "<div class=\"ds-icon-grad\" role=\"img\" aria-label=\"Tendências\">📈</div><h3 style=\"margin:0;font-family:Inter,sans-serif;font-weight:700;color:#ffffff\">Tendências</h3>",
-      "css": ".ds-icon-grad { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }"
+      "name": "Pill de Hashtag",
+      "kind": "pill",
+      "refersTo": "hashtag-pill-active",
+      "description": "Contorno neutro em repouso; a pill ativa recebe fundo e borda de acento. Full-round.",
+      "html": "<button class=\"ds-pill ds-pill-active\">#tercinema</button>",
+      "css": ".ds-pill { background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.4rem 0.85rem; border-radius: var(--radius-xl); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.3s var(--ease-out); display: inline-flex; align-items: center; gap: 0.4rem; font-family: Inter, sans-serif; } .ds-pill:hover { background: var(--surface-fill-hover); border-color: var(--border-strong); color: var(--text-primary); transform: translateY(-1px); } .ds-pill-active { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-text); } .ds-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 4px var(--accent-soft); }"
+    },
+    {
+      "name": "Cartão KPI",
+      "kind": "metric",
+      "refersTo": "surface-card",
+      "description": "O número é o conteúdo: branco puro com tabular-nums. A hashtag do dia é a única peça em acento.",
+      "html": "<article class=\"ds-kpi\"><div class=\"ds-kpi-icon\">#</div><div class=\"ds-kpi-hashtag\">#tercinema</div><div class=\"ds-kpi-label\">Hashtag Atual</div></article>",
+      "css": ".ds-kpi { position: relative; overflow: visible; min-height: 164px; background: var(--surface-fill); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--surface-shadow); } .ds-kpi-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; font-size: 1rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); } .ds-kpi-hashtag { font-size: clamp(1.25rem, 3vw, 1.5rem); font-weight: 700; color: var(--accent-text); line-height: 1.3; letter-spacing: -0.02em; } .ds-kpi-value { font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 800; line-height: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; } .ds-kpi-label { color: var(--text-muted); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.4; }"
     }
   ],
   "narrative": {
-    "northStar": "Luzes de neon à meia-noite",
-    "overview": "O Hashpanel se sente como uma rua deserta à meia-noite iluminada por letreiros de neon: o fundo é um roxo-azulado profundo e quase escuro, e toda a energia visual vem de luzes — gradientes elétricos de indigo a violeta, toques de magenta, ciano e rosa sobre superfícies de vidro translúcido. Interface densa mas respirável: um dashboard de estatísticas comunitárias que celebra a participação, não a audita. As superfícies nunca são opacas: cada cartão é vidro flutuando sobre o fundo noturno; ao passar o mouse, as bordas ganham um anel conic neon giratório — o letreiro acende.",
+    "northStar": "Preto, e só o essencial em cor",
+    "overview": "O Hashpanel é uma página sobre dados. O fundo é preto absoluto, as superfícies sobem apenas um degrau — o suficiente para separar do fundo, nunca o bastante para competir com o texto. A cor aparece apenas onde carrega significado: a hashtag do dia, o número em foco, o pill ativo, a tendência, a borda viva no hover. A interface é densa mas silenciosa: um painel de estatísticas comunitárias que celebra a participação, não a audita.",
     "keyCharacteristics": [
-      "Fundo meia-noite #0f0c29 com halos radiais indigo/violeta de 15% nos cantos",
-      "Superfícies de vidro translúcido, nunca preto ou branco sólido",
-      "Gradiente assinatura 135deg #667eea → #764ba2 na identidade primária",
-      "Neon como recompensa de estado: glow rotativo aparece no hover, não em repouso",
-      "Tipografia Inter bold-expressiva com números e títulos em gradiente de texto",
-      "Cantos generosos (8–24px), pills full-round (24px)"
+      "Fundo preto absoluto #000000 — sem aurora, sem ruído, sem gradiente de fundo",
+      "Superfícies um degrau acima do preto (#0b0b0e), com borda de 1px a 9% de branco",
+      "Uma cor só de acento (#6d8cff), usada como marcação — nunca como decoração",
+      "Borda viva: anel de gradiente giratório (2.5s) só no hover, com luz que transborda para fora",
+      "Tipografia Inter: números em branco puro com tabular-nums — o dado é o destaque",
+      "Cantos contidos (6–12px), pills full-round"
     ],
     "rules": [
-      { "name": "A Regra da Luz Rara", "body": "O neon é aceso por estado, não por padrão: em repouso, os cartões são vidro silencioso com borda translúcida. Apenas no hover, no foco ou no pill ativo o anel conic giratório e o glow aparecem.", "section": "colors" },
-      { "name": "A Regra do Rodapé Escuro", "body": "Nenhum gradiente saturado preenche grandes áreas de fundo — no máximo 15% de opacidade em halos radiais; as cores vivas vivem em elementos pequenos, nunca em blocos de leitura.", "section": "colors" },
-      { "name": "A Regra do Letreiro", "body": "Título e números grandes são pintados de gradiente (background-clip: text) sempre que representam identidade ou destaque; texto de leitura nunca recebe gradiente.", "section": "typography" },
-      { "name": "A Regra do Glow Combinado", "body": "Nenhuma sombra neon aparece sozinha: sempre o par shadow-md/lg + shadow-glow — a altura e a cor chegam juntas, nunca substituindo uma à outra.", "section": "elevation" }
+      "A Regra do Preto — a cor é acionada por estado, nunca por padrão. Em repouso, tudo é preto e cinza.",
+      "A Regra da Cor Marcada — a cor nunca pinta uma superfície grande. Se um elemento não está dizendo alguma coisa, ele fica em escala de cinza.",
+      "A Regra do Anel — a borda viva é recortada por máscara (content-box + exclude), não uma camada pintada. A cor aparece só na borda; o interior do cartão permanece preto puro.",
+      "A Regra do Número — números e títulos grandes são brancos puros, nunca gradiente."
     ],
     "dos": [
-      "Do usar o gradiente assinatura (#667eea → #764ba2, 135deg) para toda identidade primária",
-      "Do manter superfícies translúcidas: vidro 8–13% de branco com blur",
-      "Do recompensar hover com translateY(-2px) + sombra + glow",
-      "Do usar UPPERCASE com tracking 0.05em para labels KPI e cabeçalhos de tabela",
-      "Do manter toda a copy em pt-BR com voz comunitária"
+      "Do manter o fundo em preto absoluto e as superfícies um degrau acima: a hierarquia vem do valor, não da cor.",
+      "Do usar o acento só para marcar: hashtag do dia, pill ativo, borda viva, tendência.",
+      "Do manter os números em branco puro, com font-variant-numeric: tabular-nums para alinhamento em coluna.",
+      "Do recortar a borda viva com máscara (content-box + exclude) para a cor ficar só na borda.",
+      "Do manter toda a copy em pt-BR com voz comunitária."
     ],
     "donts": [
-      "Don't sacrificar contraste: texto sobre vidro é sempre branco ou #a0aec0 no mínimo",
-      "Don't aplicar gradientes saturados em grandes blocos de fundo ou texto corrido",
-      "Don't inventar novas cores fora dos seis gradientes + neutros",
-      "Don't usar sombra neon (shadow-glow) sem a sombra preta que a acompanha",
-      "Don't usar pesos acima de 700 além do h1 e dos numerais KPI"
+      "Don't pintar superfície com cor: se o elemento não está dizendo nada, ele fica em escala de cinza.",
+      "Don't usar gradiente em texto de leitura nem em número — dilui o dado.",
+      "Don't usar transform para elevar um cartão que tem pseudo-camadas com z-index: -1: o transform cria um contexto de empilhamento e prende as camadas dentro do cartão. Use top.",
+      "Don't aplicar aura colorida em texto ou sobre o conteúdo — a luz vive na borda e fora dela.",
+      "Don't inventar cores fora do acento e das três semânticas."
     ]
   }
 }
