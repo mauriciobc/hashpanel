@@ -13,48 +13,93 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      /* Design System Colors */
+      /* ===== Superfícies =====
+         Preto é a base. As superfícies sobem apenas um degrau — o suficiente
+         para separar do fundo, nunca o bastante para competir com o texto. */
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0c;
+      --bg-elevated: #101014;
+      --bg-card: #0b0b0e;
+      --bg-card-hover: #131318;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+
+      /* Superfície: um degrau acima do preto, borda de 1px, sem desfoque.
+         Sem blur, a hierarquia vem do contraste de valor, não da névoa. */
+      --surface-fill: #0b0b0e;
+      --surface-fill-hover: #131318;
+      --surface-border: rgba(255, 255, 255, 0.09);
+      --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+
+      /* ===== Texto =====
+         Quatro degraus. O secundário continua acima de 7:1 no preto. */
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1aa;
+      --text-muted: #6b6b76;
+      --text-faint: #45454e;
+
+      /* ===== Acento =====
+         Uma cor só. Ela marca o que importa — a hashtag do dia, o valor
+         em foco, o estado ativo. Nunca pinta superfície. */
+      --accent: #6d8cff;
+      --accent-soft: rgba(109, 140, 255, 0.14);
+      --accent-line: rgba(109, 140, 255, 0.32);
+      --accent-text: #9db2ff;
+
+      /* Brilho do hover: três tons vivos que giram juntos.
+         Sobem do acento para o ciano — o contraste entre as paradas é o que
+         dá a impressão de luz girando, não de um anel pintado. */
+      --glow-a: #8fb0ff;
+      --glow-b: #b48cff;
+      --glow-c: #4de3ff;
+
+      /* ===== Cores semânticas =====
+         Reservadas para estado, nunca para decoração. */
+      --positive: #3ecf8e;
+      --negative: #f2555a;
+      --warning: #e0b341;
+
+      /* Gradientes legados: mantidos como identidade de marca, usados
+         apenas onde o nome semântico já carrega o significado. */
       --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       --info-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
       --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-      
-      --bg-primary: #0f0c29;
-      --bg-secondary: #1a1538;
-      --bg-card: rgba(255, 255, 255, 0.08);
-      --bg-card-hover: rgba(255, 255, 255, 0.13);
-      --text-primary: #ffffff;
-      --text-secondary: #a0aec0;
-      --text-muted: #718096;
-      --border-color: rgba(255, 255, 255, 0.1);
-      
-      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.2);
-      --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
-      --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
-      
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      
-      --transition-fast: 0.15s ease;
-      --transition-base: 0.3s ease;
-      --transition-slow: 0.5s ease;
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.6);
+      --shadow-glow: 0 0 0 1px var(--accent-line);
+      --glow-rim: rgba(109, 140, 255, 0.45);
+      --glow-ambient: rgba(109, 140, 255, 0.1);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+      --radius-xl: 999px;
+
+      /* Curva out-soft: acelera no início e desacelera devagar no fim. */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-fast: 0.2s var(--ease-out);
+      --transition-base: 0.3s var(--ease-out);
+      --transition-slow: 0.6s var(--ease-out);
     }
 
-    @property --gradient-angle {
+    /* O ângulo que gira o gradiente do "Magic Card". Declarado como
+       propriedade para poder ser interpolado — sem isso o navegador salta
+       entre 0deg e 360deg em vez de girar. */
+    @property --rotate {
       syntax: "<angle>";
-      initial-value: 0deg;
+      initial-value: 132deg;
       inherits: false;
     }
 
-    @keyframes rotate-glow {
-      0% { --gradient-angle: 0deg; }
-      100% { --gradient-angle: 360deg; }
+    @keyframes card-spin {
+      0% { --rotate: 0deg; }
+      100% { --rotate: 360deg; }
     }
 
     * {
@@ -65,10 +110,8 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      /* Preto puro. Sem aurora, sem ruído: o fundo não compete com o dado. */
       background: var(--bg-primary);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(118, 75, 162, 0.15) 0px, transparent 50%);
       color: var(--text-primary);
       min-height: 100vh;
       padding: 1.5rem;
@@ -106,19 +149,17 @@
     /* Header Styles */
     .dashboard-header {
       margin-bottom: 3rem;
-      animation: fadeInDown 0.6s ease;
+      animation: fadeInDown 0.6s var(--ease-out);
     }
 
     .dashboard-header h1 {
-      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      /* O título é estrutura, não destaque. Branco puro, peso 800. */
+      font-size: clamp(2rem, 4.5vw, 3.25rem);
       font-weight: 800;
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
       margin-bottom: 0.5rem;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
     }
 
     .dashboard-header p {
@@ -145,9 +186,8 @@
 
     /* Status Bar */
     .status-bar {
-      background: var(--bg-card);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border-color);
+      background: var(--surface-fill);
+      border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
       padding: 1rem 1.5rem;
       display: flex;
@@ -155,58 +195,15 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 1rem;
-      animation: fadeIn 0.8s ease;
+      animation: fadeIn 0.6s var(--ease-out);
       transition: all var(--transition-base);
       position: relative;
+      box-shadow: var(--surface-shadow);
     }
 
     .status-bar:hover {
-      background: var(--bg-card-hover);
-      border-color: transparent;
-    }
-
-    .status-bar::before,
-    .status-bar::after {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      z-index: -1;
-      background: conic-gradient(
-        from var(--gradient-angle),
-        #667eea,
-        #764ba2,
-        #f093fb,
-        #f5576c,
-        #4facfe,
-        #00f2fe,
-        #667eea
-      );
-      border-radius: inherit;
-      animation: rotate-glow 3s linear infinite;
-      opacity: 0;
-      transition: opacity var(--transition-base);
-      /* Masking technique to only show the border */
-      padding: 2px;
-      -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-    }
-
-    .status-bar:hover::before {
-      opacity: 1;
-    }
-
-    .status-bar::after {
-      filter: blur(20px);
-      -webkit-mask: none; /* Glow shouldn't be masked or it disappears */
-      mask-composite: auto;
-      z-index: -2;
-    }
-
-    .status-bar:hover::after {
-      opacity: 0.6;
+      background: var(--surface-fill-hover);
+      border-color: var(--accent-line);
     }
 
     .status-info {
@@ -250,33 +247,34 @@
       height: 8px;
       border-radius: 50%;
       background: #43e97b;
-      box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+      box-shadow: 0 0 6px rgba(67, 233, 123, 0.35);
       animation: pulse 2s infinite;
     }
 
     .refresh-btn {
-      background: var(--primary-gradient);
-      border: none;
-      color: white;
-      padding: 0.5rem 1.25rem;
-      border-radius: var(--radius-md);
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
       font-weight: 500;
       font-size: clamp(0.8rem, 1.5vw, 0.9rem);
       cursor: pointer;
-      transition: all var(--transition-base);
+      transition: transform var(--transition-fast), color var(--transition-fast),
+        border-color var(--transition-fast);
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      box-shadow: var(--shadow-md);
+      will-change: transform;
     }
 
     .refresh-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      color: var(--text-primary);
+      border-color: var(--accent-line);
     }
 
     .refresh-btn:active {
-      transform: translateY(0);
+      transform: scale(0.97);
     }
 
     .refresh-btn.loading {
@@ -296,12 +294,11 @@
 
     /* Daily Hashtags Card */
     .daily-hashtags-card {
-      background: var(--bg-card);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border-color);
+      background: var(--surface-fill);
+      border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
       padding: 1rem 1.5rem;
-      animation: fadeIn 0.8s ease;
+      animation: fadeIn 0.6s var(--ease-out);
       transition: all var(--transition-base);
       min-width: 0;
       flex-shrink: 0;
@@ -309,54 +306,12 @@
       align-items: center;
       height: 100%;
       position: relative;
+      box-shadow: var(--surface-shadow);
     }
 
     .daily-hashtags-card:hover {
-      background: var(--bg-card-hover);
-      border-color: transparent;
-    }
-
-    .daily-hashtags-card::before,
-    .daily-hashtags-card::after {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      z-index: -1;
-      background: conic-gradient(
-        from var(--gradient-angle),
-        #667eea,
-        #764ba2,
-        #f093fb,
-        #f5576c,
-        #4facfe,
-        #00f2fe,
-        #667eea
-      );
-      border-radius: inherit;
-      animation: rotate-glow 3s linear infinite;
-      opacity: 0;
-      transition: opacity var(--transition-base);
-      padding: 2px;
-      -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-    }
-
-    .daily-hashtags-card:hover::before {
-      opacity: 1;
-    }
-
-    .daily-hashtags-card::after {
-      filter: blur(20px);
-      -webkit-mask: none;
-      mask-composite: auto;
-      z-index: -2;
-    }
-
-    .daily-hashtags-card:hover::after {
-      opacity: 0.6;
+      background: var(--surface-fill-hover);
+      border-color: var(--accent-line);
     }
 
     .daily-hashtags-header {
@@ -368,18 +323,19 @@
     }
 
     .daily-hashtags-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-md);
-      background: var(--primary-gradient);
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       flex-shrink: 0;
     }
 
-    .daily-hashtags-header h3 {
+    .daily-hashtags-header h2 {
       font-size: clamp(0.85rem, 1.5vw, 0.95rem);
       font-weight: 600;
       color: var(--text-primary);
@@ -406,10 +362,12 @@
       display: none;
     }
 
+    /* Pill: contorno neutro. Só a pill ativa ganha acento — assim o olho
+       sabe na hora qual hashtag está em foco. */
     .hashtag-pill {
-      background: rgba(102, 126, 234, 0.15);
-      border: 1px solid rgba(102, 126, 234, 0.3);
-      color: var(--text-primary);
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
       padding: 0.4rem 0.85rem;
       border-radius: var(--radius-xl);
       font-size: clamp(0.75rem, 1.2vw, 0.85rem);
@@ -424,10 +382,10 @@
     }
 
     .hashtag-pill:hover {
-      background: rgba(102, 126, 234, 0.25);
-      border-color: rgba(102, 126, 234, 0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+      background: var(--surface-fill-hover);
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+      transform: translateY(-1px);
     }
 
     .hashtag-pill:active {
@@ -435,15 +393,15 @@
     }
 
     .hashtag-pill.active {
-      background: var(--primary-gradient);
-      border-color: transparent;
-      color: white;
-      box-shadow: var(--shadow-md), var(--shadow-glow);
+      background: var(--accent-soft);
+      border-color: var(--accent-line);
+      color: var(--accent-text);
     }
 
     .hashtag-pill.active:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      transform: translateY(-1px);
     }
 
     .hashtag-pill.loading {
@@ -490,8 +448,7 @@
       position: relative;
       overflow: visible; /* Changed from hidden to allow glow */
       transition: all var(--transition-base);
-      animation: fadeInUp 0.6s ease backwards;
-      cursor: pointer;
+      animation: riseIn 0.6s var(--ease-out) backwards;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -519,114 +476,195 @@
       grid-row: 1;
     }
 
+    /* Vidro-cristal: superfície sólida e fosca. O brilho vem do
+       ::before/::after do Magic Card, só no hover. */
+    .kpi-card:hover {
+      background-color: rgba(255, 255, 255, 0.07);
+      border-color: transparent;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.42),
+        0 0 0 1px var(--glow-rim),
+        0 10px 25px rgba(0, 0, 0, 0.2),
+        0 24px 56px -18px var(--glow-ambient);
+    }
+
+    /* Tratamento do cartão (polish aceito — live a1700431 + steer 7ae11ea1) */
+    .kpi-card {
+      position: relative;
+      /* Visível: o brilho do Magic Card precisa transbordar do cartão.
+         O conteúdo interno tem o próprio clip. */
+      overflow: visible;
+      min-height: 164px;
+      background-color: var(--surface-fill);
+      border-color: var(--surface-border);
+      box-shadow: var(--surface-shadow);
+      transition: box-shadow var(--transition-base), border-color var(--transition-base),
+        transform var(--transition-base);
+    }
+
+    .kpi-card:hover {
+      /* `top` em vez de `transform`: um transform cria um contexto de
+         empilhamento, e aí as camadas de z-index -1 ficariam presas dentro
+         do cartão. Com `top`, elas escapam para trás e a borda viva
+         aparece só na borda. */
+      top: -2px;
+      border-color: transparent;
+      /* A luz que transborda: três camadas — um núcleo vivo junto à borda,
+         um halo largo e difuso, e a sombra preta que reassenta o cartão.
+         Nenhuma toca o conteúdo: a sombra é desenhada fora da caixa. */
+      box-shadow:
+        0 0 10px 0 rgba(143, 176, 255, 0.85),
+        0 0 26px 4px rgba(109, 140, 255, 0.55),
+        0 0 60px 10px rgba(109, 140, 255, 0.28),
+        0 18px 50px -20px rgba(0, 0, 0, 0.85);
+    }
+
+    /* ===== Borda viva =====
+       O gradiente giratório é recortado num anel: só a borda de 2px recebe
+       cor, o interior do cartão continua preto puro.
+
+       ::before — anel nítido (a borda propriamente dita);
+       ::after  — o mesmo anel, dilatado e desfocado: o halo que escapa
+                  para fora do cartão.
+
+       A máscara é o truque: `content-box` recorta o centro, deixando só a
+       faixa da borda. Sem ela, o gradiente pintaria o cartão inteiro. */
     .kpi-card::before,
-    .kpi-card::after {
+    .content-card::before {
       content: "";
       position: absolute;
       inset: -2px;
       z-index: -1;
-      background: conic-gradient(
-        from var(--gradient-angle),
-        #667eea,
-        #764ba2,
-        #f093fb,
-        #f5576c,
-        #4facfe,
-        #00f2fe,
-        #667eea
-      );
       border-radius: inherit;
-      animation: rotate-glow 3s linear infinite;
-      opacity: 0;
-      transition: opacity var(--transition-base);
       padding: 2px;
-      -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
+      background-image: linear-gradient(
+        var(--rotate),
+        var(--glow-a),
+        var(--glow-b) 45%,
+        var(--glow-c)
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
       mask-composite: exclude;
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      pointer-events: none;
     }
 
-    .kpi-card:hover {
-      transform: translateY(-8px);
-      background: var(--bg-card-hover);
-      border-color: transparent;
+    .kpi-card::after,
+    .content-card::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      z-index: -1;
+      border-radius: inherit;
+      padding: 2px;
+      background-image: linear-gradient(
+        var(--rotate),
+        var(--glow-a),
+        var(--glow-b) 45%,
+        var(--glow-c)
+      );
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      /* O halo é a mesma borda, difusa: some no preto ao redor. */
+      filter: blur(14px) saturate(140%);
+      opacity: 0;
+      transition: opacity var(--transition-base);
+      pointer-events: none;
     }
 
-    .kpi-card:hover::before {
+    .kpi-card:hover::before,
+    .kpi-card:hover::after,
+    .content-card:hover::before,
+    .content-card:hover::after {
       opacity: 1;
+      animation: card-spin 2.5s linear infinite;
     }
 
-    .kpi-card::after {
-      filter: blur(20px);
-      -webkit-mask: none;
-      mask-composite: auto;
-      z-index: -2;
-    }
-
-    .kpi-card:hover::after {
-      opacity: 0.6;
-    }
-
-    .kpi-card.primary { } /* Removed ::before scale logic */
-    .kpi-card.success::before { background: var(--success-gradient); }
-    .kpi-card.info::before { background: var(--info-gradient); }
-    .kpi-card.warning::before { background: var(--warning-gradient); }
-
+    /* Ícone: contorno fino em cinza. O emoji já carrega a cor do dado;
+       o chip existe só para organizar, não para competir. */
     .kpi-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--radius-md);
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 0.75rem;
-      font-size: 1.25rem;
+      font-size: 1rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
     }
 
-    .kpi-card.primary .kpi-icon { background: var(--primary-gradient); }
-    .kpi-card.success .kpi-icon { background: var(--success-gradient); }
-    .kpi-card.info .kpi-icon { background: var(--info-gradient); }
-    .kpi-card.warning .kpi-icon { background: var(--warning-gradient); }
+    .kpi-card.primary .kpi-hashtag {
+      font-size: clamp(1.5rem, 3vw, 1.75rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
 
+    .kpi-card.primary .kpi-label {
+      margin-top: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 768px) {
+      .kpi-card {
+        min-height: 128px;
+      }
+    }
+
+    /* O número é o conteúdo. Branco puro, sem gradiente: é o valor mais
+       alto da página e não precisa de cor para ser lido. */
     .kpi-value {
       font-size: clamp(1.75rem, 4vw, 2.25rem);
       font-weight: 800;
       line-height: 1;
       margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
     }
 
     .kpi-label {
-      color: var(--text-secondary);
-      font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+      color: var(--text-muted);
+      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       line-height: 1.4;
     }
 
+    /* A hashtag do dia é a única peça em acento: ela é o assunto. */
     .kpi-hashtag {
       font-size: clamp(1.25rem, 3vw, 1.5rem);
       font-weight: 700;
-      background: var(--primary-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--accent-text);
       line-height: 1.3;
+      letter-spacing: -0.02em;
     }
 
     /* Content Cards - Bento Sizes */
     .content-card {
-      background: var(--bg-card);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border-color);
+      background: var(--surface-fill);
+      border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
       padding: 1.5rem;
-      animation: fadeInUp 0.8s ease backwards;
+      animation: fadeInUp 0.6s var(--ease-out) backwards;
       transition: all var(--transition-base);
       display: flex;
       flex-direction: column;
@@ -635,55 +673,19 @@
       max-width: 100%;
       overflow: visible; /* Changed from hidden to allow glow */
       position: relative;
+      box-shadow: var(--surface-shadow);
     }
 
     .content-card:hover {
-      background: var(--bg-card-hover);
+      background: var(--surface-fill-hover);
       border-color: transparent;
-      transform: translateY(-4px);
-    }
-
-    .content-card::before,
-    .content-card::after {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      z-index: -1;
-      background: conic-gradient(
-        from var(--gradient-angle),
-        #667eea,
-        #764ba2,
-        #f093fb,
-        #f5576c,
-        #4facfe,
-        #00f2fe,
-        #667eea
-      );
-      border-radius: inherit;
-      animation: rotate-glow 3s linear infinite;
-      opacity: 0;
-      transition: opacity var(--transition-base);
-      padding: 2px;
-      -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-    }
-
-    .content-card:hover::before {
-      opacity: 1;
-    }
-
-    .content-card::after {
-      filter: blur(20px);
-      -webkit-mask: none;
-      mask-composite: auto;
-      z-index: -2;
-    }
-
-    .content-card:hover::after {
-      opacity: 0.6;
+      /* `top` em vez de `transform` — ver a nota no .kpi-card:hover. */
+      top: -2px;
+      box-shadow:
+        0 0 10px 0 rgba(143, 176, 255, 0.7),
+        0 0 26px 4px rgba(109, 140, 255, 0.45),
+        0 0 60px 10px rgba(109, 140, 255, 0.22),
+        0 18px 50px -20px rgba(0, 0, 0, 0.85);
     }
 
     .content-card.top-toots {
@@ -715,7 +717,7 @@
     .content-card.top-toots .table-wrapper .table {
       width: 100%;
       max-width: 100%;
-      table-layout: fixed;
+      table-layout: auto;
     }
 
     .content-card.top-toots .table-wrapper .table th,
@@ -799,7 +801,7 @@
     .content-card .table {
       width: 100%;
       max-width: 100%;
-      table-layout: fixed;
+      table-layout: auto;
       border-collapse: separate;
       border-spacing: 0;
       background: transparent;
@@ -816,59 +818,42 @@
 
     .content-card .table-wrapper .table-hover > tbody > tr:hover > *,
     .content-card .table-hover > tbody > tr:hover > * {
-      background-color: rgba(102, 126, 234, 0.25);
+      background-color: var(--surface-fill-hover);
     }
 
+    /* Cabeçalho: rótulo em cinza sobre fundo quase preto. A coluna não
+       precisa de cor — a hierarquia vem do peso e do espaçamento. */
     .content-card .table-wrapper .table thead,
     .content-card .table thead {
-      background: rgba(102, 126, 234, 0.35);
-      background-color: rgba(102, 126, 234, 0.35);
+      background: transparent;
+      background-color: transparent;
     }
 
     .content-card .table-wrapper .table thead th,
     .content-card .table thead th {
-      padding: 1rem;
+      padding: 0.875rem 1rem;
       text-align: left;
       font-weight: 600;
-      font-size: clamp(0.75rem, 1.5vw, 0.85rem);
+      font-size: clamp(0.7rem, 1.5vw, 0.78rem);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #ffffff;
-      border-bottom: 2px solid rgba(102, 126, 234, 0.5);
-      background-color: rgba(102, 126, 234, 0.35);
-      background: rgba(102, 126, 234, 0.35);
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-strong);
+      background-color: transparent;
+      background: transparent;
       border-color: var(--border-color);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    /* Column width distribution for Top Performers table */
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(1),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(1) {
-      width: 20%;
+    /* Column rhythm for Top Performers table (auto layout; data-labels drive mobile cards) */
+    .content-card.top-toots .table-wrapper .table thead th,
+    .content-card.top-toots .table-wrapper .table tbody td {
+      white-space: nowrap;
     }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(2),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(2) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(3),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(3) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(4),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(4) {
-      width: 12%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(5),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(5) {
-      width: 16%;
-    }
-    .content-card.top-toots .table-wrapper .table thead th:nth-child(6),
-    .content-card.top-toots .table-wrapper .table tbody td:nth-child(6) {
-      width: 28%;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+    .content-card.top-toots .table-wrapper .table td:first-child {
+      min-width: 12rem;
     }
 
     /* Column width distribution for Trending Tags table */
@@ -905,8 +890,8 @@
 
     .content-card .table-wrapper .table tbody tr:hover,
     .content-card .table tbody tr:hover {
-      background: rgba(102, 126, 234, 0.25);
-      background-color: rgba(102, 126, 234, 0.25);
+      background: var(--surface-fill-hover);
+      background-color: var(--surface-fill-hover);
       transform: scale(1.01);
     }
 
@@ -917,8 +902,8 @@
 
     .content-card .table-wrapper .table tbody tr[data-clickable="true"]:hover,
     .content-card .table tbody tr[data-clickable="true"]:hover {
-      background: rgba(102, 126, 234, 0.3);
-      background-color: rgba(102, 126, 234, 0.3);
+      background: var(--accent-soft);
+      background-color: var(--accent-soft);
     }
 
     .content-card .table-wrapper .table tbody td,
@@ -958,46 +943,47 @@
 
     .content-card .table-wrapper .table tbody td a:hover,
     .content-card .table tbody td a:hover {
-      color: #8b9cff;
+      color: var(--accent-text);
       text-decoration: underline;
     }
 
-    /* Badges */
+    /* Badges — aqui a cor carrega significado, então ela é o destaque.
+       Relevância é o número central da tabela: sólido, em acento.
+       Tendência é estado: verde/vermelho, discreto. */
     .relevance-badge {
       display: inline-flex;
       align-items: center;
-      padding: 0.4rem 0.9rem;
-      border-radius: var(--radius-md);
+      padding: 0.3rem 0.7rem;
+      border-radius: var(--radius-sm);
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
-      font-weight: 600;
-      background: var(--success-gradient);
-      color: white;
-      box-shadow: var(--shadow-sm);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      background: var(--accent-soft);
+      color: var(--accent-text);
+      border: 1px solid var(--accent-line);
     }
 
     .trend-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.4rem 0.9rem;
-      border-radius: var(--radius-md);
+      gap: 0.4rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: var(--radius-sm);
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       font-weight: 500;
-      background: rgba(102, 126, 234, 0.3);
-      color: #ffffff;
-      border: 1px solid rgba(102, 126, 234, 0.4);
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
     }
 
     .trend-badge.rising {
-      background: rgba(67, 233, 123, 0.3);
-      color: #ffffff;
-      border: 1px solid rgba(67, 233, 123, 0.5);
+      color: var(--positive);
+      border-color: rgba(62, 207, 142, 0.35);
     }
 
     .trend-badge.falling {
-      background: rgba(255, 107, 107, 0.3);
-      color: #ffffff;
-      border: 1px solid rgba(255, 107, 107, 0.5);
+      color: var(--negative);
+      border-color: rgba(242, 85, 90, 0.35);
     }
 
     /* Buttons */
@@ -1007,13 +993,13 @@
       gap: 0.35rem;
       padding: 0.4rem 0.75rem;
       border-radius: var(--radius-md);
-      background: rgba(102, 126, 234, 0.2);
+      background: var(--accent-soft);
       color: var(--text-primary);
       text-decoration: none;
       font-weight: 500;
       font-size: clamp(0.75rem, 1.5vw, 0.85rem);
       transition: all var(--transition-base);
-      border: 1px solid rgba(102, 126, 234, 0.3);
+      border: 1px solid var(--accent-line);
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -1040,8 +1026,8 @@
     .spinner {
       width: 50px;
       height: 50px;
-      border: 4px solid rgba(102, 126, 234, 0.2);
-      border-top-color: #667eea;
+      border: 4px solid var(--accent-soft);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 1.5rem;
@@ -1112,7 +1098,8 @@
       opacity: 0.5;
     }
 
-    /* Animations */
+    /* Animations — a curva out-soft (cubic-bezier(0.16, 1, 0.3, 1))
+       acelera no início e desacelera devagar no fim. */
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -1141,6 +1128,19 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+
+    /* Entrada com "respiro": o elemento sobe e a escala abre um pouquinho,
+         como se a superfície de vidro ganhasse forma ao se materializar. */
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
       }
     }
 
@@ -1411,8 +1411,8 @@
     }
 
     .modal {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
+      background: #0b0b0e;
+      border: 1px solid var(--border-strong);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -1525,19 +1525,21 @@
     }
 
     .modal-btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
+      background: transparent;
       border: 1px solid var(--border-color);
-      color: var(--text-primary);
+      color: var(--text-secondary);
     }
 
     .modal-btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--surface-fill-hover);
+      color: var(--text-primary);
     }
 
     .modal-btn-primary {
-      background: var(--primary-gradient);
+      background: var(--accent);
       border: none;
-      color: white;
+      color: #05060a;
+      font-weight: 600;
     }
 
     .modal-btn-primary:hover {
@@ -1547,7 +1549,7 @@
 
     /* Embed container styling */
     .embed-container {
-      background: rgba(255, 255, 255, 0.03);
+      background: #000000;
       border-radius: var(--radius-md);
       overflow: visible;
       width: 100%;
@@ -1620,7 +1622,7 @@
 
     ::-webkit-scrollbar-thumb {
       background: rgba(102, 126, 234, 0.5);
-      border-radius: 5px;
+      border-radius: var(--radius-sm);
     }
 
     ::-webkit-scrollbar-thumb:hover {
@@ -1652,7 +1654,7 @@
     }
 
     .toot-content a:hover {
-      color: #8b9cff;
+      color: var(--accent-text);
       text-decoration: underline;
     }
 
@@ -1663,7 +1665,7 @@
       color: #43e97b;
       background: rgba(67, 233, 123, 0.15);
       padding: 0.1rem 0.4rem;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-weight: 600;
     }
 
@@ -1709,7 +1711,7 @@
 
     /* Block quotes in toots */
     .toot-content blockquote {
-      border-left: 3px solid rgba(102, 126, 234, 0.5);
+      border-left: 3px solid var(--accent-line);
       padding-left: 1rem;
       margin: 0.75rem 0;
       color: var(--text-secondary);
@@ -1720,7 +1722,7 @@
     .toot-content code {
       background: rgba(255, 255, 255, 0.1);
       padding: 0.15rem 0.4rem;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-family: 'Fira Code', 'Monaco', monospace;
       font-size: 0.9em;
     }
@@ -1737,6 +1739,223 @@
       background: none;
       padding: 0;
     }
+
+    /* ============ Craft pass: states, a11y, responsive data cards ============ */
+
+    /* Screen-reader-only helper */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Visible focus for keyboard users (browser surfaces carry the design) */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    /* Text selection themed from the palette */
+    ::selection {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    /* Tabular numerals for all counters and data tables */
+    .kpi-value,
+    .kpi-hashtag,
+    .content-card .table-wrapper .table td {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Honest status dot: state comes from the data layer, not a hardwired color */
+    .status-dot {
+      transition: background var(--transition-base), box-shadow var(--transition-base);
+    }
+    .status-dot[data-state="fresh"] {
+      background: #43e97b;
+      box-shadow: 0 0 6px rgba(67, 233, 123, 0.35);
+      animation: pulse 2s infinite;
+    }
+    .status-dot[data-state="stale"] {
+      background: #fa709a;
+      box-shadow: none;
+      animation: none;
+    }
+    .status-dot[data-state="error"] {
+      background: #ff6b6b;
+      box-shadow: none;
+      animation: none;
+    }
+    .status-dot[data-state="loading"] {
+      background: #a0aec0;
+      box-shadow: none;
+      animation: pulse 1.2s infinite;
+    }
+
+    /* Contrast overlays: keep the identity gradients, restore AA on white text
+       (0.35 black over the gradient start puts runtime contrast ≈5.4:1) */
+    .error-btn {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), var(--danger-gradient);
+    }
+    #backToDailyBtn {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), var(--secondary-gradient);
+    }
+
+    /* Primary-gradient controls: mesmo padrão — o letreiro ganha camada escura
+       para o AA (branco sobre indigo puro fica 3.66:1; com overlay chega a 7.3:1) */
+    .refresh-btn,
+    .hashtag-pill.active,
+    .modal-btn-primary {
+      background-image: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), var(--primary-gradient);
+    }
+
+    /* Button reset for pills rendered as real <button> elements */
+    button.hashtag-pill {
+      font-family: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    /* Trending tag name button (replaces inline-onclick anchor) */
+    button.tag-link-btn {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      transition: color var(--transition-fast);
+    }
+
+    button.tag-link-btn:hover {
+      color: var(--accent-text);
+    }
+
+    /* O hover é um degrau: a borda acende em acento, o fundo sobe um tom.
+       Nenhum halo, nenhum arco giratório — a cor marca o alvo, não o decora. */
+    .kpi-card:hover,
+    .content-card:hover,
+    .status-bar:hover,
+    .daily-hashtags-card:hover {
+      border-color: var(--accent-line);
+    }
+
+    .kpi-card:hover {
+      background-color: var(--surface-fill-hover);
+      transform: translateY(-1px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      /* A borda viva para de girar: vira um anel estático no acento.
+         A luz continua, só deixa de se mover. */
+      .kpi-card:hover::before,
+      .kpi-card:hover::after,
+      .content-card:hover::before,
+      .content-card:hover::after {
+        animation: none !important;
+      }
+    }
+
+    /* ============ Mobile: dashboard tables become card lists ============ */
+    @media (max-width: 768px) {
+      /* Stack the brand block above the view nav instead of squeezing both */
+      .dashboard-header > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      /* Top Performers + Tags em Alta: one card per row */
+      .content-card .table-wrapper .table tbody td[data-label] {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 0;
+        border-bottom: none;
+        white-space: normal;
+        overflow: visible;
+      }
+      .content-card .table-wrapper .table tbody td[data-label]::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        flex: 0 0 auto;
+        max-width: 45%;
+      }
+      .content-card .table-wrapper .table tbody td[data-label] .td-value {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: right;
+        word-break: normal;
+        overflow-wrap: anywhere;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"] .td-value {
+        text-align: left;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding-bottom: 0.75rem;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Autor"]::before {
+        order: -1;
+      }
+      .content-card .table-wrapper .table tbody tr {
+        display: block;
+        background: transparent !important;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.75rem 0;
+      }
+      /* Auto layout wins on mobile cards: drop the desktop width hints */
+      #bentoGrid .content-card.trending-tags .table-wrapper .table thead th,
+      #bentoGrid .content-card.trending-tags .table-wrapper .table tbody td[data-label] {
+        width: auto;
+      }
+      .content-card .table-wrapper .table tbody tr:last-child {
+        border-bottom: none;
+      }
+      .content-card .table-wrapper .table thead {
+        display: none;
+      }
+      .content-card .table-wrapper .table tbody td[data-label="Ações"] {
+        padding-top: 0.25rem;
+      }
+      /* Weekly history: long data table scrolls horizontally instead */
+      .content-card .table-wrapper .table {
+        min-width: 560px;
+      }
+      #bentoGrid .content-card .table-wrapper .table {
+        display: block;
+        min-width: 0;
+      }
+      #bentoGrid .content-card .table-wrapper .table tbody {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1747,11 +1966,11 @@
         <div>
           <h1>Hashpanel</h1>
           <p>Dashboard de monitoramento de hashtags do Mastodon</p>
-          <a rel="me noopener noreferrer" href="https://mastodon.social/@hashpanel" target="_blank" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; display: inline-block; transition: color var(--transition-base);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Mastodon</a>
+          <a rel="me noopener noreferrer" href="https://mastodon.social/@hashpanel" target="_blank" style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; transition: color var(--transition-base);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'" title="Perfil do Hashpanel no Mastodon (abre em nova aba)" aria-label="Perfil do Hashpanel no Mastodon (abre em nova aba)">Mastodon <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
         </div>
         <nav style="display: flex; gap: 0.5rem;">
-          <button id="navDashboard" class="nav-btn active" onclick="showView('dashboard')" style="background: var(--primary-gradient); border: none; color: white; padding: 0.6rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Dashboard</button>
-          <button id="navHistory" class="nav-btn" onclick="showView('history')" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1.5rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Histórico Semanal</button>
+          <button id="navDashboard" class="nav-btn active" onclick="showView('dashboard')" style="background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-text); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Dashboard</button>
+          <button id="navHistory" class="nav-btn" onclick="showView('history')" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-weight: 500; cursor: pointer; transition: all var(--transition-base);">Histórico Semanal</button>
         </nav>
       </div>
     </header>
@@ -1761,13 +1980,13 @@
       <!-- Status Bar -->
       <div class="status-bar">
         <div class="status-info">
-          <span class="status-dot"></span>
-          <span id="lastUpdated">Última atualização: --</span>
-          <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: var(--secondary-gradient); border: none; color: white; padding: 0.4rem 1rem; border-radius: var(--radius-md); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
+          <span class="status-dot" id="statusDot" data-state="loading" aria-hidden="true"></span>
+          <span id="lastUpdated" role="status" aria-live="polite">Última atualização: --</span>
+          <button id="backToDailyBtn" onclick="loadData()" style="display: none; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.4rem 0.75rem; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: all var(--transition-base); margin-left: 0.5rem;">
             ← Voltar para hashtag diária
           </button>
           <!-- Rate Limit Indicator -->
-          <div id="rateLimitIndicator" class="rate-limit-indicator" style="display: none; margin-left: 0.75rem; padding: 0.4rem 0.75rem; background: rgba(102, 126, 234, 0.15); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: var(--radius-md); font-size: clamp(0.75rem, 1.2vw, 0.85rem); transition: all var(--transition-base);">
+          <div id="rateLimitIndicator" class="rate-limit-indicator" style="display: none; margin-left: 0.75rem; padding: 0.4rem 0.75rem; background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: var(--radius-sm); font-size: clamp(0.75rem, 1.2vw, 0.85rem); transition: all var(--transition-base);">
             <span id="rateLimitText">Requisições: --/--</span>
             <span id="rateLimitReset" style="margin-left: 0.5rem; color: var(--text-secondary); font-size: 0.8em;"></span>
           </div>
@@ -1784,8 +2003,8 @@
       <div class="daily-hashtags-card" id="dailyHashtagsCard">
         <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
           <div class="daily-hashtags-header">
-            <div class="daily-hashtags-icon">📅</div>
-            <h3>Hashtags Diárias</h3>
+            <div class="daily-hashtags-icon" aria-hidden="true">📅</div>
+            <h2>Hashtags Diárias</h2>
           </div>
           <div class="daily-hashtags-pills" id="dailyHashtagsPills">
             <div class="hashtag-pill loading">Carregando...</div>
@@ -1815,6 +2034,7 @@
 
     <!-- Dashboard View -->
     <div id="dashboardView">
+      <h2 class="sr-only">Painel do dia</h2>
       <!-- Bento Grid Container -->
       <div class="bento-grid" id="bentoGrid">
       <!-- KPI Cards will be inserted here by JavaScript -->
@@ -1827,7 +2047,7 @@
         </div>
         <div id="topTootsContent">
           <div class="empty-state">
-            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-icon" aria-hidden="true">📝</div>
             <p>Carregando top posts...</p>
           </div>
         </div>
@@ -1864,6 +2084,7 @@
 
     <!-- Weekly History View -->
     <div id="historyView" style="display: none;">
+      <h2 class="sr-only">Histórico semanal</h2>
       <div class="content-card" style="margin-bottom: 1.5rem;">
         <div class="card-header">
           <div class="card-header-icon">📊</div>
@@ -1878,7 +2099,7 @@
           </div>
           <div style="flex: 1; min-width: 250px;">
             <label for="hashtagSelect" style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">Hashtags:</label>
-            <select id="hashtagSelect" multiple onchange="handleHashtagSelectChange()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 250px; min-height: 150px; width: 100%;">
+            <select id="hashtagSelect" multiple onchange="handleHashtagSelectChange()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer; min-width: 250px; min-height: 110px; width: 100%;">
               <!-- Populated by JavaScript -->
             </select>
             <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
@@ -1919,28 +2140,28 @@
             <div class="card-header-icon">📈</div>
             <h4>Total de Usos</h4>
           </div>
-          <div id="summaryTotalUses" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+          <div id="summaryTotalUses" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums;">-</div>
         </div>
         <div class="content-card">
           <div class="card-header">
             <div class="card-header-icon">👥</div>
             <h4>Total de Contas</h4>
           </div>
-          <div id="summaryTotalAccounts" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--success-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+          <div id="summaryTotalAccounts" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums;">-</div>
         </div>
         <div class="content-card">
           <div class="card-header">
             <div class="card-header-icon">📅</div>
             <h4>Semanas com Dados</h4>
           </div>
-          <div id="summaryWeeks" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--info-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+          <div id="summaryWeeks" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums;">-</div>
         </div>
         <div class="content-card">
           <div class="card-header">
             <div class="card-header-icon">⭐</div>
             <h4>Média Semanal</h4>
           </div>
-          <div id="summaryAverage" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; background: var(--warning-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">-</div>
+          <div id="summaryAverage" style="font-size: 2rem; font-weight: 700; margin-top: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums;">-</div>
         </div>
       </div>
 
@@ -1952,7 +2173,7 @@
             <h4 id="usesChartTitle">Evolução Semanal - Total de Usos</h4>
           </div>
           <div style="padding: 1.5rem; position: relative; height: 300px;">
-            <canvas id="weeklyUsesChart"></canvas>
+            <canvas id="weeklyUsesChart" role="img" aria-label="Gráfico de evolução semanal do total de usos da hashtag"></canvas>
           </div>
         </div>
         <div class="content-card">
@@ -1961,7 +2182,7 @@
             <h4 id="accountsChartTitle">Evolução Semanal - Contas Únicas</h4>
           </div>
           <div style="padding: 1.5rem; position: relative; height: 300px;">
-            <canvas id="weeklyAccountsChart"></canvas>
+            <canvas id="weeklyAccountsChart" role="img" aria-label="Gráfico de evolução semanal de contas únicas da hashtag"></canvas>
           </div>
         </div>
       </div>
@@ -2467,6 +2688,7 @@
     function showLoading() {
       document.getElementById('loading').classList.add('active');
       document.getElementById('error').classList.remove('active');
+      setStatusDot('loading');
       const refreshBtn = document.getElementById('refreshBtn');
       refreshBtn.classList.add('loading');
       refreshBtn.disabled = true;
@@ -2497,7 +2719,25 @@
       document.getElementById('errorMessage').textContent = message;
       document.getElementById('error').classList.add('active');
       document.getElementById('loading').classList.remove('active');
+      setStatusDot('error');
       hideLoading();
+    }
+
+    // Status dot reflects the real data state (loading / fresh / stale / error)
+    function setStatusDot(state) {
+      const dot = document.getElementById('statusDot');
+      if (dot) dot.dataset.state = state;
+    }
+
+    // Map low-level fetch failures to plain pt-BR guidance
+    function friendlyFetchError(error) {
+      if (error instanceof DOMException && error.name === 'TypeError') {
+        return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
+      }
+      if (error && error.message === 'Failed to fetch') {
+        return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
+      }
+      return error?.message || 'Erro inesperado ao carregar dados';
     }
 
     // Format numbers with locale
@@ -2607,7 +2847,7 @@
               <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                 <p>Preview não disponível para este toot.</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">
-                  <a href="${tootUrl}" target="_blank" style="color: #667eea; text-decoration: none;">
+                  <a href="${tootUrl}" target="_blank" style="color: var(--accent-text); text-decoration: none;">
                     Abrir no Mastodon →
                   </a>
                 </p>
@@ -2988,7 +3228,7 @@
             container.innerHTML = `
               <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem; flex-direction: column;">
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">🖼️</div>
-                <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: none;">Abrir imagem</a>
+                <a href="${originalUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-text); text-decoration: none;">Abrir imagem</a>
               </div>
             `;
           };
@@ -3044,17 +3284,24 @@
     function renderKPICards(stats) {
       const { hashtag, summary } = stats;
       const bentoGrid = document.getElementById('bentoGrid');
-      
+
       // Remove existing KPI cards if any
       const existingKPIs = bentoGrid.querySelectorAll('.kpi-card');
       existingKPIs.forEach(card => card.remove());
-      
-      // Create KPI cards and insert them at the beginning of the grid
+
+      // Create KPI cards and insert them at the beginning of the grid,
+      // preserving the authored order (hashtag first) via a single fragment
       const kpiCards = [
         {
           class: 'primary',
           icon: '#',
-          content: `<div class="kpi-hashtag" style="margin-top: 0.5rem;">#${hashtag}</div><div class="kpi-label" style="margin-top: 0.5rem;">Hashtag Atual</div>`
+          html: `
+            <div class="kpi-icon" aria-hidden="true">#</div>
+            <div>
+              <div class="kpi-hashtag">#${hashtag}</div>
+              <div class="kpi-label">Hashtag Atual</div>
+            </div>
+          `
         },
         {
           class: 'success',
@@ -3072,19 +3319,21 @@
           content: `<div class="kpi-value">${formatNumber(summary.weeklyTotal)}</div><div class="kpi-label">Total da Semana</div>`
         }
       ];
-      
+
+      const kpiFragment = document.createDocumentFragment();
       kpiCards.forEach((kpi, index) => {
         const card = document.createElement('div');
         card.className = `kpi-card ${kpi.class}`;
         card.style.animationDelay = `${(index + 1) * 0.1}s`;
-        card.innerHTML = `
+        card.innerHTML = kpi.html ?? `
           <div>
-            <div class="kpi-icon">${kpi.icon}</div>
+            <div class="kpi-icon" aria-hidden="true">${kpi.icon}</div>
             ${kpi.content}
           </div>
         `;
-        bentoGrid.insertBefore(card, bentoGrid.firstChild);
+        kpiFragment.appendChild(card);
       });
+      bentoGrid.insertBefore(kpiFragment, bentoGrid.firstChild);
     }
 
     // Render top toots
@@ -3094,7 +3343,7 @@
       if (!topToots || topToots.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-icon" aria-hidden="true">📭</div>
             <p>Nenhum post encontrado hoje.</p>
           </div>
         `;
@@ -3109,12 +3358,11 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Autor</th>
-                <th>Seguidores</th>
-                <th>⭐ Favoritos</th>
-                <th>🔄 Boosts</th>
-                <th>Relevância</th>
-                <th>Link</th>
+                <th scope="col">Autor</th>
+                <th scope="col">Favoritos</th>
+                <th scope="col">Boosts</th>
+                <th scope="col">Relevância</th>
+                <th scope="col">Link</th>
               </tr>
             </thead>
             <tbody>
@@ -3123,7 +3371,7 @@
                 if (toot.link) {
                   // Map media with all possible URL fields
                   const mediaData = (toot.media || []).map(m => {
-                    const url = m.url || m.preview_url || m.remote_url || m.preview_remote_url || 
+                    const url = m.url || m.preview_url || m.remote_url || m.preview_remote_url ||
                                (m.meta && m.meta.original && m.meta.original.url) ||
                                (m.meta && m.meta.small && m.meta.small.url);
                     return {
@@ -3133,7 +3381,7 @@
                       meta: m.meta
                     };
                   }).filter(m => m.url);
-                  
+
                   // Store full toot data in cache to avoid data-attribute corruption
                   const tootId = `toot-${toot.id || index}-${Date.now()}`;
                   window.tootDataCache[tootId] = {
@@ -3146,19 +3394,19 @@
                     followers: toot.followers || 0,
                     media: mediaData
                   };
-                  
-                  console.log('Cached toot data:', tootId, window.tootDataCache[tootId]);
-                  
-                  buttonHTML = `<button data-toot-id="${tootId}" onclick="openModalFromCache(this.dataset.tootId)" class="btn-link" style="background: none; border: none; cursor: pointer;">Ver <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>`;
+
+                  buttonHTML = `<button data-toot-id="${tootId}" onclick="openModalFromCache(this.dataset.tootId)" class="btn-link" style="background: none; border: none; cursor: pointer;">Ver <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span class="sr-only">toot de ${sanitizeHTML(toot.author)}</span></button>`;
                 }
                 return `
                 <tr>
-                  <td><strong>@${sanitizeHTML(toot.author)}</strong></td>
-                  <td>${formatNumber(toot.followers)}</td>
-                  <td>${formatNumber(toot.favorites)}</td>
-                  <td>${formatNumber(toot.boosts)}</td>
-                  <td><span class="relevance-badge">${toot.relevance}</span></td>
-                  <td>${buttonHTML}</td>
+                  <td data-label="Autor">
+                    <strong>@${sanitizeHTML(toot.author)}</strong>
+                    <small style="display: block; color: var(--text-secondary); font-weight: 400;">${formatNumber(toot.followers)} seguidores</small>
+                  </td>
+                  <td data-label="Favoritos"><span class="td-value">${formatNumber(toot.favorites)}</span></td>
+                  <td data-label="Boosts"><span class="td-value">${formatNumber(toot.boosts)}</span></td>
+                  <td data-label="Relevância"><span class="td-value"><span class="relevance-badge">${toot.relevance}</span></span></td>
+                  <td data-label="Link"><span class="td-value">${buttonHTML}</span></td>
                 </tr>
               `;
               }).join('')}
@@ -3203,18 +3451,19 @@
           console.log(`Rendering cached stats for selected hashtag: ${normalizedHashtag}`);
           renderKPICards(cachedStats);
           renderTopToots(cachedStats.topToots || []);
-          
+
           // Background fetch trending tags to keep view consistent
           const trendingRes = await fetchWithRateLimitTracking(`${API_BASE}/trending?limit=10`);
           if (trendingRes.ok) {
             const { tags: trendingTags } = await trendingRes.json();
             renderTrendingTags(trendingTags, hashtag);
           }
-          
+
           updateActivePill(normalizedHashtag);
-          
+          setStatusDot('stale');
+
           const now = new Date();
-          document.getElementById('lastUpdated').textContent = 
+          document.getElementById('lastUpdated').textContent =
             `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
           
           const backBtn = document.getElementById('backToDailyBtn');
@@ -3274,16 +3523,17 @@
  
         // Update last updated time and show/hide back button
         const now = new Date();
-        document.getElementById('lastUpdated').textContent = 
+        document.getElementById('lastUpdated').textContent =
           `Última atualização: ${now.toLocaleString('pt-BR')}`;
-        
+        setStatusDot('fresh');
+
         const backBtn = document.getElementById('backToDailyBtn');
         backBtn.style.display = isDailyHashtag ? 'none' : 'inline-flex';
- 
+
         hideLoading();
       } catch (error) {
         console.error('Error loading hashtag data:', error);
-        showError(error.message || 'Erro inesperado ao carregar dados');
+        showError(friendlyFetchError(error));
       }
     }
 
@@ -3315,11 +3565,11 @@
 
       trendingTags.slice(0, 10).forEach((tag, index) => {
         const trend = trendConfig[tag.trendDirection] || trendConfig['stable'];
-        const trendLabel = tag.trendDirection === 'rising' ? 'Subindo' : 
+        const trendLabel = tag.trendDirection === 'rising' ? 'Subindo' :
                           tag.trendDirection === 'falling' ? 'Caindo' : 'Estável';
-        
+
         const isCurrent = normalizedCurrentHashtag && tag.name.toLowerCase() === normalizedCurrentHashtag.toLowerCase();
-        
+
         const row = document.createElement('tr');
         row.style.animationDelay = `${index * 0.05}s`;
         row.style.cursor = isCurrent ? 'default' : 'pointer';
@@ -3328,32 +3578,36 @@
           row.setAttribute('title', `Clique para ver dados de #${tag.name}`);
         }
         row.innerHTML = `
-          <td>
-            <strong>
-              ${isCurrent ? 
-                `<span style="color: #667eea;">#${sanitizeHTML(tag.name)} <small style="color: var(--text-secondary); font-weight: 400;">(atual)</small></span>` :
-                `<a href="javascript:void(0)" onclick="loadHashtagData('${tag.name}')" style="color: var(--text-primary); text-decoration: none; transition: color var(--transition-fast); cursor: pointer;" 
-                   onmouseover="this.style.color='#667eea'" 
-                   onmouseout="this.style.color='var(--text-primary)'">
-                  #${sanitizeHTML(tag.name)}
-                  <small style="color: var(--text-secondary); margin-left: 0.5rem; font-weight: 400;">👆</small>
-                </a>`
-              }
-            </strong>
+          <td data-label="Nome">
+            <span class="td-value" style="text-align: left;">
+              <strong>
+                ${isCurrent ?
+                  `<span style="color: var(--accent-text);">#${sanitizeHTML(tag.name)} <small style="color: var(--text-secondary); font-weight: 400;">(atual)</small></span>` :
+                  `<button type="button" class="tag-link-btn" data-hashtag="${sanitizeHTML(tag.name)}" aria-label="Ver dados de #${sanitizeHTML(tag.name)}">#${sanitizeHTML(tag.name)}</button>`
+                }
+              </strong>
+            </span>
           </td>
-          <td>${formatNumber(tag.currentUses)}</td>
-          <td>${formatNumber(tag.accounts)}</td>
-          <td>
-            <span class="trend-badge ${trend.class}">
-              ${trend.emoji} ${trendLabel}
+          <td data-label="Usos Hoje"><span class="td-value">${formatNumber(tag.currentUses)}</span></td>
+          <td data-label="Contas"><span class="td-value">${formatNumber(tag.accounts)}</span></td>
+          <td data-label="Tendência">
+            <span class="td-value" style="text-align: right;">
+              <span class="trend-badge ${trend.class}">
+                <span aria-hidden="true">${trend.emoji}</span> ${trendLabel}
+              </span>
             </span>
           </td>
         `;
-        
+
         if (!isCurrent) {
+          const linkBtn = row.querySelector('.tag-link-btn');
+          linkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadHashtagData(tag.name);
+          });
           row.addEventListener('click', () => loadHashtagData(tag.name));
         }
-        
+
         tbody.appendChild(row);
       });
     }
@@ -3404,30 +3658,36 @@
         
         // Render pills only for today's hashtags
         hashtags.forEach((hashtag, index) => {
-          const pill = document.createElement('div');
+          const pill = document.createElement('button');
+          pill.type = 'button';
           pill.className = 'hashtag-pill';
-          
+          pill.dataset.hashtag = hashtag;
+          pill.setAttribute('aria-pressed', 'false');
+
           // Mark first hashtag as active by default
           if (index === 0) {
             pill.classList.add('active');
+            pill.setAttribute('aria-pressed', 'true');
             currentSelectedHashtag = hashtag;
           }
-          
+
           pill.innerHTML = `
-            <span class="pill-indicator"></span>
+            <span class="pill-indicator" aria-hidden="true"></span>
             <span>#${hashtag}</span>
           `;
-          
+
           // Add click handler
           pill.addEventListener('click', () => {
             // Remove active class from all pills
             document.querySelectorAll('.hashtag-pill').forEach(p => {
               if (!p.classList.contains('loading')) {
                 p.classList.remove('active');
+                p.setAttribute('aria-pressed', 'false');
               }
             });
             // Add active class to clicked pill
             pill.classList.add('active');
+            pill.setAttribute('aria-pressed', 'true');
             // Load data for selected hashtag
             currentSelectedHashtag = hashtag;
             loadHashtagData(hashtag);
@@ -3450,25 +3710,25 @@
     function updateActivePill(hashtag) {
       const pills = document.querySelectorAll('.hashtag-pill');
       const normalizedHashtag = normalizeHashtag(hashtag);
-      
+
       pills.forEach(pill => {
         // Skip loading pills
         if (pill.classList.contains('loading')) return;
-        
-        const pillText = pill.textContent.trim();
-        // Extract hashtag from pill text (format: #hashtag DayName)
-        const pillHashtagMatch = pillText.match(/#(\w+)/);
-        const pillHashtag = pillHashtagMatch ? pillHashtagMatch[1] : null;
-        
+
+        // Compare against the pill's own dataset (works with accented hashtags)
+        const pillHashtag = pill.dataset.hashtag;
+
         if (pillHashtag && pillHashtag.toLowerCase() === normalizedHashtag.toLowerCase()) {
           // Remove active class from all pills
           pills.forEach(p => {
             if (!p.classList.contains('loading')) {
               p.classList.remove('active');
+              p.setAttribute('aria-pressed', 'false');
             }
           });
           // Add active class to matching pill
           pill.classList.add('active');
+          pill.setAttribute('aria-pressed', 'true');
           currentSelectedHashtag = hashtag;
         }
       });
@@ -3508,11 +3768,12 @@
           renderTopToots(cachedStats.topToots || []);
           renderTrendingTags(trendingTags, hashtag);
           updateActivePill(hashtag);
-          
+          setStatusDot('stale');
+
           const now = new Date();
-          document.getElementById('lastUpdated').textContent = 
+          document.getElementById('lastUpdated').textContent =
             `Última atualização (cache): ${now.toLocaleString('pt-BR')}`;
-          
+
           hideLoading();
         }
 
@@ -3550,9 +3811,10 @@
 
         // Update last updated time and hide back button
         const now = new Date();
-        document.getElementById('lastUpdated').textContent = 
+        document.getElementById('lastUpdated').textContent =
           `Última atualização: ${now.toLocaleString('pt-BR')}`;
-        
+        setStatusDot('fresh');
+
         document.getElementById('backToDailyBtn').style.display = 'none';
 
         hideLoading();
@@ -3561,9 +3823,9 @@
         if (error.name === 'AbortError') {
           return; // Silently ignore aborted requests
         }
-        
+
         console.error('Error loading data:', error);
-        showError(error.message || 'Erro inesperado ao carregar dados');
+        showError(friendlyFetchError(error));
       } finally {
         isLoadingData = false;
       }
@@ -3572,6 +3834,44 @@
     // Initialize dashboard
     loadDailyHashtags(); // Load daily hashtags pills first
     loadData();
+    initMagneticButtons();
+
+    /* Botão magnético: o alvo de clique desliza até o cursor (no máximo 8px),
+       em vez de crescer a partir do centro — assim o cursor nunca sai do
+       botão e ele parece vivo sem parecer escorregadio. */
+    function initMagneticButtons() {
+      const MAGNET_RADIUS = 90;
+      const MAGNET_SHIFT = 8;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      document.querySelectorAll('.refresh-btn, .nav-btn, .btn-primary').forEach((button) => {
+        // Só em dispositivos com ponteiro fino (sem toque) o arrasto faz sentido.
+        // Quem pediu menos movimento não recebe o efeito.
+        if (prefersReducedMotion) return;
+        if (window.matchMedia('(pointer: coarse)').matches) return;
+
+        button.addEventListener('pointermove', (event) => {
+          const rect = button.getBoundingClientRect();
+          const offsetX = event.clientX - (rect.left + rect.width / 2);
+          const offsetY = event.clientY - (rect.top + rect.height / 2);
+          const distance = Math.hypot(offsetX, offsetY);
+
+          if (distance > MAGNET_RADIUS) {
+            button.style.transform = '';
+            return;
+          }
+
+          const pull = 1 - distance / MAGNET_RADIUS;
+          const shiftX = (offsetX / (rect.width / 2)) * MAGNET_SHIFT * pull;
+          const shiftY = (offsetY / (rect.height / 2)) * MAGNET_SHIFT * pull;
+          button.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+        });
+
+        button.addEventListener('pointerleave', () => {
+          button.style.transform = '';
+        });
+      });
+    }
     
     // Set up auto-refresh interval (every 5 minutes)
     if (refreshInterval) {
@@ -3599,7 +3899,7 @@
     
     // Color palette for multiple hashtags
     const hashtagColors = [
-      { border: 'rgb(102, 126, 234)', background: 'rgba(102, 126, 234, 0.1)' }, // Primary blue
+      { border: 'rgb(109, 140, 255)', background: 'rgba(109, 140, 255, 0.1)' }, // Primary blue
       { border: 'rgb(67, 233, 123)', background: 'rgba(67, 233, 123, 0.1)' },   // Green
       { border: 'rgb(250, 112, 154)', background: 'rgba(250, 112, 154, 0.1)' }, // Pink
       { border: 'rgb(79, 172, 254)', background: 'rgba(79, 172, 254, 0.1)' },   // Light blue
@@ -3616,26 +3916,30 @@
       const navDashboard = document.getElementById('navDashboard');
       const navHistory = document.getElementById('navHistory');
 
+      // Só a aba ativa recebe acento; a outra fica neutra.
+      const setNavState = (active, inactive) => {
+        active.style.background = 'var(--accent-soft)';
+        active.style.border = '1px solid var(--accent-line)';
+        active.style.color = 'var(--accent-text)';
+        inactive.style.background = 'transparent';
+        inactive.style.border = '1px solid var(--border-color)';
+        inactive.style.color = 'var(--text-secondary)';
+      };
+
       if (view === 'history') {
         dashboardView.style.display = 'none';
         historyView.style.display = 'block';
         navDashboard.classList.remove('active');
         navHistory.classList.add('active');
-        navDashboard.style.background = 'var(--bg-card)';
-        navDashboard.style.border = '1px solid var(--border-color)';
-        navHistory.style.background = 'var(--primary-gradient)';
-        navHistory.style.border = 'none';
-        
+        setNavState(navHistory, navDashboard);
+
         initializeHistoryView();
       } else {
         dashboardView.style.display = 'block';
         historyView.style.display = 'none';
         navHistory.classList.remove('active');
         navDashboard.classList.add('active');
-        navHistory.style.background = 'var(--bg-card)';
-        navHistory.style.border = '1px solid var(--border-color)';
-        navDashboard.style.background = 'var(--primary-gradient)';
-        navDashboard.style.border = 'none';
+        setNavState(navDashboard, navHistory);
       }
     }
 
@@ -4804,8 +5108,8 @@
           datasets: [{
             label: label,
             data: usesData,
-            borderColor: 'rgb(102, 126, 234)',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderColor: 'rgb(109, 140, 255)',
+            backgroundColor: 'rgba(109, 140, 255, 0.1)',
             tension: 0.4,
             fill: true
           }]
@@ -4900,8 +5204,8 @@
           datasets: [{
             label: 'Usos Diários',
             data: usesData,
-            borderColor: 'rgb(102, 126, 234)',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderColor: 'rgb(109, 140, 255)',
+            backgroundColor: 'rgba(109, 140, 255, 0.1)',
             tension: 0.4,
             fill: true
           }]

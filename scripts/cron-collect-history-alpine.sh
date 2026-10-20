@@ -1,104 +1,79 @@
 #!/bin/sh
 #
-# Script para coleta diária de histórico de hashtags (Alpine Linux compatible)
-# Este script é chamado pelo cron job em containers Alpine/Docker
+# Coleta diária do histórico de hashtags (compatível com Alpine/Docker).
+# Executado pelo cron job dentro do container.
 #
-# Variáveis de ambiente devem estar configuradas no .env
-# ou no crontab
+# As variáveis de ambiente vêm do .env ou do ambiente do container.
 
 set -e
 
-# Obter diretório do script de forma robusta (readlink -f é mais confiável)
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 PROJECT_DIR=$(dirname "$SCRIPT_DIR")
 
-# Mudar para o diretório do projeto
 cd "$PROJECT_DIR" || exit 1
 
-# Carregar variáveis de ambiente se .env existir
+# Carrega as variáveis do .env, tolerando CRLF e aspas.
 if [ -f .env ]; then
-  while read -r line || [ -n "$line" ]; do
-    # Pular comentários de linha inteira e linhas vazias
+  while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       "#"* | "") continue ;;
     esac
 
-    # 1. Remover prefixo "export " se existir
     line="${line#export }"
 
-    # 2. Dividir na primeira '=' para obter chave e valor bruto
     case "$line" in
       *"="*)
         key="${line%%=*}"
         value="${line#*=}"
 
-        # Remover espaços extras da chave (limpeza básica)
         key=$(printf '%s' "$key" | tr -d '[:space:]')
+        value="${value%$'\r'}"
 
-        # 3. Limpar o valor conforme regras de .env
         case "$value" in
           \"*)
-            # Com aspas duplas: extrair conteúdo entre aspas e ignorar resto (incluindo comentários inline)
             value=$(printf '%s' "$value" | sed 's/^"\([^"]*\)".*/\1/')
             ;;
           \'*)
-            # Com aspas simples: extrair conteúdo entre aspas
             value=$(printf '%s' "$value" | sed "s/^'\([^']*\)'.*/\1/")
             ;;
           *)
-            # Sem aspas: remover comentários inline (#) e espaços nas extremidades
             value="${value%%#*}"
             value=$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
             ;;
         esac
 
-        # 4. Exportar preservando espaços com segurança
         export "$key"="$value"
         ;;
     esac
   done < .env
 fi
 
-# Caminho do Node.js (ajuste se necessário)
-NODE_PATH=$(command -v node 2>/dev/null)
-if [ -z "$NODE_PATH" ]; then
-  echo "Erro: Node.js não encontrado no PATH"
-  exit 1
-fi
-
-# Caminho do script de coleta
-COLLECT_SCRIPT="$PROJECT_DIR/src/cli/collectHistory.js"
-
-# Verificar se o script existe
-if [ ! -f "$COLLECT_SCRIPT" ]; then
-  echo "Erro: Script de coleta não encontrado: $COLLECT_SCRIPT"
-  exit 1
-fi
-
-# Diretório de logs
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"
-
-# Arquivo de log com data
 LOG_FILE="$LOG_DIR/cron-collect-$(date +%Y-%m-%d).log"
 
-# Log de início
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-echo "[$TIMESTAMP] Iniciando coleta diária de histórico" >> "$LOG_FILE"
+COLLECT_CMD="hashpanel-collect"
+REPORT_CMD="hashpanel"
 
-# Execução (Redirecionando stdout e stderr para o log)
-# Nota: Simplificado para evitar complexidade com tee e PIPESTATUS
-"$NODE_PATH" "$COLLECT_SCRIPT" >> "$LOG_FILE" 2>&1
+if ! command -v "$COLLECT_CMD" >/dev/null 2>&1; then
+  COLLECT_CMD="python -m hashpanel.cli.collect"
+  REPORT_CMD="python -m hashpanel.cli.main"
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando coleta diária de histórico" >> "$LOG_FILE"
+
+# shellcheck disable=SC2086
+$COLLECT_CMD >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Coleta concluída com sucesso" >> "$LOG_FILE"
-  
-  # Gerar e publicar relatório diário com tema claro
+
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Gerando relatório diário com tema claro" >> "$LOG_FILE"
-  "$NODE_PATH" "$PROJECT_DIR/cli.js" report --light >> "$LOG_FILE" 2>&1
+  # shellcheck disable=SC2086
+  $REPORT_CMD report --light >> "$LOG_FILE" 2>&1
   REPORT_EXIT_CODE=$?
-  
+
   if [ $REPORT_EXIT_CODE -eq 0 ]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Relatório publicado com sucesso" >> "$LOG_FILE"
   else

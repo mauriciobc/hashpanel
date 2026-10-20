@@ -1,51 +1,59 @@
 # ============================================
 # Stage 1: Builder
 # ============================================
-FROM node:22-alpine AS builder
+FROM python:3.13-slim AS builder
 
-# Install build dependencies
-RUN apk add --no-cache \
-    python3 make g++ build-base pkgconf \
-    cairo-dev pango-dev libjpeg-turbo-dev giflib-dev pixman-dev
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
-COPY package*.json ./
 
-# Install and build native modules
-# --build-from-source ensures better-sqlite3 matches the architecture
-RUN npm install --omit=dev --no-audit --no-fund
-RUN npm rebuild better-sqlite3 --build-from-source
+# Dependências de sistema necessárias para compilar wheels
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala o pacote e suas dependências
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --prefix=/install .
 
 # ============================================
 # Stage 2: Runtime
 # ============================================
-FROM node:22-alpine
+FROM python:3.13-slim
 
-RUN apk add --no-cache \
-    curl dcron cairo pango pixman libjpeg-turbo giflib \
-    fontconfig ttf-dejavu
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=3000 \
+    NODE_ENV=production
+
+# curl: healthcheck | cron: agendador | fonts-dejavu: renderização das imagens
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    cron \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 1. Copy the source code first
+COPY --from=builder /install /usr/local
+
+# Código-fonte e assets
 COPY . .
 
-# 2. Overwrite the node_modules with the compiled ones from the builder
-# This ensures that even if node_modules existed locally, they are replaced
-COPY --from=builder /app/node_modules ./node_modules
+# As fontes da imagem do relatório vêm junto do projeto
+COPY assets/fonts ./assets/fonts
 
-# 3. Explicitly set up the entrypoint
-# (Even if it was copied in step 1, we ensure permissions here)
-RUN chmod +x /app/docker-entrypoint.sh && mkdir -p logs data
-
-ENV NODE_ENV=production PORT=3000
+RUN chmod +x /app/docker-entrypoint.sh \
+    && mkdir -p logs data
 
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Use the ENTRYPOINT to handle the cron/start logic
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["npm", "run", "server"]
+CMD ["hashpanel-server"]

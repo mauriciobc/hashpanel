@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hashpanel:
     build:
@@ -9,50 +7,47 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    # Load .env file from host (required - will fail if missing)
-    # Variables from env_file are loaded first, then environment: overrides them
-    # This ensures variables are available even if not exported in host environment
+    # Carrega o .env do host (falha se o arquivo não existir).
+    # As variáveis do ambiente do container sobrescrevem as do arquivo.
     env_file:
       - .env
     environment:
-      # Mastodon configuration (required)
+      # Mastodon (obrigatório)
       - MASTODON_URL=${MASTODON_URL}
       - CLIENT_KEY=${CLIENT_KEY}
       - CLIENT_SECRET=${CLIENT_SECRET}
       - ACCESS_TOKEN=${ACCESS_TOKEN}
-      # Server configuration (optional)
+      # Servidor
       - PORT=3000
       - HOST=0.0.0.0
       - NODE_ENV=production
       - LOG_LEVEL=info
       - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
-      # Trust proxy configuration (optional, defaults to 1 for secure reverse proxy setup)
-      # Set to number of proxies between client and app (typically 1 for Caddy/nginx)
-      # Set to 'false' if running directly without reverse proxy
+      # Confiar em um proxy (Caddy/nginx) entre o cliente e a aplicação
       - TRUST_PROXY=${TRUST_PROXY:-1}
-      # Performance settings (optional)
+      # Desempenho
       - API_TIMEOUT_MS=${API_TIMEOUT_MS:-30000}
       - RATE_LIMIT_DELAY_MS=${RATE_LIMIT_DELAY_MS:-1000}
       - MAX_API_PAGES=${MAX_API_PAGES:-20}
       - TOOTS_PER_PAGE=${TOOTS_PER_PAGE:-40}
-      # Cache settings (optional)
+      # Cache
       - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-300}
       - ENABLE_CACHE=${ENABLE_CACHE:-true}
-      # CORS configuration (required in production)
-      # Set CORS_ORIGIN to your domain(s), e.g.:
-      # Single domain: CORS_ORIGIN=https://seu-dominio.com
-      # Multiple domains: CORS_ORIGIN=https://seu-dominio.com,https://www.seu-dominio.com
+      # CORS (obrigatório em produção)
+      # Origem única:  CORS_ORIGIN=https://seu-dominio.com
+      # Várias:        CORS_ORIGIN=https://a.com,https://b.com
       - CORS_ORIGIN=${CORS_ORIGIN}
     volumes:
       - ./logs:/app/logs
+      - ./data:/app/data
     networks:
       - hashpanel-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
-      start_period: 5s
+      start_period: 30s
 
 networks:
   hashpanel-network:

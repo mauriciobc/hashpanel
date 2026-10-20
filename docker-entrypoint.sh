@@ -1,39 +1,38 @@
 #!/bin/sh
 set -e
 
-# Ensure data and logs directories exist
+# Garante que os diretórios de dados e logs existam
 mkdir -p /app/data /app/logs
 
-# Run database migrations
+# Prepara o banco de dados
 echo "=== Initializing database ==="
-npm run db:migrate || echo "Database migration skipped or already done"
+python -m hashpanel.cli.collect --help >/dev/null 2>&1 || true
+python -c "from hashpanel.database.connection import get_database; get_database().close()" \
+  || echo "Database migration skipped or already done"
 
-# Setup cron job
+# Configura o cron
 echo "=== Setting up cron job ==="
 SCHEDULE="${CRON_SCHEDULE:-0 2 * * *}"
 
-# CRITICAL: Set PATH for cron (Alpine cron has very limited PATH)
-# Without this, cron won't find 'node'
+# O cron do Alpine tem um PATH mínimo, então definimos os caminhos explicitamente
 CRON_PATH="/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+CRON_SCRIPT="/app/scripts/cron-collect-history.sh"
 
-# Use the Alpine-compatible cron script
-CRON_SCRIPT="/app/scripts/cron-collect-history-alpine.sh"
-
-# Make sure the script is executable
 if [ -f "$CRON_SCRIPT" ]; then
   chmod +x "$CRON_SCRIPT"
   {
     echo "PATH=$CRON_PATH"
-    printf '%s %s >> /app/logs/cron-collect-$(date +\\%%Y-\\%%m-\\%%d).log 2>&1\n' "${SCHEDULE}" "${CRON_SCRIPT}"
+    printf '%s %s >> /app/logs/cron-collect-$(date +\\%%Y-\\%%m-\\%%d).log 2>&1\n' \
+      "${SCHEDULE}" "${CRON_SCRIPT}"
   } > /tmp/crontab.txt
-  echo "Using Alpine-compatible cron script: $CRON_SCRIPT"
+  echo "Using cron script: $CRON_SCRIPT"
 else
-  # Fallback to direct Node.js execution if Alpine script doesn't exist
   {
     echo "PATH=$CRON_PATH"
-    printf '%s cd /app && /usr/local/bin/node src/cli/collectHistory.js >> /app/logs/cron-collect-$(date +\\%%Y-\\%%m-\\%%d).log 2>&1\n' "${SCHEDULE}"
+    printf '%s cd /app && hashpanel-collect >> /app/logs/cron-collect-$(date +\\%%Y-\\%%m-\\%%d).log 2>&1\n' \
+      "${SCHEDULE}"
   } > /tmp/crontab.txt
-  echo "Using direct Node.js execution (Alpine script not found)"
+  echo "Using direct collection command"
 fi
 
 crontab /tmp/crontab.txt
@@ -41,15 +40,17 @@ rm /tmp/crontab.txt
 echo "=== Cron job configured ==="
 crontab -l
 
-# Check if crond is already running
-if ! pgrep crond >/dev/null 2>&1; then
-  # Start cron daemon in background
-  echo "=== Starting cron daemon ==="
+# Inicia o cron em segundo plano. O nome do daemon varia entre
+# distribuições (crond no Alpine/BSD, cron no Debian).
+echo "=== Starting cron daemon ==="
+if command -v crond >/dev/null 2>&1; then
   crond -l 2
+elif command -v cron >/dev/null 2>&1; then
+  cron
 else
-  echo "=== Cron daemon already running ==="
+  echo "Warning: no cron daemon found, scheduled collection is disabled"
 fi
 
-# Execute the main command
+# Executa o comando principal
 echo "=== Starting web server ==="
 exec "$@"

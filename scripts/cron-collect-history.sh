@@ -1,99 +1,79 @@
 #!/bin/bash
 #
-# Script para coleta diária de histórico de hashtags
-# Este script é chamado pelo cron job
+# Coleta diária do histórico de hashtags.
+# Executado pelo cron; também pode ser rodado manualmente.
 #
-# Variáveis de ambiente devem estar configuradas no .env
-# ou no crontab
+# As variáveis de ambiente vêm do .env ou do ambiente do container.
 
-# Obter diretório do script
+set -u
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Mudar para o diretório do projeto
 cd "$PROJECT_DIR" || exit 1
 
-# Carregar variáveis de ambiente se .env existir
+# Carrega as variáveis de ambiente se o .env existir.
+# O arquivo pode ter quebras CRLF, então removemos o \r dos valores.
 if [ -f .env ]; then
-  set -a
-  source .env
-  set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      ''|'#'*) continue ;;
+    esac
+    key="${line%%=*}"
+    value="${line#*=}"
+    value="${value%$'\r'}"
+    value="${value%$'\n'}"
+    export "$key=$value"
+  done < .env
 fi
 
-# Caminho do Node.js (ajuste se necessário)
-NODE_PATH=$(command -v node 2>/dev/null)
-if [ -z "$NODE_PATH" ]; then
-  echo "Erro: Node.js não encontrado no PATH"
-  exit 1
-fi
-
-# Caminho do script de coleta
-COLLECT_SCRIPT="$PROJECT_DIR/src/cli/collectHistory.js"
-
-# Verificar se o script existe
-if [ ! -f "$COLLECT_SCRIPT" ]; then
-  echo "Erro: Script de coleta não encontrado: $COLLECT_SCRIPT"
-  exit 1
-fi
-
-# Diretório de logs
 LOG_DIR="$PROJECT_DIR/logs"
 mkdir -p "$LOG_DIR"
-
-# Arquivo de log com data
 LOG_FILE="$LOG_DIR/cron-collect-$(date +%Y-%m-%d).log"
 
-# Verificar se está sendo executado via cron (sem TTY) ou manualmente
-if [ -t 0 ]; then
-  # Execução manual: mostrar output no console E no log
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando coleta diária de histórico" | tee -a "$LOG_FILE"
-  "$NODE_PATH" "$COLLECT_SCRIPT" 2>&1 | tee -a "$LOG_FILE"
-  EXIT_CODE=${PIPESTATUS[0]}
-else
-  # Execução via cron: apenas log
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando coleta diária de histórico" >> "$LOG_FILE"
-  "$NODE_PATH" "$COLLECT_SCRIPT" >> "$LOG_FILE" 2>&1
-  EXIT_CODE=$?
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+run() {
+  if [ -t 0 ]; then
+    log "$1" | tee -a "$LOG_FILE"
+    shift
+    "$@" 2>&1 | tee -a "$LOG_FILE"
+    return ${PIPESTATUS[0]}
+  fi
+  log "$1" >> "$LOG_FILE"
+  shift
+  "$@" >> "$LOG_FILE" 2>&1
+}
+
+COLLECT_CMD="hashpanel-collect"
+REPORT_CMD="hashpanel"
+
+if ! command -v "$COLLECT_CMD" >/dev/null 2>&1; then
+  COLLECT_CMD="python -m hashpanel.cli.collect"
+  REPORT_CMD="python -m hashpanel.cli.main"
 fi
 
+# 1. Coleta o histórico
+run "Iniciando coleta diária de histórico" $COLLECT_CMD
+EXIT_CODE=$?
+
 if [ $EXIT_CODE -eq 0 ]; then
-  if [ -t 0 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Coleta concluída com sucesso" | tee -a "$LOG_FILE"
-  else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Coleta concluída com sucesso" >> "$LOG_FILE"
-  fi
-  
-  # Gerar e publicar relatório diário com tema claro
-  if [ -t 0 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Gerando relatório diário com tema claro" | tee -a "$LOG_FILE"
-    "$NODE_PATH" "$PROJECT_DIR/cli.js" report --light 2>&1 | tee -a "$LOG_FILE"
-    REPORT_EXIT_CODE=${PIPESTATUS[0]}
-  else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Gerando relatório diário com tema claro" >> "$LOG_FILE"
-    "$NODE_PATH" "$PROJECT_DIR/cli.js" report --light >> "$LOG_FILE" 2>&1
-    REPORT_EXIT_CODE=$?
-  fi
-  
+  run "Coleta concluída com sucesso" true
+
+  # 2. Publica o relatório do dia com o tema claro
+  run "Gerando relatório diário com tema claro" $REPORT_CMD report --light
+  REPORT_EXIT_CODE=$?
+
   if [ $REPORT_EXIT_CODE -eq 0 ]; then
-    if [ -t 0 ]; then
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Relatório publicado com sucesso" | tee -a "$LOG_FILE"
-    else
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Relatório publicado com sucesso" >> "$LOG_FILE"
-    fi
+    run "Relatório publicado com sucesso" true
   else
-    if [ -t 0 ]; then
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro ao publicar relatório (código: $REPORT_EXIT_CODE)" | tee -a "$LOG_FILE"
-    else
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro ao publicar relatório (código: $REPORT_EXIT_CODE)" >> "$LOG_FILE"
-    fi
-    # Não falhar o job se o relatório falhar
+    # A falha do relatório não deve reprovar o job.
+    run "Erro ao publicar relatório (código: $REPORT_EXIT_CODE)" true
   fi
 else
-  if [ -t 0 ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro na coleta (código: $EXIT_CODE)" | tee -a "$LOG_FILE"
-  else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Erro na coleta (código: $EXIT_CODE)" >> "$LOG_FILE"
-  fi
+  run "Erro na coleta (código: $EXIT_CODE)" true
 fi
 
 exit $EXIT_CODE

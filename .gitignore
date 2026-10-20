@@ -1,12 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node (artefactos do projeto anterior)
 node_modules/
+
+# Ferramentas de design (sessões locais)
+.impeccable/live/
+
+# Ambiente
 .env
+
+# Dados e logs
 data/
+logs/
 *.db
 *.db-shm
 *.db-wal
-*.md
-!README.md
-logs/
-.cursor/debug.log
-*.pid
 *.log
+*.pid
+
+# Relatórios gerados
+daily-report-*.png
+
+# Editores
+.cursor/
+.vscode/
+.idea/

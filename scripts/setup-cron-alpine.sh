@@ -108,7 +108,8 @@ if [ -n "$CRON_EXISTS" ]; then
 fi
 
 # CRÍTICO: Adicionar PATH ao crontab
-# O cron no Alpine tem PATH muito restrito e pode não encontrar 'node'
+# O cron no Alpine tem PATH muito restrito e pode não encontrar o Python
+# nem os executáveis instalados em /usr/local/bin
 printf "\n"
 printf "${BLUE}🔧 Configurando PATH no crontab...${NC}\n"
 

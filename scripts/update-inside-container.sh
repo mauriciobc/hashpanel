@@ -4,7 +4,6 @@
 
 set -e
 
-# Cores para output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -30,11 +29,11 @@ info "Commit atual: $OLD_COMMIT"
 info "Buscando atualizações do GitHub..."
 git fetch origin main || { error "Falha ao buscar atualizações"; exit 1; }
 
-# 4. Verificar mudanças no package.json
-PKG_CHANGED=0
-if ! git diff --quiet HEAD origin/main -- package.json; then
-    PKG_CHANGED=1
-    info "Mudanças detectadas no package.json."
+# 4. Verificar mudanças nas dependências
+DEPS_CHANGED=0
+if ! git diff --quiet HEAD origin/main -- pyproject.toml; then
+    DEPS_CHANGED=1
+    info "Mudanças detectadas no pyproject.toml."
 fi
 
 # 5. Reset para a nova versão
@@ -42,18 +41,18 @@ info "Atualizando arquivos para origin/main..."
 git reset --hard origin/main || { error "Falha ao resetar para origin/main"; exit 1; }
 
 # 6. Instalar dependências se necessário
-if [ "$PKG_CHANGED" = "1" ]; then
-    info "Instalando/Atualizando dependências (npm ci)..."
-    # Otimização para Alpine 32-bit e recursos limitados
-    npm ci --omit=dev --no-audit --no-fund || { error "Falha ao instalar dependências"; exit 1; }
+if [ "$DEPS_CHANGED" = "1" ]; then
+    info "Instalando/Atualizando dependências (pip)..."
+    pip install --no-cache-dir . || { error "Falha ao instalar dependências"; exit 1; }
     success "Dependências atualizadas."
 else
     info "Nenhuma mudança nas dependências."
 fi
 
-# 7. Executar migrações
+# 7. Executar as migrações do banco de dados
 info "Executando migrações do banco de dados..."
-npm run db:migrate || info "Nenhuma migração nova ou falha ignorada."
+python -c "from hashpanel.database.connection import get_database; get_database().close()" \
+    || info "Nenhuma migração nova ou falha ignorada."
 
 success "Atualização interna concluída com sucesso."
 echo "$OLD_COMMIT" # Retorna o commit antigo para o host poder fazer rollback se necessário
