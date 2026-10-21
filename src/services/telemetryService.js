@@ -140,7 +140,7 @@ class TelemetryService {
         timezone: tz,
         offset: getTimezoneOffset(tz),
         count,
-        percentage: this.stats.requestsWithTimezone ? ((count / this.stats.requestsWithTimezone) * 100).toFixed(1) : "0.0",
+        percentage: this.stats.requestsWithTimezone ? ((count / this.stats.requestsWithTimezone) * 100).toFixed(1) : '0.0',
       }));
 
     return {

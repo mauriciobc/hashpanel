@@ -1,4 +1,4 @@
-import { createCanvas, registerFont } from 'canvas';
+import { createCanvas } from 'canvas';
 import { logger } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
