@@ -26,10 +26,11 @@ mkdir -p "$DATA_DIR" "$LOG_DIR" || echo "Warning: could not create data/log dire
 # ---------------------------------------------------------------------------
 CRON_ENV_FILE="${HASHPANEL_CRON_ENV_FILE:-$DATA_DIR/.cron-env}"
 
-# Variáveis de que a coleta agendada precisa.
+# Variáveis de que a coleta agendada precisa. SERVER_PUBLIC_URL entra
+# porque o relatório publicado pelo cron cita a URL pública do painel.
 CRON_ENV_VARS="MASTODON_URL CLIENT_KEY CLIENT_SECRET ACCESS_TOKEN \
 PREFERRED_TIMEZONE RATE_LIMIT_DELAY_MS MAX_API_PAGES TOOTS_PER_PAGE \
-API_TIMEOUT_MS DB_PATH LOG_LEVEL"
+API_TIMEOUT_MS DB_PATH LOG_LEVEL SERVER_PUBLIC_URL"
 
 # Escapa o valor para uso seguro entre aspas simples no arquivo de ambiente.
 shell_quote() {

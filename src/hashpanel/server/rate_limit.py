@@ -10,6 +10,7 @@ import ipaddress
 import threading
 import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
 
 from hashpanel.config import get_settings
@@ -104,12 +105,36 @@ posting_limiter = RateLimiter(POSTING_RULE)
 light_limiter = RateLimiter(LIGHT_RULE)
 
 
-def _normalize_address(value: str) -> str:
-    """Normaliza um endereço para comparação (IPv6 nas formas usuais)."""
+def _address(value: str) -> Any | None:
+    """Endereço normalizado; um IPv4 mapeado em IPv6 vira IPv4."""
     try:
-        return str(ipaddress.ip_address(value.strip()))
+        parsed = ipaddress.ip_address(value.strip())
     except ValueError:
-        return value.strip()
+        return None
+    mapped = getattr(parsed, "ipv4_mapped", None)
+    return mapped or parsed
+
+
+def _canonical(value: str) -> str:
+    """Forma canônica do endereço, para o balde do limite."""
+    address = _address(value)
+    return str(address) if address is not None else value.strip()
+
+
+@lru_cache(maxsize=8)
+def _parsed_networks(raw: str) -> tuple[Any, ...]:
+    """Redes confiáveis já validadas.
+
+    O cabeçalho ``TRUSTED_PROXY_IPS`` é validado uma vez por valor: uma
+    entrada inválida vira um aviso no log, e não um aviso por requisição.
+    """
+    parsed: list[Any] = []
+    for entry in (part.strip() for part in raw.split(",") if part.strip()):
+        try:
+            parsed.append(ipaddress.ip_network(entry, strict=False))
+        except ValueError:
+            logger.warning("Invalid trusted proxy network", network=entry)
+    return tuple(parsed)
 
 
 def _is_trusted_proxy(peer: str) -> bool:
@@ -123,22 +148,15 @@ def _is_trusted_proxy(peer: str) -> bool:
     (a rede do Docker), então "peer privado" não distingue o proxy de um
     atacante — e o ``X-Forwarded-For`` dele seria aceito.
     """
-    networks = get_settings().trusted_proxy_networks
+    networks = _parsed_networks(",".join(get_settings().trusted_proxy_networks))
     if not networks:
         return False
 
-    try:
-        address = ipaddress.ip_address(peer.strip())
-    except ValueError:
+    address = _address(peer)
+    if address is None:
         return False
 
-    for entry in networks:
-        try:
-            if address in ipaddress.ip_network(entry, strict=False):
-                return True
-        except ValueError:
-            logger.warning("Invalid trusted proxy network", network=entry)
-    return False
+    return any(address in network for network in networks)
 
 
 def client_key(request: Any) -> str:
@@ -160,21 +178,22 @@ def client_key(request: Any) -> str:
     autenticação.
     """
     peer = request.client.host if request.client else "unknown"
+    canonical_peer = _canonical(peer)
 
     hops = get_settings().trusted_proxy_hops
     if hops <= 0:
-        return peer
+        return canonical_peer
 
     forwarded = request.headers.get("x-forwarded-for")
     if not forwarded:
-        return peer
+        return canonical_peer
 
     if not _is_trusted_proxy(peer):
-        return peer
+        return canonical_peer
 
     chain = [entry.strip() for entry in forwarded.split(",") if entry.strip()]
     if not chain:
-        return peer
+        return canonical_peer
 
     # O Caddy (e o nginx, na configuração deste projeto) sobrescreve
     # ``X-Forwarded-For`` com o endereço do cliente: a cadeia tem um só
@@ -182,9 +201,9 @@ def client_key(request: Any) -> str:
     # do fim, e o que o cliente escreveu à esquerda é descartado.
     index = len(chain) - hops
     if index < 0:
-        return peer
+        return canonical_peer
 
-    return chain[index]
+    return _canonical(chain[index])
 
 
 def rate_limit_headers(rule: LimitRule, remaining: int, reset_seconds: float) -> dict[str, str]:

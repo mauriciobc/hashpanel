@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from hashpanel.constants import TRUNCATION_NOTICE
 from hashpanel.services.collector import HistoryCollector
 from hashpanel.services.hashtags import HashtagAnalysis
 from hashpanel.services.images import ImageGeneratorService
@@ -185,7 +186,7 @@ def test_summary_respects_the_character_limit() -> None:
     summary = service.generate_summary(long_tag, _analysis())
 
     assert len(summary) <= 500
-    assert "resumo truncado" in summary
+    assert summary.endswith(TRUNCATION_NOTICE)
 
 
 def test_truncate_keeps_whole_lines() -> None:
@@ -195,8 +196,54 @@ def test_truncate_keeps_whole_lines() -> None:
     result = TootService._truncate(lines, 200)
 
     assert len(result) <= 200
-    assert result.endswith("... (resumo truncado)")
+    assert result.endswith(TRUNCATION_NOTICE)
+    kept = result[: -len(TRUNCATION_NOTICE)].rstrip("\n").split("\n")
+    assert kept
+    assert kept == lines[: len(kept)]
     assert "\n" in result
+
+
+def test_truncate_preserves_content_that_fits() -> None:
+    """Conteúdo que cabe no limite volta inteiro, sem aviso de truncamento.
+
+    Acrescentar o aviso a um texto que já cabe não é cortar nada — e, com
+    494 caracteres, empurrar o aviso para dentro do limite descartaria uma
+    linha inteira do resumo.
+    """
+    lines = ["y" * 98 for _ in range(5)]  # 494 caracteres
+    joined = "\n".join(lines)
+    assert len(joined) <= 500
+
+    result = TootService._truncate(lines, 500)
+
+    assert result == joined
+    assert len(result) <= 500
+    assert TRUNCATION_NOTICE not in result
+
+
+def test_truncate_reserves_room_for_the_notice() -> None:
+    """Quando só o aviso não cabe, o texto cede espaço para ele.
+
+    190 caracteres mais o aviso (22) estouram os 200, então o primeiro
+    bloco não é aceito: o resultado é o aviso, e não uma linha que depois
+    teria de ser descartada.
+    """
+    result = TootService._truncate(["a" * 190, "b"], 200)
+
+    assert len(result) <= 200
+    assert result.endswith(TRUNCATION_NOTICE)
+
+
+def test_truncate_cuts_at_a_line_boundary_and_warns() -> None:
+    """Acima do limite, o corte é em linha inteira e o aviso fecha o texto."""
+    lines = ["z" * 100 for _ in range(10)]
+
+    result = TootService._truncate(lines, 500)
+
+    assert len(result) <= 500
+    assert result.endswith(TRUNCATION_NOTICE)
+    kept = result[: -len(TRUNCATION_NOTICE)].rstrip("\n")
+    assert kept.split("\n") == lines[:4]
 
 
 # --- extração de hashtags ---
@@ -256,26 +303,42 @@ def test_collector_skips_already_collected_data(repository: Any) -> None:
 
 
 def test_collector_saves_the_matching_day(repository: Any) -> None:
-    """O coletor grava o dia pedido, contando os posts do dia local."""
-    from hashpanel.utils.timezone import get_current_date_in_timezone
+    """O coletor grava o dia pedido, contando os posts do dia local.
 
+    O post de ``21/10 02:00Z`` é ``20/10 23:00`` em São Paulo e conta no dia
+    20; o de ``19/10 12:00Z`` fica de fora. O dia já terminou e está além da
+    primeira página da timeline, então a coleta precisa paginar até ele.
+    """
+    target_day = "2026-10-20"
     collector = HistoryCollector(repository=repository)
-    today = get_current_date_in_timezone(collector.settings.preferred_timezone)
+    page_size = collector.settings.toots_per_page
+
+    # Posts recentes que ocupam a primeira página inteira da timeline.
+    recent = [
+        make_toot(f"recente-{index}", "carol", created_at="2026-10-21T12:00:00.000Z")
+        for index in range(page_size + 5)
+    ]
+    tail = [
+        make_toot("1", "alice", created_at="2026-10-20T12:00:00.000Z"),
+        # 02:00 UTC de 21/10 ainda é 23:00 de 20/10 em São Paulo.
+        make_toot("2", "alice", created_at="2026-10-21T02:00:00.000Z"),
+        make_toot("3", "bob", created_at="2026-10-20T18:00:00.000Z"),
+        # Dia anterior no fuso local: fora da contagem.
+        make_toot("4", "carol", created_at="2026-10-19T12:00:00.000Z"),
+    ]
+    timeline = recent + tail
 
     class FakeMastodon:
         def fetch_all_toots(
             self, hashtag: str, max_pages: int | None = None
         ) -> list[dict[str, Any]]:
-            return [
-                make_toot("1", "alice", created_at=f"{today}T12:00:00.000Z"),
-                make_toot("2", "alice", created_at=f"{today}T13:00:00.000Z"),
-                make_toot("3", "bob", created_at=f"{today}T14:00:00.000Z"),
-            ]
+            return timeline[: page_size * (max_pages or 1)]
 
     collector.mastodon = FakeMastodon()
 
-    assert collector.collect_hashtag_data("tercinema", today) is True
+    assert collector.collect_hashtag_data("tercinema", target_day) is True
 
-    data = repository.get_daily_data("tercinema", today)
+    data = repository.get_daily_data("tercinema", target_day)
+    assert data is not None
     assert data["uses"] == 3
     assert data["accounts"] == 2

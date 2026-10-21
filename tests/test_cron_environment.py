@@ -119,7 +119,11 @@ def test_entrypoint_writes_cron_env_file(tmp_path: Path) -> None:
         PREFERRED_TIMEZONE="America/Sao_Paulo",
         RATE_LIMIT_DELAY_MS="1500",
         MAX_API_PAGES="7",
+        TOOTS_PER_PAGE="40",
+        API_TIMEOUT_MS="30000",
         DB_PATH=db_path,
+        LOG_LEVEL="info",
+        SERVER_PUBLIC_URL="https://painel.example",
         CORS_ORIGIN="",
     )
 
@@ -135,7 +139,9 @@ def test_entrypoint_writes_cron_env_file(tmp_path: Path) -> None:
         for line in content.splitlines()
         if line.startswith("export ")
     }
-    # Só as variáveis realmente definidas e não vazias.
+    # O conjunto completo exportado — nenhuma variável do CRON_ENV_VARS pode
+    # sumir sem o teste perceber (SERVER_PUBLIC_URL, por exemplo, é o que
+    # evita relatórios noturnos apontando para http://localhost:3000).
     assert exported == {
         "MASTODON_URL",
         "CLIENT_KEY",
@@ -144,7 +150,11 @@ def test_entrypoint_writes_cron_env_file(tmp_path: Path) -> None:
         "PREFERRED_TIMEZONE",
         "RATE_LIMIT_DELAY_MS",
         "MAX_API_PAGES",
+        "TOOTS_PER_PAGE",
+        "API_TIMEOUT_MS",
         "DB_PATH",
+        "LOG_LEVEL",
+        "SERVER_PUBLIC_URL",
     }
     assert "CORS_ORIGIN" not in exported
 
@@ -156,7 +166,8 @@ def test_entrypoint_writes_cron_env_file(tmp_path: Path) -> None:
             '. "$HASHPANEL_CRON_ENV_FILE"; '
             'printf "%s\\n" "$MASTODON_URL" "$CLIENT_KEY" "$CLIENT_SECRET" '
             '"$ACCESS_TOKEN" "$PREFERRED_TIMEZONE" "$RATE_LIMIT_DELAY_MS" '
-            '"$MAX_API_PAGES" "$DB_PATH"',
+            '"$MAX_API_PAGES" "$TOOTS_PER_PAGE" "$API_TIMEOUT_MS" "$DB_PATH" '
+            '"$LOG_LEVEL" "$SERVER_PUBLIC_URL"',
         ],
         _sandbox_env(stub_dir, HASHPANEL_CRON_ENV_FILE=str(env_file)),
         tmp_path,
@@ -170,7 +181,11 @@ def test_entrypoint_writes_cron_env_file(tmp_path: Path) -> None:
         "America/Sao_Paulo",
         "1500",
         "7",
+        "40",
+        "30000",
         db_path,
+        "info",
+        "https://painel.example",
     ]
     assert not pwned.exists(), "o valor foi interpretado pelo shell ao ser carregado"
 
@@ -294,3 +309,60 @@ def test_cron_script_generates_report_after_collection(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     report_args = (tmp_path / "report.args").read_text(encoding="utf-8").strip()
     assert report_args == "report --light"
+
+
+def test_default_cron_env_path_matches_between_entrypoint_and_script(tmp_path: Path) -> None:
+    """Sem variáveis de override, os dois lados usam o MESMO caminho padrão.
+
+    O entrypoint grava em ``$APP_DIR/data/.cron-env`` e o script lê
+    ``$PROJECT_DIR/data/.cron-env`` a partir da pasta onde ele mesmo está.
+    Os testes anteriores fixam ``HASHPANEL_CRON_ENV_FILE`` à mão, então um
+    desencontro entre os padrões passaria despercebido — e o cron rodaria
+    sem credenciais em produção.
+    """
+    app_dir, stub_dir, _, _ = _prepare_entrypoint_sandbox(tmp_path)
+
+    collect_record = tmp_path / "collect.env"
+    _write_stub(stub_dir, "hashpanel-collect", f'env > "{collect_record}"\nexit 0\n')
+    _write_stub(stub_dir, "hashpanel", "exit 0\n")
+
+    # O entrypoint recebe as credenciais; o cron NÃO — como no container, ele
+    # só pode obtê-las pelo arquivo que o entrypoint gravou. Só o
+    # HASHPANEL_APP_DIR é comum aos dois passos, e nenhum dos dois recebe
+    # HASHPANEL_CRON_ENV_FILE ou HASHPANEL_DATA_DIR.
+    shared = {"HASHPANEL_APP_DIR": str(app_dir)}
+    entrypoint_values = {
+        **shared,
+        "HASHPANEL_CRON_TAB": str(tmp_path / "crontab.txt"),
+        "MASTODON_URL": "https://mastodon.example",
+        "CLIENT_KEY": "client-key-123",
+        "CLIENT_SECRET": "client-secret-456",
+        "ACCESS_TOKEN": "token-abc",
+        "SERVER_PUBLIC_URL": "https://painel.example",
+    }
+
+    entrypoint_result = _run(
+        [SH, str(ENTRYPOINT), "true"],
+        _sandbox_env(stub_dir, **entrypoint_values),
+        app_dir,
+    )
+
+    assert entrypoint_result.returncode == 0, entrypoint_result.stderr
+    default_env_file = app_dir / "data" / ".cron-env"
+    assert default_env_file.is_file(), "o entrypoint não gravou no caminho padrão"
+
+    cron_result = _run(
+        [BASH, str(app_dir / "scripts" / "cron-collect-history.sh")],
+        _sandbox_env(stub_dir, **shared),
+        app_dir,
+    )
+
+    assert cron_result.returncode == 0, cron_result.stderr
+    assert collect_record.is_file(), "hashpanel-collect não foi executado"
+    received = _parse_env_dump(collect_record)
+    assert received["MASTODON_URL"] == "https://mastodon.example"
+    assert received["CLIENT_KEY"] == "client-key-123"
+    assert received["CLIENT_SECRET"] == "client-secret-456"
+    assert received["ACCESS_TOKEN"] == "token-abc"
+    # Sem esta, todo relatório noturno apontaria para localhost.
+    assert received["SERVER_PUBLIC_URL"] == "https://painel.example"

@@ -115,8 +115,18 @@ TRUST_PROXY=1
 TRUSTED_PROXY_IPS=172.16.0.0/12
 ```
 
-Sem proxy (`TRUST_PROXY=0`, o padrão), o endereço de origem vale e o
-cabeçalho é ignorado por completo.
+O `docker-compose.portainer.yml` já traz esses valores: ele sobe o Caddy na
+frente, então a rede privada do Docker precisa estar declarada — sem isso
+todos os visitantes caem no mesmo balde e os limites (200 req/15 min,
+10 posts/hora) passam a valer para o conjunto, não por cliente. O
+`docker-compose.yml` não tem proxy, então lá o padrão é `TRUST_PROXY=0` e o
+endereço de origem vale.
+
+Com o túnel Cloudflared do compose do Portainer há um hop a mais: o Caddy vê
+o container do túnel, não o visitante, e o `X-Forwarded-For` que chega à
+aplicação é o do túnel. Nesse caso o endereço real só aparece se o Caddy for
+configurado para confiar na origem do túnel (`trusted_proxies`), e então
+`TRUST_PROXY` passa a contar esse hop extra.
 
 ## 🎯 Uso
 
@@ -159,7 +169,16 @@ diário em sequência.
 O daemon do cron não herda o ambiente do container, então o `entrypoint`
 grava as variáveis de que a coleta precisa em `data/.cron-env` (modo `600`),
 que o script carrega antes de coletar. O arquivo fica no volume de dados, e
-nunca no crontab nem no log.
+nunca no crontab nem no log. `data/` fica fora do contexto de build (veja o
+`.dockerignore`), senão o `COPY . .` assaria esse arquivo e o banco dentro da
+imagem.
+
+A coleta grava o dia contado a partir dos posts, no fuso configurado — o
+mesmo número que o painel mostra. Um dia que a timeline não alcança não é
+gravado (e conta como `skipped` no resumo), então `--date` e `--range`
+servem para dias que ainda estão dentro das páginas mais recentes, não para
+reconstruir meses de histórico. Desde que uma linha existe para o dia, ela
+não é reescrita (`INSERT OR IGNORE`).
 
 ## 🐳 Docker
 

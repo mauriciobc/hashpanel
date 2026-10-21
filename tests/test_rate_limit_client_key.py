@@ -7,10 +7,12 @@ e o limite de publicação não tem autenticação.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
 
+from hashpanel.config import reset_settings_cache
 from hashpanel.server.rate_limit import client_key
 
 # Proxy reverso (Caddy) na rede do container.
@@ -36,11 +38,19 @@ class FakeRequest:
 
 @pytest.fixture(autouse=True)
 def _reset_settings_cache() -> Any:
-    """Recarrega a configuração a cada teste (o cache é global)."""
-    from hashpanel.config import reset_settings_cache
+    """Recarrega a configuração e zera os contadores a cada teste.
+
+    Tanto o cache de configuração quanto os limitadores são globais do
+    processo: sem isso, um teste deixaria o balde cheio para o próximo.
+    """
+    from hashpanel.server.rate_limit import api_limiter, posting_limiter
 
     reset_settings_cache()
+    posting_limiter.reset()
+    api_limiter.reset()
     yield
+    posting_limiter.reset()
+    api_limiter.reset()
     reset_settings_cache()
 
 
@@ -75,9 +85,14 @@ def test_spoofed_header_from_an_unknown_peer_is_ignored(
 def test_header_is_ignored_without_a_configured_proxy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Sem ``TRUSTED_PROXY_IPS``, o cabeçalho é ignorado por completo."""
+    """Sem ``TRUSTED_PROXY_IPS``, o cabeçalho é ignorado por completo.
+
+    A variável recebe a string vazia em vez de ser removida do ambiente:
+    ``get_settings`` também lê o ``.env`` do diretório atual, e um ``.env``
+    de desenvolvimento com ``TRUSTED_PROXY_IPS`` não pode mudar o resultado.
+    """
     monkeypatch.setenv("TRUST_PROXY", "1")
-    monkeypatch.delenv("TRUSTED_PROXY_IPS", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "")
 
     request = FakeRequest(PROXY_PEER, "9.9.9.9")
 
@@ -156,43 +171,135 @@ def test_without_the_header_the_peer_is_used(monkeypatch: pytest.MonkeyPatch) ->
     assert client_key(request) == "8.8.8.8"
 
 
-def test_spoofing_does_not_bypass_the_posting_limit(
+def test_invalid_trusted_proxy_entries_warn_once_and_keep_the_valid_networks(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Uma entrada inválida não invalida a lista nem repete o aviso.
+
+    ``TRUSTED_PROXY_IPS`` é validado uma vez por valor: o ``bogus`` vira um
+    aviso no log, e a rede válida ao lado continua valendo.
+    """
+    from hashpanel.server.rate_limit import _parsed_networks
+
+    _parsed_networks.cache_clear()
+    monkeypatch.setenv("TRUST_PROXY", "1")
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", f"bogus,{PROXY_NETWORK}")
+
+    # O logger da aplicação não propaga para o root: o handler do caplog
+    # precisa ser ligado ao logger "hashpanel".
+    app_logger = logging.getLogger("hashpanel")
+    app_logger.addHandler(caplog.handler)
+    try:
+        keys = {client_key(FakeRequest(PROXY_PEER, "9.9.9.9")) for _ in range(5)}
+    finally:
+        app_logger.removeHandler(caplog.handler)
+
+    assert keys == {"9.9.9.9"}
+    warnings = [
+        record
+        for record in caplog.records
+        if record.getMessage() == "Invalid trusted proxy network"
+    ]
+    assert len(warnings) == 1
+    assert warnings[0].__dict__["context"] == {"network": "bogus"}
+
+
+def test_ipv4_mapped_peer_is_canonicalized(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """O limite de publicação não pode ser contornado forjando o cabeçalho.
+    """Um peer IPv4 mapeado em IPv6 é tratado como o IPv4 equivalente.
 
-    Este é o contrato que importa: ``POST /api/toot/post`` não tem
-    autenticação, então cada requisição precisa cair no mesmo balde.
+    O uvicorn pode entregar ``request.client.host`` como ``::ffff:a.b.c.d``;
+    sem normalizar, o proxy confiável não seria reconhecido e o balde do
+    limite ficaria diferente do de quem chega em IPv4.
     """
     monkeypatch.setenv("TRUST_PROXY", "1")
     monkeypatch.setenv("TRUSTED_PROXY_IPS", PROXY_NETWORK)
 
+    mapped_peer = "::ffff:172.18.0.5"
+
+    assert client_key(FakeRequest(mapped_peer, "9.9.9.9")) == "9.9.9.9"
+    # Sem cabeçalho, o próprio peer sai na forma canônica.
+    assert client_key(FakeRequest(mapped_peer)) == PROXY_PEER
+
+
+class FakeTootService:
+    """Serviço de publicação que nunca toca a rede."""
+
+    async def create_custom_toot_async(self, content: str, **options: Any) -> dict[str, Any]:
+        return {
+            "id": "1",
+            "url": "https://exemplo.test/1",
+            "content": content,
+            "created_at": "2026-01-01T00:00:00.000Z",
+        }
+
+
+def test_posting_endpoint_returns_429_after_the_posting_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``POST /api/toot/post`` responde 429 quando o balde enche.
+
+    O endpoint não tem autenticação e o cliente controla o
+    ``X-Forwarded-For``. Sem proxy confiável, o cabeçalho é ignorado e todas
+    as requisições caem no mesmo balde, mesmo com valores diferentes.
+
+    Este é o teste que falha se ``_posting_allowed`` deixar de aplicar o
+    limite: o primeiro pedido passa e o último tem de ser recusado.
+    """
+    monkeypatch.setenv("TRUST_PROXY", "0")
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "")
+
+    from fastapi.testclient import TestClient
+
+    from hashpanel.server.app import create_app
     from hashpanel.server.rate_limit import POSTING_RULE, posting_limiter
+    from hashpanel.server.routes import toot as toot_module
 
     posting_limiter.reset()
+    monkeypatch.setattr(toot_module, "get_toot_service", lambda: FakeTootService())
 
-    keys = {client_key(FakeRequest("8.8.8.8", f"10.0.0.{index}")) for index in range(20)}
+    with TestClient(create_app(), raise_server_exceptions=False) as client:
+        responses = [
+            client.post(
+                "/api/toot/post",
+                json={"content": "olá"},
+                headers={"X-Forwarded-For": f"10.0.0.{index}"},
+            )
+            for index in range(POSTING_RULE.max_requests + 1)
+        ]
 
-    assert keys == {"8.8.8.8"}
-    assert POSTING_RULE.max_requests == 10
+    assert responses[0].status_code == 200, responses[0].text
+    assert responses[0].json()["success"] is True
+    assert all(response.status_code == 200 for response in responses[: POSTING_RULE.max_requests])
+    assert responses[-1].status_code == 429, responses[-1].text
+    assert responses[-1].json()["error"]["code"] == POSTING_RULE.error_code
+    assert responses[-1].headers["Retry-After"]
 
 
-def test_spoofing_from_a_private_peer_does_not_bypass_the_posting_limit(
+def test_server_entrypoint_disables_uvicorn_proxy_headers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Cliente na rede interna também não troca de balde.
+    """O uvicorn não pode reescrever ``request.client.host`` sozinho.
 
-    Num container com porta publicada, o endereço de origem do cliente
-    externo também é privado (a rede do Docker). O cabeçalho só vale
-    quando o proxy — e só ele — o sobrescreve.
+    Com ``proxy_headers`` ligado, o uvicorn lê ``X-Forwarded-For`` de
+    qualquer origem e troca o endereço de origem — o que anularia a lista
+    ``TRUSTED_PROXY_IPS`` e o limite de publicação.
     """
-    monkeypatch.setenv("TRUST_PROXY", "1")
-    monkeypatch.setenv("TRUSTED_PROXY_IPS", PROXY_NETWORK)
+    monkeypatch.setenv("NODE_ENV", "test")
 
-    from hashpanel.server.rate_limit import posting_limiter
+    from hashpanel.server import __main__ as entry
 
-    posting_limiter.reset()
+    captured: dict[str, Any] = {}
 
-    keys = {client_key(FakeRequest("10.9.9.9", f"10.0.0.{index}")) for index in range(20)}
+    def fake_run(app_path: str, **kwargs: Any) -> None:
+        captured["app_path"] = app_path
+        captured.update(kwargs)
 
-    assert keys == {"10.9.9.9"}
+    monkeypatch.setattr(entry.uvicorn, "run", fake_run)
+
+    assert entry.main() == 0
+    assert captured["app_path"] == "hashpanel.server.app:app"
+    assert captured["proxy_headers"] is False
+    assert captured["forwarded_allow_ips"] == ""

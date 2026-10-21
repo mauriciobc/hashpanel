@@ -27,10 +27,14 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
-      # O cabeçalho X-Forwarded-For só é lido quando a conexão vem de uma
-      # das redes em TRUSTED_PROXY_IPS (a rede do Caddy, por exemplo).
-      - TRUST_PROXY=${TRUST_PROXY:-0}
-      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
+      # O Caddy deste compose fica na rede privada do Docker e sobrescreve
+      # o X-Forwarded-For com o endereço do cliente. Sem declarar a rede
+      # aqui, os limites por IP viram um balde único para todos os
+      # visitantes (200 req/15min, 10 posts/hora, compartilhados).
+      # Com o túnel Cloudflared na frente, o Caddy vê o container do túnel
+      # (não o visitante): veja o README para o ajuste do hop.
+      - TRUST_PROXY=${TRUST_PROXY:-1}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-172.16.0.0/12}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 * * *}
     volumes:

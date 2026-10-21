@@ -7,7 +7,13 @@ from typing import Any
 
 from fastapi import APIRouter, Query, Response
 
-from hashpanel.constants import DAY_NAMES, HASHTAGS, get_first_hashtag_for_day, get_hashtags_for_day
+from hashpanel.constants import (
+    DAY_NAMES,
+    HASHTAGS,
+    MAX_PAGES_BY_TIMEFRAME,
+    get_first_hashtag_for_day,
+    get_hashtags_for_day,
+)
 from hashpanel.database.repository import HashtagHistoryRepository
 from hashpanel.errors import NotFoundError, RateLimitError
 from hashpanel.server.errors import error_response
@@ -20,10 +26,6 @@ logger = get_logger()
 
 router = APIRouter()
 repository = HashtagHistoryRepository()
-
-# Páginas por timeframe: mais páginas para janelas maiores, sempre limitadas
-# pelo teto configurado no ambiente.
-MAX_PAGES_BY_TIMEFRAME = {"today": 1, "week": 5, "month": 20, "all": 50}
 
 
 def _max_pages_for_timeframe(timeframe: str) -> int:

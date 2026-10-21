@@ -35,6 +35,16 @@ MAX_TOOTS_PER_PAGE: Final[int] = 100
 DEFAULT_TOP_TOOTS_COUNT: Final[int] = 5
 MAX_API_PAGES: Final[int] = 10
 
+# Páginas por timeframe: mais páginas para janelas maiores, sempre limitadas
+# pelo teto configurado no ambiente (MAX_API_PAGES). O coletor usa a entrada
+# "today" para contar exatamente os mesmos posts que o painel mostra.
+MAX_PAGES_BY_TIMEFRAME: Final[dict[str, int]] = {
+    "today": 1,
+    "week": 5,
+    "month": 20,
+    "all": 50,
+}
+
 # --- Relevância ---
 RELEVANCE_WEIGHTS: Final[dict[str, float]] = {
     "favorites": 0.35,

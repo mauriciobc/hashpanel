@@ -10,8 +10,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
+from hashpanel.constants import MAX_PAGES_BY_TIMEFRAME
 from hashpanel.errors import ApiError
-from hashpanel.server.routes.hashtag import MAX_PAGES_BY_TIMEFRAME
 from hashpanel.services.collector import HistoryCollector
 from hashpanel.services.hashtags import HashtagAnalysis
 from hashpanel.services.processor import get_toot_processor
@@ -59,19 +61,45 @@ def test_collector_writes_the_panels_numbers_for_the_local_day(repository: Any) 
     assert row["uses"] == analysis.get_today_count()
     assert row["accounts"] == analysis.get_unique_user_count()
 
-    # Mesma janela de páginas do timeframe "today" do painel.
+    # Dia passado: o painel não tem contraparte, então a coleta pagina fundo
+    # até alcançar o dia, dentro do teto configurado.
+    assert pages == [collector.settings.max_api_pages]
+
+
+def test_current_day_uses_the_panels_page_budget(repository: Any) -> None:
+    """No dia corrente a janela é a mesma do painel — senão os números divergem."""
+    from hashpanel.utils.timezone import get_current_date_in_timezone
+
+    today = get_current_date_in_timezone(SAO_PAULO)
+    # 12:00 em São Paulo, no dia local corrente.
+    toots = [make_toot("1", "alice", account_id="1", created_at=f"{today}T15:00:00.000Z")]
+    pages: list[int | None] = []
+
+    class FakeMastodon:
+        def fetch_all_toots(
+            self, hashtag: str, max_pages: int | None = None
+        ) -> list[dict[str, Any]]:
+            pages.append(max_pages)
+            return toots
+
+    collector = HistoryCollector(repository=repository)
+    collector.mastodon = FakeMastodon()
+
+    assert collector.collect_hashtag_data("tercinema", today) is True
+
     assert pages == [min(MAX_PAGES_BY_TIMEFRAME["today"], collector.settings.max_api_pages)]
 
 
-def test_no_posts_for_the_day_writes_nothing_and_does_not_poison_the_row(
+def test_empty_local_day_is_zeroed_and_not_the_neighbour_bucket(
     repository: Any,
 ) -> None:
-    """Sem posts do dia local, nada é gravado — nem o balde UTC vizinho.
+    """Dia encerrado e sem posts vale zero — e nunca o balde UTC vizinho.
 
     O balde UTC de 21/10 vira 20/10 às 21:00 em São Paulo; a versão antiga
-    casava esse balde e congelava ``uses``/``accounts`` no dia 20. Depois de
-    pular, uma coleta correta ainda pode gravar a linha.
+    casava esse balde e congelava ``uses``/``accounts`` no dia 20.
     """
+    # Timeline que cobre o dia 20 (o post mais antigo é anterior a ele) mas
+    # não tem post nenhum no dia.
     other_day = [make_toot("1", "alice", account_id="1", created_at="2026-10-19T12:00:00.000Z")]
 
     class NeighborBucketMastodon:
@@ -86,25 +114,62 @@ def test_no_posts_for_the_day_writes_nothing_and_does_not_poison_the_row(
     collector = HistoryCollector(repository=repository)
     collector.mastodon = NeighborBucketMastodon()
 
-    assert collector.collect_hashtag_data("tercinema", TARGET_DAY) is False
-    assert repository.get_daily_data("tercinema", TARGET_DAY) is None
+    assert collector.collect_hashtag_data("tercinema", TARGET_DAY) is True
 
-    class CorrectMastodon:
+    row = repository.get_daily_data("tercinema", TARGET_DAY)
+    assert row is not None
+    # O balde vizinho dizia 12/5; o dia local não teve post.
+    assert row["uses"] == 0
+    assert row["accounts"] == 0
+
+
+def test_day_out_of_timeline_reach_writes_nothing_and_counts_as_skipped(
+    repository: Any,
+) -> None:
+    """Um dia que a timeline não alcança não vira linha zerada nem sucesso.
+
+    Sem número confiável, a coleta não grava (o ``INSERT OR IGNORE``
+    congelaria a linha) e conta o dia como ``skipped``, para o resumo não
+    anunciar uma coleta que não houve.
+    """
+    # Todos os posts são mais novos que o dia pedido: a janela não o alcança.
+    newer = [make_toot("1", "alice", account_id="1", created_at="2026-10-21T12:00:00.000Z")]
+
+    class NewerMastodon:
         def fetch_all_toots(
             self, hashtag: str, max_pages: int | None = None
         ) -> list[dict[str, Any]]:
-            return [
-                make_toot("2", "alice", account_id="1", created_at="2026-10-20T12:00:00.000Z"),
-                make_toot("3", "bob", account_id="2", created_at="2026-10-20T13:00:00.000Z"),
-            ]
+            return newer
 
-    collector.mastodon = CorrectMastodon()
+    collector = HistoryCollector(repository=repository)
+    collector.mastodon = NewerMastodon()
 
-    assert collector.collect_hashtag_data("tercinema", TARGET_DAY) is True
-    row = repository.get_daily_data("tercinema", TARGET_DAY)
-    assert row is not None
-    assert row["uses"] == 2
-    assert row["accounts"] == 2
+    assert collector.collect_hashtag_data("tercinema", TARGET_DAY) is False
+    assert repository.get_daily_data("tercinema", TARGET_DAY) is None
+    assert collector.get_stats()["byOperation"]["hashtagData"]["skipped"] == 1
+    assert collector.get_stats()["byOperation"]["hashtagData"]["errors"] == 0
+
+
+def test_invalid_date_fails_instead_of_collecting_nothing(repository: Any) -> None:
+    """Uma data malformada não pode terminar como coleta vazia e bem-sucedida."""
+
+    class UnusedMastodon:
+        def fetch_all_toots(
+            self, hashtag: str, max_pages: int | None = None
+        ) -> list[dict[str, Any]]:
+            raise AssertionError("não deve falar com a API")
+
+    collector = HistoryCollector(repository=repository)
+    collector.mastodon = UnusedMastodon()
+
+    # O comando em lote falha antes de tocar a API: o CLI sai != 0.
+    with pytest.raises(ValueError):
+        collector.collect_all_hashtags("2026-13-45")
+
+    # Chamada direta não propaga, mas conta como erro — nunca como sucesso.
+    assert collector.collect_hashtag_data("tercinema", "2026-13-45") is False
+    assert collector.get_stats()["byOperation"]["hashtagData"]["errors"] == 1
+    assert repository.get_daily_data("tercinema", "2026-13-45") is None
 
 
 def test_timeline_failure_is_counted_as_an_error(repository: Any) -> None:

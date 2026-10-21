@@ -65,14 +65,19 @@ class HistoryCollector:
         target_date = date or get_current_date_in_timezone(timezone)
 
         try:
+            self._validate_date(target_date)
+
             if self.repository.has_data_for_date(hashtag, target_date):
                 self._update_stats(operation, "skipped")
                 return False
 
             usage = self._usage_for_local_day(hashtag, target_date, timezone)
             if usage is None:
+                # Sem número confiável não se grava nada. A contagem sai do
+                # zero para que o resumo não anuncie uma coleta que não houve.
+                self._update_stats(operation, "skipped")
                 logger.warning(
-                    "No data found for the requested day",
+                    "No posts collected for the day",
                     hashtag=hashtag,
                     target_date=target_date,
                     timezone=timezone,
@@ -94,6 +99,14 @@ class HistoryCollector:
             logger.error("Failed to collect hashtag data", hashtag=hashtag, error=str(exc))
             return False
 
+    @staticmethod
+    def _validate_date(target_date: str) -> None:
+        """Recusa uma data que não seja ``YYYY-MM-DD`` válida."""
+        try:
+            date.fromisoformat(target_date)
+        except ValueError as exc:
+            raise ValueError(f"Data inválida: {target_date!r}") from exc
+
     def _usage_for_local_day(
         self, hashtag: str, target_date: str, timezone: str
     ) -> dict[str, int] | None:
@@ -103,37 +116,85 @@ class HistoryCollector:
         igual a um dia local (o dia local atravessa dois baldes UTC). Usar o
         agregado gravaria o número do dia vizinho, e o ``INSERT OR IGNORE``
         o congelaria. Por isso contamos os posts do dia com o mesmo pipeline
-        do painel — mesmas regras, mesmo fuso, mesmas páginas — para que o
-        histórico e a tela concordem.
+        do painel — mesmas regras, mesmo fuso — para que o histórico e a
+        tela concordem.
 
-        Sem posts do dia nas páginas buscadas, devolvemos ``None``: não há
-        número confiável para gravar, e o chamador pula o dia. Uma falha de
-        leitura da timeline propaga e é contada como erro pelo chamador.
+        Para o dia corrente a janela é a do painel (mesmo orçamento de
+        páginas). Para um dia passado, que o painel não mostra, pagina-se
+        fundo até alcançá-lo, dentro do teto configurado.
+
+        Devolve ``None`` quando não há número confiável para gravar: dia em
+        curso sem posts (um zero agora congelaria a coleta) ou dia que a
+        timeline não alcança. Uma falha de leitura propaga e é contada como
+        erro pelo chamador.
         """
-        from hashpanel.server.routes.hashtag import MAX_PAGES_BY_TIMEFRAME
+        from hashpanel.constants import MAX_PAGES_BY_TIMEFRAME
         from hashpanel.services.processor import get_toot_processor
 
-        # O painel busca o timeframe "today" com este mesmo teto de páginas:
-        # contar os mesmos posts exige a mesma janela.
-        max_pages = min(MAX_PAGES_BY_TIMEFRAME["today"], self.settings.max_api_pages)
-        toots = self.mastodon.fetch_all_toots(hashtag, max_pages=max_pages)
+        target = date.fromisoformat(target_date)
+        today = date.fromisoformat(get_current_date_in_timezone(timezone))
+
+        if target >= today:
+            pages = min(MAX_PAGES_BY_TIMEFRAME["today"], self.settings.max_api_pages)
+        else:
+            pages = self.settings.max_api_pages
+
+        toots = self.mastodon.fetch_all_toots(hashtag, max_pages=pages)
 
         processed = get_toot_processor().process(
             toots, timezone=timezone, filter_by_date=target_date
         )
-        if not processed:
+        if processed:
+            accounts = {
+                (toot.get("account") or {}).get("id")
+                for toot in processed
+                if (toot.get("account") or {}).get("id")
+            }
+            return {"uses": len(processed), "accounts": len(accounts)}
+
+        if target >= today:
             return None
 
-        accounts = {
-            (toot.get("account") or {}).get("id")
-            for toot in processed
-            if (toot.get("account") or {}).get("id")
-        }
-        return {"uses": len(processed), "accounts": len(accounts)}
+        if not self._window_reaches_day(toots, target, timezone):
+            return None
+
+        # Dia encerrado que a janela cobre por inteiro: não houve uso.
+        return {"uses": 0, "accounts": 0}
+
+    @staticmethod
+    def _window_reaches_day(toots: list[dict[str, Any]], target: date, timezone: str) -> bool:
+        """Indica se a janela buscada alcança o fim do dia pedido.
+
+        Com a timeline ordenada do mais novo para o mais antigo, ver o
+        post mais antigo em ``target`` ou antes significa que todos os
+        posts do dia foram vistos.
+        """
+        from zoneinfo import ZoneInfo
+
+        from hashpanel.utils.timezone import to_datetime
+
+        zone = ZoneInfo(timezone)
+        moments = []
+        for toot in toots:
+            created_at = toot.get("created_at")
+            if not created_at:
+                continue
+            try:
+                moments.append(to_datetime(created_at).astimezone(zone))
+            except (TypeError, ValueError):
+                continue
+
+        if not moments:
+            # Timeline vazia: não houve post em dia nenhum.
+            return True
+        return min(moments).date() <= target
 
     def collect_all_hashtags(self, date: str | None = None) -> dict[str, Any]:
         """Coleta todas as hashtags configuradas para um dia."""
         target_date = date or get_current_date_in_timezone(self.settings.preferred_timezone)
+        # Valida antes de falar com a API: um erro de digitação na data
+        # precisa falhar de imediato, e não virar uma coleta vazia.
+        self._validate_date(target_date)
         self._reset_stats("allHashtags")
 
         hashtags = all_configured_hashtags()

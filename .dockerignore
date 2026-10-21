@@ -15,3 +15,17 @@ logs/*
 tests
 coverage
 .cache
+.coverage
+.pytest_cache
+.ruff_cache
+.cursor
+.impeccable
+
+# Dados de execução. O diretório é um bind mount e o entrypoint o recria,
+# mas se entrar no contexto de build o COPY . . assa o banco e o
+# .cron-env (com as credenciais) dentro da imagem.
+data/
+*.db
+*.db-shm
+*.db-wal
+*.pid

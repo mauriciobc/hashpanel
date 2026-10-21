@@ -238,6 +238,11 @@ class MastodonService:
             except RateLimitError:
                 raise
             except ApiError as exc:
+                if pages == 0:
+                    # Sem a primeira página não há dado nenhum. Engolir a
+                    # falha faria uma pane de rede passar por um dia sem
+                    # posts, e o cron registraria sucesso.
+                    raise
                 logger.warning("Continuing with partial toots", hashtag=hashtag, error=str(exc))
                 break
 
