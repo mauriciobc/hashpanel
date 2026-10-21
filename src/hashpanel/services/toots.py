@@ -97,17 +97,30 @@ class TootService:
 
     @staticmethod
     def _truncate(lines: list[str], max_length: int) -> str:
-        """Corta o resumo no limite de caracteres, avisando o leitor."""
+        """Corta o resumo no limite de caracteres, avisando o leitor.
+
+        O corte acontece em fronteiras de linha, e o aviso de truncamento
+        é sempre preservado: linhas inteiras são descartadas até sobrar
+        espaço para ele.
+        """
         result = ""
         for line in lines:
             candidate = f"{result}\n{line}" if result else line
-            if len(result) + len(candidate) > max_length:
-                notice = f"\n{TRUNCATION_NOTICE}" if result else TRUNCATION_NOTICE
-                if len(result) + len(notice) <= max_length:
-                    result += notice
+            if len(candidate) > max_length:
                 break
             result = candidate
-        return result
+
+        notice = f"\n{TRUNCATION_NOTICE}" if result else TRUNCATION_NOTICE
+
+        # Reserva espaço para o aviso, descartando linhas inteiras.
+        while result and len(result) + len(notice) > max_length:
+            cut = result.rfind("\n")
+            result = result[:cut] if cut > 0 else ""
+
+        if not result:
+            return TRUNCATION_NOTICE if len(TRUNCATION_NOTICE) <= max_length else ""
+
+        return result + notice
 
     def preview_summary(self, hashtag: str, analysis: HashtagAnalysis) -> dict[str, Any]:
         """Gera o resumo sem publicar, com metadados de tamanho."""

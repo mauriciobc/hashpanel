@@ -62,10 +62,15 @@ async def current_hashtag(
 
 
 @router.get("/daily")
-async def daily_hashtags() -> dict[str, Any]:
-    """Grade semanal de hashtags, com a marcação do dia atual."""
-    today = datetime.now().astimezone()
-    today_index = (today.weekday() + 1) % 7
+async def daily_hashtags(
+    timezone: str | None = Query(None),
+) -> dict[str, Any]:
+    """Grade semanal de hashtags, com a marcação do dia atual no fuso pedido."""
+    from hashpanel.utils.timezone import day_of_week, get_current_datetime
+
+    validated = validate_timezone_parameter(timezone)
+    now = get_current_datetime(validated)
+    today_index = day_of_week(now, validated)
 
     schedule = []
     for index, entry in enumerate(HASHTAGS):
@@ -86,7 +91,8 @@ async def daily_hashtags() -> dict[str, Any]:
             "day": today_index,
             "hashtag": get_first_hashtag_for_day(HASHTAGS[today_index]),
         },
-        "generatedAt": datetime.now().astimezone().isoformat(),
+        "generatedAt": now.isoformat(),
+        "timezone": validated,
     }
 
 

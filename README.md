@@ -95,6 +95,29 @@ Opcionais relevantes: `PREFERRED_TIMEZONE` (padrão `America/Sao_Paulo`),
 `PORT` (3000), `SERVER_PUBLIC_URL`, `TRUST_PROXY`, `RATE_LIMIT_DELAY_MS`,
 `MAX_API_PAGES`, `CACHE_TTL_SECONDS`, `DB_PATH`.
 
+`TRUST_PROXY` diz quantos proxies reversos (Caddy, nginx) ficam entre o
+cliente e a aplicação. Com `n` proxies, o endereço do cliente é o n-ésimo a
+partir do fim da cadeia `X-Forwarded-For`, e o que o cliente escreveu à
+esquerda é descartado.
+
+`TRUSTED_PROXY_IPS` lista as redes (CIDR) dos proxies confiáveis. O
+cabeçalho `X-Forwarded-For` só é lido quando a conexão vem de uma dessas
+redes — ele é controlado por quem faz a requisição, e sem essa checagem cada
+pedido cairia num limite diferente, zerando a proteção (inclusive o limite
+de publicação, que não tem autenticação). Em container com porta publicada,
+o endereço de origem de um cliente externo também é privado, então "peer
+privado" não serve: a lista é o que decide.
+
+Exemplo com o Caddy do compose do Portainer:
+
+```bash
+TRUST_PROXY=1
+TRUSTED_PROXY_IPS=172.16.0.0/12
+```
+
+Sem proxy (`TRUST_PROXY=0`, o padrão), o endereço de origem vale e o
+cabeçalho é ignorado por completo.
+
 ## 🎯 Uso
 
 ### Servidor web
@@ -132,6 +155,11 @@ hashpanel-collect --last-7-days
 A coleta também roda por cron dentro do container (ver `docker-entrypoint.sh`).
 O script `scripts/cron-collect-history.sh` faz a coleta e publica o relatório
 diário em sequência.
+
+O daemon do cron não herda o ambiente do container, então o `entrypoint`
+grava as variáveis de que a coleta precisa em `data/.cron-env` (modo `600`),
+que o script carrega antes de coletar. O arquivo fica no volume de dados, e
+nunca no crontab nem no log.
 
 ## 🐳 Docker
 

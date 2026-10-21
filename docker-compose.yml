@@ -23,8 +23,11 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
-      # Confiar em um proxy (Caddy/nginx) entre o cliente e a aplicação
-      - TRUST_PROXY=${TRUST_PROXY:-1}
+      # Confiar em um proxy (Caddy/nginx) entre o cliente e a aplicação.
+      # O cabeçalho X-Forwarded-For só é lido quando a conexão vem de uma
+      # das redes em TRUSTED_PROXY_IPS.
+      - TRUST_PROXY=${TRUST_PROXY:-0}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
       # Desempenho
       - API_TIMEOUT_MS=${API_TIMEOUT_MS:-30000}
       - RATE_LIMIT_DELAY_MS=${RATE_LIMIT_DELAY_MS:-1000}

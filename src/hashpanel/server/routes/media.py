@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 from fastapi import APIRouter, Query, Request
@@ -31,6 +31,8 @@ router = APIRouter()
 CACHE_TTL_SECONDS = 3600
 MAX_IMAGE_SIZE = 10 * 1024 * 1024
 FETCH_TIMEOUT_SECONDS = 10
+MAX_IMAGE_REDIRECTS = 3
+REDIRECT_STATUS_CODES = frozenset({301, 302, 303, 307, 308})
 
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -142,6 +144,36 @@ def validate_image_url(url: str) -> str:
     return url
 
 
+async def _fetch_image(url: str, headers: dict[str, str]) -> httpx.Response:
+    """Busca a imagem, validando cada destino de redirecionamento.
+
+    Redirecionamentos não são seguidos automaticamente: cada destino é
+    resolvido contra a URL atual e validado antes de ser requisitado, para que
+    um host permitido não possa desviar o proxy para a rede interna ou para
+    metadados de infraestrutura.
+    """
+    current_url = url
+    redirects = 0
+
+    async with httpx.AsyncClient(timeout=FETCH_TIMEOUT_SECONDS, follow_redirects=False) as client:
+        while True:
+            response = await client.get(current_url, headers=headers)
+            if response.status_code not in REDIRECT_STATUS_CODES:
+                return response
+
+            location = response.headers.get("location")
+            if not location:
+                return response
+
+            redirects += 1
+            if redirects > MAX_IMAGE_REDIRECTS:
+                logger.warning("Too many image redirects", url=url, last_url=current_url)
+                raise ValidationError("Too many redirects")
+
+            current_url = urljoin(current_url, location)
+            validate_image_url(current_url)
+
+
 @router.get("/proxy")
 async def proxy_image(
     request: Request,
@@ -197,10 +229,9 @@ async def proxy_image(
     }
 
     try:
-        async with httpx.AsyncClient(
-            timeout=FETCH_TIMEOUT_SECONDS, follow_redirects=True
-        ) as client:
-            response = await client.get(validated_url, headers=headers)
+        response = await _fetch_image(validated_url, headers)
+    except ValidationError as exc:
+        return error_response(exc.message, exc.code, exc.status_code, details=exc.details)
     except httpx.TimeoutException:
         logger.warning("Image fetch timeout", url=validated_url)
         return error_response("Image fetch timeout", "VALIDATION_ERROR", 400)

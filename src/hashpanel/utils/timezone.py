@@ -220,6 +220,20 @@ def get_timezone_log_context(
     return context
 
 
+def day_of_week_for_date(date_string: str) -> int:
+    """Dia da semana (0 = domingo) de uma data civil ``YYYY-MM-DD``.
+
+    Uma data civil não é um instante: converter para UTC e depois para o
+    fuso desloca o dia em um dia nas fuso negativos. O dia da semana sai
+    direto do calendário.
+    """
+    try:
+        parsed = date.fromisoformat(date_string.strip())
+    except (AttributeError, ValueError) as exc:
+        raise ValueError(f"Data inválida: {date_string!r}") from exc
+    return (parsed.weekday() + 1) % 7
+
+
 def day_of_week(value: datetime | date | str | int | float, timezone: str) -> int:
     """Dia da semana (0 = domingo) de um instante no fuso indicado."""
     zone = ZoneInfo(parse_and_validate_timezone(timezone, fallback=DEFAULT_TIMEZONE))

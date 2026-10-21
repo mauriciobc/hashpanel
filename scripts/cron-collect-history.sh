@@ -3,7 +3,12 @@
 # Coleta diária do histórico de hashtags.
 # Executado pelo cron; também pode ser rodado manualmente.
 #
-# As variáveis de ambiente vêm do .env ou do ambiente do container.
+# As variáveis de ambiente vêm do arquivo escrito pelo docker-entrypoint.sh
+# (data/.cron-env), do .env ou do ambiente do container.
+#
+# O daemon do cron não herda o ambiente do container, então o entrypoint grava
+# os exports necessários em data/.cron-env (modo 600). O .env continua como
+# fallback para execução fora do container; os dois podem ter CRLF.
 
 set -u
 
@@ -12,8 +17,16 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_DIR" || exit 1
 
+# Ambiente persistido pelo entrypoint para o cron (container).
+CRON_ENV_FILE="${HASHPANEL_CRON_ENV_FILE:-$PROJECT_DIR/data/.cron-env}"
+if [ -r "$CRON_ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$CRON_ENV_FILE"
+fi
+
 # Carrega as variáveis de ambiente se o .env existir.
 # O arquivo pode ter quebras CRLF, então removemos o \r dos valores.
+# Quando presente, ele sobrepõe o que veio do ambiente (comportamento antigo).
 if [ -f .env ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
-from hashpanel.services.collector import HistoryCollector, _day_to_date_string
+from hashpanel.services.collector import HistoryCollector
 from hashpanel.services.hashtags import HashtagAnalysis
 from hashpanel.services.images import ImageGeneratorService
 from hashpanel.services.listener import extract_hashtags
@@ -230,32 +229,22 @@ def test_unicode_hashtags_are_supported() -> None:
 
 
 # --- coleta ---
-def test_day_timestamp_is_converted_in_utc() -> None:
-    """O timestamp do histórico vira data UTC."""
-    assert _day_to_date_string({"day": "1767225600"}) == "2026-01-01"
-    assert _day_to_date_string({"day": 1767225600}) == "2026-01-01"
-
-
 def test_collector_skips_already_collected_data(repository: Any) -> None:
     """Dados já coletados não são buscados de novo."""
-    from hashpanel.services.collector import HistoryCollector as Collector
+    from hashpanel.utils.timezone import get_current_date_in_timezone
 
-    collector = Collector(repository=repository)
+    collector = HistoryCollector(repository=repository)
+    today = get_current_date_in_timezone(collector.settings.preferred_timezone)
     calls: list[str] = []
 
     class FakeMastodon:
-        def get_hashtag_history(self, hashtag: str) -> list[dict[str, Any]]:
+        def fetch_all_toots(
+            self, hashtag: str, max_pages: int | None = None
+        ) -> list[dict[str, Any]]:
             calls.append(hashtag)
-            return [{"day": "1767225600", "uses": "12", "accounts": "5"}]
+            return [make_toot("1", "alice", created_at=f"{today}T12:00:00.000Z")]
 
     collector.mastodon = FakeMastodon()
-    today = datetime.now(UTC).strftime("%Y-%m-%d")
-    today_timestamp = str(int(datetime.now(UTC).replace(hour=12).timestamp()))
-
-    collector.mastodon = FakeMastodon()
-    collector.mastodon.get_hashtag_history = lambda hashtag: [  # type: ignore[method-assign]
-        {"day": today_timestamp, "uses": "12", "accounts": "5"}
-    ]
 
     assert collector.collect_hashtag_data("tercinema", today) is True
     assert repository.has_data_for_date("tercinema", today) is True
@@ -267,19 +256,26 @@ def test_collector_skips_already_collected_data(repository: Any) -> None:
 
 
 def test_collector_saves_the_matching_day(repository: Any) -> None:
-    """O coletor grava o dia pedido, com os valores da API."""
+    """O coletor grava o dia pedido, contando os posts do dia local."""
+    from hashpanel.utils.timezone import get_current_date_in_timezone
+
     collector = HistoryCollector(repository=repository)
-    today = datetime.now(UTC).strftime("%Y-%m-%d")
-    timestamp = str(int(datetime.now(UTC).replace(hour=12).timestamp()))
+    today = get_current_date_in_timezone(collector.settings.preferred_timezone)
 
     class FakeMastodon:
-        def get_hashtag_history(self, hashtag: str) -> list[dict[str, Any]]:
-            return [{"day": timestamp, "uses": "42", "accounts": "7"}]
+        def fetch_all_toots(
+            self, hashtag: str, max_pages: int | None = None
+        ) -> list[dict[str, Any]]:
+            return [
+                make_toot("1", "alice", created_at=f"{today}T12:00:00.000Z"),
+                make_toot("2", "alice", created_at=f"{today}T13:00:00.000Z"),
+                make_toot("3", "bob", created_at=f"{today}T14:00:00.000Z"),
+            ]
 
     collector.mastodon = FakeMastodon()
 
     assert collector.collect_hashtag_data("tercinema", today) is True
 
     data = repository.get_daily_data("tercinema", today)
-    assert data["uses"] == 42
-    assert data["accounts"] == 7
+    assert data["uses"] == 3
+    assert data["accounts"] == 2

@@ -66,10 +66,14 @@ class CLIApplication:
         hashtag = self.get_daily_hashtag(options.date)
         logger.info("Processing daily hashtag", hashtag=hashtag)
 
-        analysis = self.hashtags.analyze_hashtag(hashtag)
+        if options.date:
+            analysis = self.hashtags.analyze_hashtag(hashtag, filter_by_date=options.date)
+        else:
+            analysis = self.hashtags.analyze_hashtag(hashtag)
 
         if not analysis.has_today_toots():
-            print("Nenhum post encontrado para hoje. Encerrando.")
+            when = options.date or "hoje"
+            print(f"Nenhum post encontrado para {when}. Encerrando.")
             return
 
         summary = self.toots.generate_summary(hashtag, analysis)
@@ -203,14 +207,21 @@ class CLIApplication:
 
     @staticmethod
     def get_daily_hashtag(date: str | None = None) -> str:
-        """Hashtag do dia (a primeira configurada)."""
+        """Hashtag do dia (a primeira configurada).
+
+        ``date`` é uma data civil (``YYYY-MM-DD``): o dia da semana sai
+        direto do calendário, sem conversão de fuso — converter uma
+        meia-noite ingênua deslocaria o dia em fusos negativos.
+        """
         from datetime import datetime
 
-        from hashpanel.utils.timezone import day_of_week
+        from hashpanel.utils.timezone import day_of_week, day_of_week_for_date
 
         settings = get_settings()
-        target = datetime.fromisoformat(date) if date else datetime.now()
-        weekday = day_of_week(target, settings.preferred_timezone)
+        if date:
+            weekday = day_of_week_for_date(date)
+        else:
+            weekday = day_of_week(datetime.now(), settings.preferred_timezone)
 
         from hashpanel.constants import HASHTAGS, get_first_hashtag_for_day
 

@@ -147,13 +147,7 @@ class HashtagAnalysis:
             for toot in self.toots
             if (toot.get("account") or {}).get("id")
         }
-        if accounts:
-            return len(accounts)
-
-        # Sem posts no dia, cai no histórico agregado da API.
-        if self.history:
-            return parse_int(self.history[0].get("accounts"))
-        return 0
+        return len(accounts)
 
     def get_weekly_total(self) -> int:
         """Total de usos na janela do histórico."""
@@ -257,6 +251,7 @@ class HashtagService:
         timeframe: str = "today",
         timezone: str | None = None,
         limit: int | None = None,
+        filter_by_date: str | None = None,
     ) -> HashtagAnalysis:
         """Analisa uma hashtag sem bloquear o event loop do servidor.
 
@@ -271,6 +266,7 @@ class HashtagService:
             timeframe=timeframe,
             timezone=timezone,
             limit=limit,
+            filter_by_date=filter_by_date,
         )
 
     async def get_hashtag_history_async(self, hashtag: str) -> list[dict[str, Any]]:
@@ -293,8 +289,13 @@ class HashtagService:
         timeframe: str = "today",
         timezone: str | None = None,
         limit: int | None = None,
+        filter_by_date: str | None = None,
     ) -> HashtagAnalysis:
-        """Analisa uma hashtag e devolve posts, métricas e histórico."""
+        """Analisa uma hashtag e devolve posts, métricas e histórico.
+
+        Quando ``filter_by_date`` é informado (``YYYY-MM-DD``), a análise usa
+        essa data local no lugar do dia corrente.
+        """
         if not hashtag:
             raise BusinessError("Hashtag is required")
 
@@ -307,12 +308,14 @@ class HashtagService:
 
         pages = max_pages or settings.max_api_pages
         cache_key = f"analysis_{hashtag}_{pages}_{normalized_timeframe}_{zone}"
+        if filter_by_date:
+            cache_key = f"{cache_key}_{filter_by_date}"
 
         cached = self.cache.get(cache_key)
         if cached is not None:
             return cached
 
-        today = get_current_date_in_timezone(zone)
+        today = filter_by_date or get_current_date_in_timezone(zone)
 
         toots = self.fetch_all_toots(hashtag, max_pages=pages)
         history = self.get_hashtag_history(hashtag)
@@ -320,7 +323,7 @@ class HashtagService:
         process_options: dict[str, Any] = {"timezone": zone}
         if limit:
             process_options["limit"] = limit
-        if normalized_timeframe == "today":
+        if filter_by_date or normalized_timeframe == "today":
             process_options["filter_by_date"] = today
         elif normalized_timeframe != "all":
             process_options["timeframe"] = normalized_timeframe
@@ -334,15 +337,22 @@ class HashtagService:
     def fetch_all_toots(
         self, hashtag: str, *, max_pages: int | None = None
     ) -> list[dict[str, Any]]:
-        """Posts de uma hashtag, com cache diário."""
+        """Posts de uma hashtag, com cache diário.
+
+        O orçamento de páginas faz parte da chave: uma lista curta (1 página)
+        não pode ser reaproveitada por quem precisa de mais páginas.
+        """
         settings = get_settings()
-        cache_key = f"toots_{hashtag}_{get_current_date_in_timezone(settings.preferred_timezone)}"
+        pages = max_pages or settings.max_api_pages
+        cache_key = (
+            f"toots_{hashtag}_{pages}_{get_current_date_in_timezone(settings.preferred_timezone)}"
+        )
 
         cached = self.cache.get(cache_key)
         if cached is not None:
             return cached
 
-        toots = self.mastodon.fetch_all_toots(hashtag, max_pages or settings.max_api_pages)
+        toots = self.mastodon.fetch_all_toots(hashtag, pages)
         self.cache.set(cache_key, toots)
         return toots
 

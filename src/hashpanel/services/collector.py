@@ -6,71 +6,17 @@ Mastodon e grava uma linha por dia. Já coletado não é repetido.
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Callable
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from hashpanel.config import get_settings
-from hashpanel.constants import IGNORED_ACCOUNTS, all_configured_hashtags
+from hashpanel.constants import all_configured_hashtags
 from hashpanel.database.repository import HashtagHistoryRepository
 from hashpanel.services.mastodon import get_mastodon_service
 from hashpanel.utils.logger import get_logger
 from hashpanel.utils.timezone import get_current_date_in_timezone
 
 logger = get_logger()
-
-
-def _day_to_date_string(day: Any, timezone: str | None = None) -> str:
-    """Converte o ``day`` do histórico em ``YYYY-MM-DD`` **no fuso local**.
-
-    A API do Mastodon agrega por dia UTC, mas o HashPanel acompanha o dia
-    da comunidade no fuso configurado (``#tercinema`` é de terça-feira
-    *aqui*). Entre 21:00 e 03:00 UTC os dois dias não coincidem, então a
-    conversão precisa ser feita no fuso local — senão gravamos o número do
-    dia errado.
-
-    O valor chega em três formas, dependendo de como a resposta foi
-    interpretada:
-
-    * ``datetime`` — como a biblioteca ``Mastodon.py`` converte;
-    * ``int``/``str`` numérico — timestamp Unix em segundos;
-    * ``str`` — data em ISO 8601.
-    """
-    raw = day.get("day") if isinstance(day, dict) else day
-
-    if isinstance(raw, datetime):
-        return _to_local_date(raw, timezone)
-
-    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
-        return _to_local_date(datetime.fromtimestamp(float(raw), tz=UTC), timezone)
-
-    text = str(raw).strip()
-    if text.isdigit():
-        return _to_local_date(datetime.fromtimestamp(int(text), tz=UTC), timezone)
-
-    # Data em ISO 8601: o dia já vem em UTC (a API sempre devolve meia-noite
-    # UTC), então convertemos para o fuso local antes de tomar a data.
-    if "T" in text:
-        try:
-            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-        except ValueError:
-            return text.split("T", 1)[0]
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=UTC)
-        return _to_local_date(parsed, timezone)
-
-    return text
-
-
-def _to_local_date(moment: datetime, timezone: str | None) -> str:
-    """Data (YYYY-MM-DD) de um instante no fuso configurado."""
-    from zoneinfo import ZoneInfo
-
-    from hashpanel.utils.timezone import parse_and_validate_timezone
-
-    zone = ZoneInfo(parse_and_validate_timezone(timezone, fallback="UTC"))
-    return moment.astimezone(zone).strftime("%Y-%m-%d")
 
 
 class HistoryCollector:
@@ -85,22 +31,6 @@ class HistoryCollector:
             "hashtagData": self._empty_bucket(),
             "dateRange": self._empty_bucket(),
         }
-        # Ids das contas de trending automatizado, descobertos sob demanda.
-        self._ignored_account_ids: set[str] = set()
-
-    def _ignored_ids_for(self, toots: list[dict[str, Any]]) -> set[str]:
-        """Ids das contas ignoradas presentes nesta lista de posts.
-
-        O ``IGNORED_ACCOUNTS`` é uma lista de nomes; a mesma pessoa pode estar
-        em instâncias diferentes, então casamos pelo nome e guardamos o id
-        encontrado.
-        """
-        if not self._ignored_account_ids:
-            for toot in toots:
-                account = toot.get("account") or {}
-                if account.get("username") in IGNORED_ACCOUNTS and account.get("id"):
-                    self._ignored_account_ids.add(str(account["id"]))
-        return self._ignored_account_ids
 
     @staticmethod
     def _empty_bucket() -> dict[str, Any]:
@@ -169,74 +99,37 @@ class HistoryCollector:
     ) -> dict[str, int] | None:
         """Uso de uma hashtag num dia local, contado a partir dos posts.
 
-        A API devolve o histórico agregado por dia **UTC**, o que não serve
-        para o nosso dia local: entre 21:00 e 03:00 UTC os dias não
-        coincidem. Por isso contamos os posts do dia ourselves — assim o
-        número gravado é sempre o do dia da comunidade, e a mesma métrica
-        que o painel mostra.
+        O histórico agregado da API é por dia **UTC**, e um dia UTC nunca é
+        igual a um dia local (o dia local atravessa dois baldes UTC). Usar o
+        agregado gravaria o número do dia vizinho, e o ``INSERT OR IGNORE``
+        o congelaria. Por isso contamos os posts do dia com o mesmo pipeline
+        do painel — mesmas regras, mesmo fuso, mesmas páginas — para que o
+        histórico e a tela concordem.
 
-        Quando não há posts (dia sem uso), devolvemos zero, que é o que a
-        API também informa nesse caso.
+        Sem posts do dia nas páginas buscadas, devolvemos ``None``: não há
+        número confiável para gravar, e o chamador pula o dia. Uma falha de
+        leitura da timeline propaga e é contada como erro pelo chamador.
         """
-        from zoneinfo import ZoneInfo
+        from hashpanel.server.routes.hashtag import MAX_PAGES_BY_TIMEFRAME
+        from hashpanel.services.processor import get_toot_processor
 
-        from hashpanel.utils.timezone import to_datetime
+        # O painel busca o timeframe "today" com este mesmo teto de páginas:
+        # contar os mesmos posts exige a mesma janela.
+        max_pages = min(MAX_PAGES_BY_TIMEFRAME["today"], self.settings.max_api_pages)
+        toots = self.mastodon.fetch_all_toots(hashtag, max_pages=max_pages)
 
-        zone = ZoneInfo(timezone)
-        target = date.fromisoformat(target_date)
+        processed = get_toot_processor().process(
+            toots, timezone=timezone, filter_by_date=target_date
+        )
+        if not processed:
+            return None
 
-        try:
-            toots = self.mastodon.fetch_all_toots(hashtag, max_pages=1)
-        except Exception:
-            # Sem acesso à timeline, cai no histórico agregado da API.
-            return self._usage_from_api_history(hashtag, target_date, timezone)
-
-        todays = [
-            toot
-            for toot in toots
-            if to_datetime(toot.get("created_at")).astimezone(zone).date() == target
-        ]
-
-        if not todays:
-            # Confirma se o dia realmente não teve uso antes de gravar zero.
-            history = self._usage_from_api_history(hashtag, target_date, timezone)
-            if history is None:
-                return None
-            return {"uses": history["uses"], "accounts": history["accounts"]}
-
-        ignored = self._ignored_ids_for(toots)
         accounts = {
-            str((toot.get("account") or {}).get("id"))
-            for toot in todays
+            (toot.get("account") or {}).get("id")
+            for toot in processed
             if (toot.get("account") or {}).get("id")
-            and str((toot.get("account") or {}).get("id")) not in ignored
         }
-        uses = len(
-            [toot for toot in todays if str((toot.get("account") or {}).get("id")) not in ignored]
-        )
-        return {"uses": uses, "accounts": len(accounts)}
-
-    def _usage_from_api_history(
-        self, hashtag: str, target_date: str, timezone: str
-    ) -> dict[str, int] | None:
-        """Uso pelo histórico agregado da API, convertido para o dia local."""
-        from hashpanel.utils.jscompat import parse_int
-
-        history = self.mastodon.get_hashtag_history(hashtag)
-        if not history:
-            return None
-
-        day_data = next(
-            (day for day in history if _day_to_date_string(day, timezone) == target_date),
-            None,
-        )
-        if day_data is None:
-            return None
-
-        return {
-            "uses": parse_int(day_data.get("uses")),
-            "accounts": parse_int(day_data.get("accounts")),
-        }
+        return {"uses": len(processed), "accounts": len(accounts)}
 
     def collect_all_hashtags(self, date: str | None = None) -> dict[str, Any]:
         """Coleta todas as hashtags configuradas para um dia."""
@@ -301,29 +194,3 @@ class HistoryCollector:
     def get_stats(self) -> dict[str, Any]:
         """Estatísticas por operação."""
         return {"byOperation": {name: dict(bucket) for name, bucket in self.stats.items()}}
-
-
-async def run_with_concurrency(
-    items: list[Any],
-    handler: Callable[[Any], Any],
-    *,
-    concurrency: int = 3,
-    min_delay_ms: int = 1000,
-) -> list[Any]:
-    """Executa ``handler`` com no máximo ``concurrency`` tarefas em paralelo.
-
-    Cada slot espera ``min_delay_ms`` depois de terminar, para respeitar o
-    limite de requisições da API.
-    """
-    semaphore = asyncio.Semaphore(max(1, concurrency))
-    delay_seconds = max(0, min_delay_ms) / 1000
-
-    async def run(item: Any) -> Any:
-        async with semaphore:
-            try:
-                return await handler(item)
-            finally:
-                if delay_seconds:
-                    await asyncio.sleep(delay_seconds)
-
-    return await asyncio.gather(*(run(item) for item in items))

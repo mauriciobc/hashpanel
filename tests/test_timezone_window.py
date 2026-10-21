@@ -2,46 +2,18 @@
 
 Cada hashtag pertence a um dia da semana no fuso da comunidade
 (``#tercinema`` é de terça-feira *aqui*). A API do Mastodon agrega por dia
-UTC, então as duas janelas divergem entre 21:00 e 03:00 UTC — exatamente o
-horário em que a comunidade posta. Estes testes travam esse comportamento.
+UTC, e esse balde nunca coincide com o dia local — por isso o coletor conta
+os posts do próprio dia local. Estes testes travam esse comportamento.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
-from hashpanel.services.collector import _day_to_date_string
 from hashpanel.services.hashtags import HashtagAnalysis
 from tests.conftest import make_toot
 
 SAO_PAULO = "America/Sao_Paulo"
-
-
-def test_api_day_is_converted_to_local_timezone() -> None:
-    """A linha do dia da API é convertida para a data local.
-
-    A API devolve o dia em UTC. Um post às 02:00 UTC de 21/10 é ainda
-    20/10 em São Paulo — a data local é a que vale para o painel.
-    """
-    # 02:00 UTC de 21/10 -> 23:00 de 20/10 em São Paulo
-    late_post = {"day": datetime(2026, 10, 21, 2, 0, tzinfo=UTC)}
-
-    assert _day_to_date_string(late_post, SAO_PAULO) == "2026-10-20"
-    # Em UTC, seria o dia seguinte.
-    assert _day_to_date_string(late_post, "UTC") == "2026-10-21"
-
-
-def test_api_day_accepts_unix_timestamp_and_iso() -> None:
-    """O dia chega como datetime, timestamp Unix ou ISO — todos consistentes."""
-    expected = "2026-10-20"
-
-    assert (
-        _day_to_date_string({"day": datetime(2026, 10, 21, 2, 0, tzinfo=UTC)}, SAO_PAULO)
-        == expected
-    )
-    assert _day_to_date_string({"day": 1792548000}, SAO_PAULO) == expected  # 2026-10-21T02:00Z
-    assert _day_to_date_string({"day": "2026-10-21T02:00:00+00:00"}, SAO_PAULO) == expected
 
 
 def test_counts_come_from_the_local_day() -> None:
@@ -103,15 +75,11 @@ def test_panel_and_collector_agree_on_the_same_day() -> None:
         ) -> list[dict[str, Any]]:
             return toots
 
-        def get_hashtag_history(self, hashtag: str) -> list[dict[str, Any]]:
-            return []
-
     collector = HistoryCollector.__new__(HistoryCollector)
     from hashpanel.config import get_settings
 
     collector.settings = get_settings()
     collector.mastodon = FakeMastodon()
-    collector._ignored_account_ids = set()
 
     usage = collector._usage_for_local_day("tercinema", "2026-10-20", SAO_PAULO)
 
@@ -142,15 +110,11 @@ def test_collector_excludes_trending_bots_from_both_counts() -> None:
         ) -> list[dict[str, Any]]:
             return toots
 
-        def get_hashtag_history(self, hashtag: str) -> list[dict[str, Any]]:
-            return []
-
     collector = HistoryCollector.__new__(HistoryCollector)
     from hashpanel.config import get_settings
 
     collector.settings = get_settings()
     collector.mastodon = FakeMastodon()
-    collector._ignored_account_ids = set()
 
     usage = collector._usage_for_local_day("tercinema", "2026-10-20", SAO_PAULO)
 

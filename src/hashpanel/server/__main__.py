@@ -34,6 +34,13 @@ def main() -> int:
         port=settings.port,
         log_config=None,
         access_log=False,
+        # O uvicorn reescreve ``request.client.host`` a partir do
+        # ``X-Forwarded-For`` por padrão, e sem checar quem mandou a
+        # requisição: qualquer cliente trocaria de balde nos limites por
+        # IP. O endereço do cliente é resolvido aqui, a partir da lista
+        # de proxies confiáveis (TRUSTED_PROXY_IPS).
+        proxy_headers=False,
+        forwarded_allow_ips="",
     )
     return 0
 

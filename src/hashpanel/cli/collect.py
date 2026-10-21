@@ -14,9 +14,11 @@ import argparse
 import sys
 from datetime import datetime, timedelta
 
+from hashpanel.config import get_settings
 from hashpanel.database.connection import get_database
 from hashpanel.services.collector import HistoryCollector
 from hashpanel.utils.logger import get_logger
+from hashpanel.utils.timezone import get_current_date_in_timezone
 
 logger = get_logger()
 
@@ -53,13 +55,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    settings = get_settings()
     database = get_database()
     collector = HistoryCollector()
 
     try:
         if args.last_7_days:
-            end = datetime.now().strftime("%Y-%m-%d")
-            start = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            end = get_current_date_in_timezone(settings.preferred_timezone)
+            start = (datetime.fromisoformat(end) - timedelta(days=6)).strftime("%Y-%m-%d")
             print(f"Collecting history data from {start} to {end} (last 7 days)...")
             summary = collector.collect_date_range(start, end)
             _print_summary(
@@ -112,6 +115,18 @@ def main(argv: list[str] | None = None) -> int:
                     "Errors": summary["errors"],
                 },
             )
+
+        errors = summary.get("totalErrors")
+        if errors is None:
+            errors = summary.get("errors", 0)
+
+        if errors:
+            print(
+                f"\n❌ Collection finished with {errors} error(s); "
+                "some hashtags could not be collected.",
+                file=sys.stderr,
+            )
+            return 1
 
         print("\n✅ Collection completed successfully")
         return 0

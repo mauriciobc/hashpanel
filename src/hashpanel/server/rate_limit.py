@@ -6,11 +6,13 @@ não exige dependências extras.
 
 from __future__ import annotations
 
+import ipaddress
 import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from hashpanel.config import get_settings
 from hashpanel.utils.logger import get_logger
 
 logger = get_logger()
@@ -102,12 +104,87 @@ posting_limiter = RateLimiter(POSTING_RULE)
 light_limiter = RateLimiter(LIGHT_RULE)
 
 
+def _normalize_address(value: str) -> str:
+    """Normaliza um endereço para comparação (IPv6 nas formas usuais)."""
+    try:
+        return str(ipaddress.ip_address(value.strip()))
+    except ValueError:
+        return value.strip()
+
+
+def _is_trusted_proxy(peer: str) -> bool:
+    """Indica se o peer imediato é um proxy reverso confiável.
+
+    A lista vem de ``TRUSTED_PROXY_IPS`` (redes CIDR). Sem essa lista, não
+    há proxy conhecido: o endereço de origem vale.
+
+    A checagem é explícita de propósito. Num container com porta
+    publicada, o endereço de origem de um cliente externo também é privado
+    (a rede do Docker), então "peer privado" não distingue o proxy de um
+    atacante — e o ``X-Forwarded-For`` dele seria aceito.
+    """
+    networks = get_settings().trusted_proxy_networks
+    if not networks:
+        return False
+
+    try:
+        address = ipaddress.ip_address(peer.strip())
+    except ValueError:
+        return False
+
+    for entry in networks:
+        try:
+            if address in ipaddress.ip_network(entry, strict=False):
+                return True
+        except ValueError:
+            logger.warning("Invalid trusted proxy network", network=entry)
+    return False
+
+
 def client_key(request: Any) -> str:
-    """Identificador do cliente, respeitando ``X-Forwarded-For`` quando confiável."""
+    """Identificador do cliente para os limites de requisição.
+
+    O endereço de origem (``request.client.host``) é a única fonte
+    confiável. O cabeçalho ``X-Forwarded-For`` é controlado por quem faz a
+    requisição e só vale quando a requisição passou por um proxy reverso
+    confiável:
+
+    * ``TRUST_PROXY=false`` (ou ``0``) — o cabeçalho é ignorado;
+    * ``TRUST_PROXY=n`` — o endereço do cliente é o n-ésimo a partir do fim
+      da cadeia, e os elementos à esquerda dele são descartados porque foram
+      injetados pelo próprio cliente.
+
+    O cabeçalho só é considerado quando o peer imediato pertence a uma das
+    redes de ``TRUSTED_PROXY_IPS``. Sem isso, cada requisição cairia em um
+    balde novo e zeraria os limites — inclusive o de publicação, que não tem
+    autenticação.
+    """
+    peer = request.client.host if request.client else "unknown"
+
+    hops = get_settings().trusted_proxy_hops
+    if hops <= 0:
+        return peer
+
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if not forwarded:
+        return peer
+
+    if not _is_trusted_proxy(peer):
+        return peer
+
+    chain = [entry.strip() for entry in forwarded.split(",") if entry.strip()]
+    if not chain:
+        return peer
+
+    # O Caddy (e o nginx, na configuração deste projeto) sobrescreve
+    # ``X-Forwarded-For`` com o endereço do cliente: a cadeia tem um só
+    # elemento. Quando o proxy concatena, o cliente é o n-ésimo a partir
+    # do fim, e o que o cliente escreveu à esquerda é descartado.
+    index = len(chain) - hops
+    if index < 0:
+        return peer
+
+    return chain[index]
 
 
 def rate_limit_headers(rule: LimitRule, remaining: int, reset_seconds: float) -> dict[str, str]:

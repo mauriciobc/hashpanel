@@ -87,7 +87,8 @@ class Settings(BaseSettings):
     log_level: str = Field("info", alias="LOG_LEVEL")
     node_env: str = Field("development", alias="NODE_ENV")
     cors_origin: str | None = Field(None, alias="CORS_ORIGIN")
-    trust_proxy: str = Field("1", alias="TRUST_PROXY")
+    trust_proxy: str = Field("0", alias="TRUST_PROXY")
+    trusted_proxy_ips: str | None = Field(None, alias="TRUSTED_PROXY_IPS")
 
     # --- Performance ---
     api_timeout_ms: int = Field(30000, alias="API_TIMEOUT_MS")
@@ -197,6 +198,39 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.node_env == "production"
+
+    @property
+    def trusted_proxy_hops(self) -> int:
+        """Quantos proxies reversos ficam entre o cliente e a aplicação.
+
+        ``0`` (ou ``false``) desliga o uso de ``X-Forwarded-For``: a aplicação
+        passa a contar os limites por endereço de origem. Com ``n`` proxies
+        confiáveis, o endereço do cliente é o n-ésimo a partir do fim da
+        cadeia do cabeçalho.
+        """
+        raw = (self.trust_proxy or "").strip().lower()
+        if raw in {"", "false", "no", "off", "0"}:
+            return 0
+        try:
+            return max(0, int(raw))
+        except ValueError:
+            return 0
+
+    @property
+    def trusted_proxy_networks(self) -> list[str]:
+        """Redes (CIDR) dos proxies reversos confiáveis.
+
+        Só o proxy definido aqui pode ser usado para ler o endereço do
+        cliente de ``X-Forwarded-For``. Sem essa lista, o cabeçalho é
+        controlado pelo cliente e não serve para contar limites.
+
+        Vazio significa "nenhum proxy conhecido": o endereço de origem
+        vale.
+        """
+        raw = self.trusted_proxy_ips
+        if not raw or not raw.strip():
+            return []
+        return [entry.strip() for entry in raw.split(",") if entry.strip()]
 
     @property
     def allowed_origins(self) -> list[str]:

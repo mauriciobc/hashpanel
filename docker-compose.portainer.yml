@@ -27,7 +27,10 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - PREFERRED_TIMEZONE=${PREFERRED_TIMEZONE:-America/Sao_Paulo}
-      - TRUST_PROXY=${TRUST_PROXY:-1}
+      # O cabeçalho X-Forwarded-For só é lido quando a conexão vem de uma
+      # das redes em TRUSTED_PROXY_IPS (a rede do Caddy, por exemplo).
+      - TRUST_PROXY=${TRUST_PROXY:-0}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 * * *}
     volumes:
