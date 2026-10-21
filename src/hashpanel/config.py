@@ -108,6 +108,12 @@ class Settings(BaseSettings):
     media_proxy_cache_max_mb: int = Field(50, alias="MEDIA_PROXY_CACHE_MAX_MB")
     media_proxy_cache_max_entries: int = Field(200, alias="MEDIA_PROXY_CACHE_MAX_ENTRIES")
 
+    # --- Comportamento do bot ---
+    # Quando falso, o bot NAO responde mencoes (nenhum post automatico em
+    # resposta a quem menciona a conta). O relatorio diario agendado as 23:59
+    # nao e afetado -- e o que publica o dashboard.
+    mention_auto_reply: bool = Field(True, alias="MENTION_AUTO_REPLY")
+
     # --- Health check ---
     healthcheck_timeout_ms: int = Field(2500, alias="HEALTHCHECK_TIMEOUT_MS")
 

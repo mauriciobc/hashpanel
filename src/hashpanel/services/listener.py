@@ -83,8 +83,20 @@ class MentionListener(StreamListener):
         self._thread: threading.Thread | None = None
 
     # --- ciclo de vida ---
+    @property
+    def enabled(self) -> bool:
+        """Indica se o bot deve responder mencoes."""
+        return bool(self.settings.mention_auto_reply)
+
     def start(self) -> None:
-        """Conecta ao streaming em uma thread de fundo."""
+        """Conecta ao streaming em uma thread de fundo.
+
+        Quando ``MENTION_AUTO_REPLY`` esta desligado, nao conecta: o bot nao
+        responde a ninguem e nenhuma notificacao e consumida.
+        """
+        if not self.enabled:
+            logger.info("Mention auto-reply disabled (MENTION_AUTO_REPLY=false); not connecting")
+            return
         if self._thread is not None and self._thread.is_alive():
             logger.warning("Mention listener already running")
             return
@@ -258,6 +270,7 @@ class MentionListener(StreamListener):
             (time.monotonic() - self.last_event_time) if self.last_event_time else None
         )
         return {
+            "enabled": self.enabled,
             "connected": self.connected,
             "readyState": "OPEN" if self.connected else "CLOSED",
             "readyStateCode": 1 if self.connected else 3,

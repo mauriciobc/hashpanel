@@ -53,7 +53,8 @@ async def lifespan(app: FastAPI):
     listener = get_mention_listener()
 
     # Em testes não abrimos conexão de streaming com o Mastodon.
-    if settings.node_env != "test":
+    # Com MENTION_AUTO_REPLY desligado o listener nao conecta (e nao responde).
+    if settings.node_env != "test" and settings.mention_auto_reply:
         listener.start()
         logger.info("Web server started", host=settings.host, port=settings.port)
 

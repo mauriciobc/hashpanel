@@ -57,7 +57,17 @@ async def build_health_report() -> dict[str, Any]:
 
     try:
         ws_status = get_mention_listener().get_status()
-        if ws_status["connected"]:
+        if not ws_status.get("enabled", True):
+            # Desligado de proposito: o listener nao conecta e nao e falha.
+            # Sem isso o /health devolveria 503 e o container entraria em
+            # restart loop (o healthcheck usa curl -f).
+            report["services"]["websocket"] = "disabled"
+            report["websocket"] = {
+                "enabled": False,
+                "connected": False,
+                "readyState": "DISABLED",
+            }
+        elif ws_status["connected"]:
             report["services"]["websocket"] = "healthy"
             report["websocket"] = {
                 "connected": True,

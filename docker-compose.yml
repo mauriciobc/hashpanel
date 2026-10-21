@@ -40,6 +40,10 @@ services:
       # Origem única:  CORS_ORIGIN=https://seu-dominio.com
       # Várias:        CORS_ORIGIN=https://a.com,https://b.com
       - CORS_ORIGIN=${CORS_ORIGIN}
+      # Respostas automáticas a menções.
+      # false = o bot não responde a ninguém que mencionar a conta.
+      # O relatório diário agendado (CRON_SCHEDULE) não é afetado.
+      - MENTION_AUTO_REPLY=${MENTION_AUTO_REPLY:-true}
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
