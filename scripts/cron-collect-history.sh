@@ -82,8 +82,10 @@ if [ $EXIT_CODE -eq 0 ]; then
   if [ $REPORT_EXIT_CODE -eq 0 ]; then
     run "Relatório publicado com sucesso" true
   else
-    # A falha do relatório não deve reprovar o job.
-    run "Erro ao publicar relatório (código: $REPORT_EXIT_CODE)" true
+    # O relatório não foi publicado (ex.: no_toots quando a hashtag do dia
+    # ainda não tem posts). Isso não é erro do job, mas também não é sucesso
+    # -- não pode ser reportado como "publicado com sucesso".
+    run "Relatório não publicado (código: $REPORT_EXIT_CODE)" true
   fi
 else
   run "Erro na coleta (código: $EXIT_CODE)" true

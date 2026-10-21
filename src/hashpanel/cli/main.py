@@ -91,7 +91,7 @@ class CLIApplication:
         if self.prompt_for_posting():
             self.post_summary(summary, hashtag)
 
-    def run_daily_report(self, options: argparse.Namespace) -> None:
+    def run_daily_report(self, options: argparse.Namespace) -> bool:
         """Publica o relatório do dia com a imagem gerada."""
         self.validate_configuration()
         theme = "light" if options.light else "dark"
@@ -106,7 +106,7 @@ class CLIApplication:
 
             if not analysis.has_today_toots():
                 print("⚠️  Nenhum post encontrado para hoje.")
-                return
+                return False
 
             stats = {
                 "hashtag": hashtag,
@@ -144,8 +144,10 @@ class CLIApplication:
             print("✅ Relatório diário publicado com sucesso!")
             print(f"📝 ID: {result['toot'].get('id')}")
             print(f"🔗 URL: {result['toot'].get('url')}")
-        else:
-            print(f"⚠️  Relatório não publicado: {result.get('reason')}")
+            return True
+
+        print(f"⚠️  Relatório não publicado: {result.get('reason')}")
+        return False
 
     def analyze(self, hashtag: str) -> None:
         """Analisa uma hashtag específica."""
@@ -312,7 +314,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "status":
             app.show_status()
         elif args.command == "report":
-            app.run_daily_report(args)
+            # Sai com código != 0 quando o relatório NÃO foi publicado, para
+            # que o script do cron não anuncie sucesso sobre um no-op.
+            if not app.run_daily_report(args):
+                return 1
         else:
             app.run(args)
     except ConfigurationError as exc:
